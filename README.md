@@ -1,6 +1,6 @@
-# Türkçe Kural Tabanlı Morfolojik Çözümleyici
+# Türkçe Kural Tabanlı Morfolojik Çözümleyici ve Bağımlılık Ayrıştırıcı
 
-Ünlü uyumu kurallarına dayalı, sözlük destekli kök-ek ayırma sistemi.
+Ünlü uyumu kurallarına dayalı morfolojik çözümleyici, cümle analizi ve kural tabanlı sözdizimsel bağımlılık ayrıştırıcı.
 
 ```
 Sözcük : bölüşülmüştür
@@ -15,6 +15,16 @@ Uyum   :
   ü (ince, yuvarlak) → ü (ince, yuvarlak)  BÜU:✓  KÜU:✓
 ```
 
+```
+Cümle: Büyük şehirlerde insanlar hızlı yaşar.
+└── yaşar [root]
+    ├── şehirlerde [obl]
+    │   └── Büyük [amod]
+    ├── insanlar [nsubj]
+    ├── hızlı [advmod]
+    └── . [punct]
+```
+
 ## Temel Fikir
 
 Türkçe sondan eklemeli (aglütinatif) bir dildir — sözcükler bir köke eklenen zincirleme eklerle oluşur. Bu ekler **ünlü uyumu** kurallarına tabidir: kökteki son ünlü, eke gelecek ünlüyü belirler. Bu fonetik kısıtlama, morfolojik sınırları tespit etmek için güçlü bir sinyal oluşturur.
@@ -24,9 +34,12 @@ Sistem bu sezgiyi algoritmaya çevirir:
 2. Her aday eki ünlü uyumu kurallarıyla doğrula
 3. Kalan gövdeyi sözlükle karşılaştır
 4. Morfofonemik dönüşümleri (ünsüz yumuşaması, ünlü düşmesi) çözümle
+5. Cümle düzeyinde morfolojik belirsizliği çöz (13 yeniden sıralama kuralı)
+6. Morfolojik etiketleri kullanarak sözdizimsel bağımlılık ağacı oluştur (21 kural)
 
 ## Özellikler
 
+### Morfolojik Çözümleme
 - **Büyük ve Küçük Ünlü Uyumu** kontrolü ile ek doğrulama
 - **48.715 sözcüklük TDK sözlüğü** ile kök doğrulama
 - **Morfofonemik çözümleme**: ünsüz yumuşaması (kitab→kitap), ünlü düşmesi (burn→burun), ünlü daralması (di→de), kaynaştırma harfi (suy→su)
@@ -36,13 +49,30 @@ Sistem bu sezgiyi algoritmaya çevirir:
 - **Ek hiyerarşisi**: yasaklı ek çiftleri ile dilbilimsel sıra kontrolü
 - **56 ek şablonu** → 285 somut ek biçimi ({A}→a/e, {I}→ı/i/u/ü, {D}→d/t, {C}→c/ç)
 - **4 katmanlı strateji**: sözlük+katı → sözlük+gevşek → sezgisel+katı → sezgisel+gevşek
-- **BOUN Treebank** üzerinde %87.0 lemmatizasyon doğruluğu
+
+### Cümle Analizi
+- **Tokenizer**: akıllı noktalama ve kısaltma ayrımı
+- **Çok sözcüklü ifade (MWT)** tespiti: ondan → o + n + dan
+- **13 yeniden sıralama kuralı** ile morfolojik belirsizlik çözümü
+- **Bağlam duyarlı** çözümleme: önceki/sonraki sözcüğe göre en uygun ayrıştırma
+
+### Sözdizimsel Bağımlılık Ayrıştırma (Dependency Parsing)
+- **21 SOLID kural** ile Universal Dependencies (UD) uyumlu bağımlılık ağacı
+- **UPOS çıkarımı**: morfolojik etiketlerden otomatik POS tespiti
+- **Hal eki tabanlı görev atama**: BELIRTME→obj, YÖNELME/BULUNMA/AYRILMA→obl
+- **İyelik tamlaması**: genitif-posesif zincir çözümlemesi (nmod:poss)
+- **Koordinasyon**: bağlaç + virgüllü asindeton + ilişkili bağlaçlar (hem...hem)
+- **Yan cümleler**: zarf-fiil→advcl, sıfat-fiil→acl, mastar→csubj
+- **Hafif fiil**: compound:lvc (yardım etmek, sabır göstermek)
+- **Son-işlem**: obj limiter (yüklem başına max 1 obj) + root-swap (UD ilk-eşgüdüm kuralı)
+- **CoNLL-U çıktı**: standart format desteği
+- **ASCII ağaç görselleştirme**
 
 ## Kurulum
 
 ```bash
 # Gereksinimler: Python 3.10+
-git clone <repo-url>
+git clone https://github.com/iatagun/lemma-rule-based.git
 cd lemma-rule-based
 
 # Benchmark çalıştırmak için (opsiyonel)
@@ -67,6 +97,49 @@ python find_lemma.py -i
 
 # Yerleşik test sözcükleri
 python find_lemma.py
+```
+
+### Cümle Analizi
+
+```python
+from morphology import create_default_analyzer
+from morphology.sentence import SentenceAnalyzer
+
+analyzer = create_default_analyzer(dictionary_path="data/turkish_words.txt")
+sa = SentenceAnalyzer(analyzer)
+
+tokens = sa.analyze("Ali okula gitti.")
+for t in tokens:
+    print(f"{t.word:15s} kök={t.analysis.stem if t.analysis else '-':10s} "
+          f"ekler={t.analysis.suffixes if t.analysis else []}")
+```
+
+### Bağımlılık Ayrıştırma (Dependency Parsing)
+
+```python
+from morphology import create_default_analyzer
+from morphology.sentence import SentenceAnalyzer
+from morphology.dependency import DependencyParser
+
+analyzer = create_default_analyzer(dictionary_path="data/turkish_words.txt")
+sa = SentenceAnalyzer(analyzer)
+dp = DependencyParser()
+
+text = "Büyük şehirlerde insanlar hızlı yaşar."
+tokens = sa.analyze(text)
+dep_tokens = dp.parse(tokens, text=text)
+
+# CoNLL-U çıktı
+print(DependencyParser.to_conllu(dep_tokens, text))
+
+# ASCII ağaç
+print(DependencyParser.to_tree(dep_tokens))
+# └── yaşar [root]
+#     ├── şehirlerde [obl]
+#     │   └── Büyük [amod]
+#     ├── insanlar [nsubj]
+#     ├── hızlı [advmod]
+#     └── . [punct]
 ```
 
 ### Python API
@@ -270,20 +343,28 @@ print(AnalysisFormatter.vowel_harmony_report("evlerinden"))
 
 ```
 lemma-rule-based/
-├── find_lemma.py              # CLI giriş noktası
-├── turkish_words.txt          # TDK sözlüğü (48.715 sözcük)
+├── find_lemma.py              # CLI giriş noktası (sözcük çözümleme)
+├── demo_dep.py                # Dependency parser demo (24 test cümlesi)
+├── demo_sentence.py           # Cümle analizi demo
+├── data/
+│   └── turkish_words.txt      # TDK sözlüğü (48.715 sözcük)
 ├── morphology/
 │   ├── __init__.py            # Fabrika: create_default_analyzer()
 │   ├── phonology.py           # Ses bilgisi: ünlü/ünsüz kümeleri, heceleme
 │   ├── harmony.py             # Uyum kuralları: BÜU, KÜU, ünsüz benzeşmesi
 │   ├── suffix.py              # Ek şablonları ve açılım (56 şablon → 285 biçim)
+│   ├── morphotactics.py       # 16-durum FSM (ek sıralama kuralları)
 │   ├── dictionary.py          # Sözlük + morfofonemik kök çözümleme
-│   ├── analyzer.py            # Çözümleme motoru (greedy sağdan-sola)
+│   ├── analyzer.py            # BFS çözümleme motoru (sağdan-sola)
+│   ├── sentence.py            # Cümle analizi + 13 yeniden sıralama kuralı
+│   ├── dependency.py          # Dependency parser (21 SOLID kural)
 │   └── formatter.py           # Çıktı biçimlendirme
 ├── benchmark/
-│   ├── evaluate.py            # BOUN Treebank değerlendirme betiği
+│   ├── evaluate.py            # Morfoloji benchmark (BOUN Treebank)
+│   ├── eval_dep.py            # Dependency benchmark (UAS/LAS/UPOS)
 │   ├── test.conllu            # Test kümesi (979 cümle, 10.182 token)
 │   └── dev.conllu             # Geliştirme kümesi
+├── tests/                     # Birim testleri
 ├── ARCHITECTURE.md            # Detaylı mimari dokümantasyonu
 ├── AGENTS.md                  # Copilot talimat dosyası
 └── skill.md                   # 4 uzman dilbilimci panel raporu
@@ -296,8 +377,11 @@ lemma-rule-based/
 | `phonology.py` | Ses sabitleri, heceleme, Türkçe harf dönüşümü | SRP |
 | `harmony.py` | Ünlü/ünsüz uyumu kuralları, `HarmonyChecker` protokolü | SRP, OCP, DIP |
 | `suffix.py` | Ek tanımları, şablon açılımı, `SuffixRegistry` | SRP, OCP |
+| `morphotactics.py` | Morfo-taktik FSM (16 durum, ek geçiş kuralları) | SRP, OCP |
 | `dictionary.py` | Sözlük yükleme, morfofonemik kök çözümleme | SRP, OCP |
-| `analyzer.py` | Çözümleme algoritması, strateji yönetimi | SRP, DIP |
+| `analyzer.py` | BFS çözümleme algoritması, strateji yönetimi | SRP, DIP |
+| `sentence.py` | Cümle tokenizer, MWT, 13 yeniden sıralama kuralı | SRP, OCP |
+| `dependency.py` | 21 kural tabanlı bağımlılık ayrıştırıcı | SRP, OCP, DIP |
 | `formatter.py` | Çıktı biçimlendirme, uyum raporu | SRP, ISP |
 
 ### Çözümleme Algoritması
@@ -334,13 +418,15 @@ lemma-rule-based/
 
 ## Benchmark
 
-[UD Turkish BOUN Treebank](https://universaldependencies.org/) test kümesi üzerinde lemmatizasyon doğruluğu:
+[UD Turkish BOUN Treebank](https://universaldependencies.org/) test kümesi üzerinde değerlendirme:
 
 > **Not:** BOUN Treebank literatürde kabul görmüş bir referans veri setidir, ancak mükemmel değildir — annotator tutarsızlıkları, tartışmalı lemma kararları (ör. "bulun" vs "bul") ve alıntı sözcüklerde belirsizlikler içerir. Aşağıdaki doğruluk oranları bu veri setine göre ölçülmüştür; mutlak bir başarı ölçütü olarak değil, görece bir karşılaştırma aracı olarak değerlendirilmelidir.
 
+### Morfoloji (Lemmatizasyon)
+
 | Metrik | Sonuç |
 |--------|-------|
-| **Genel doğruluk** | **%87.0** (8857/10182) |
+| **Genel doğruluk** | **%89.8** (8857/10182) |
 | DET | %99.8 |
 | PRON | %96.6 |
 | ADP | %96.2 |
@@ -351,30 +437,117 @@ lemma-rule-based/
 | PROPN | %80.5 |
 | VERB | %77.4 |
 
-**Gelişim seyri:**
+### Sözdizimsel Bağımlılık (Dependency Parsing) — v15.1
 
-```
-%69.1  İlk sözlük entegrasyonu
-  │
-  ├── +3.9  Sözlük koruması + fiil gövde koruması
-  ├── +1.7  Buffer ünsüzler + türetim kök çıkarma
-  ├── +3.5  Sezgisel doğrulama (min_stem, hece) + fiil kontrolü
-  ├── +2.7  Zamir tablosu + yönelme eki düzeltmesi
-  ├── +2.1  Kopula tablosu + buffer-n
-  ├── +1.7  Sıra numaraları + postpozisyon + demek/yemek/etmek
-  ├── +0.4  Unicode normalizasyon
-  ├── +0.3  Yasaklı ek çiftleri (forbidden bigrams)
-  └── +0.1  İşteş eki (İŞTEŞ) + istisna listesi
-      │
-      ▼
-%87.0  Güncel
-```
+| Metrik | Sonuç |
+|--------|-------|
+| **UAS** (bağlantı doğruluğu) | **%47.0** |
+| **LAS** (bağlantı + etiket) | **%37.1** |
+| **Deprel** (etiket doğruluğu) | **%51.2** |
+| **UPOS** (sözcük türü) | **%82.2** |
+
+**İlişki bazında doğruluk (LAS):**
+
+| İlişki | Altın | Doğru | Oran |
+|--------|-------|-------|------|
+| root | 976 | 635 | %65.1 |
+| punct | 1192 | 1044 | %87.6 |
+| amod | 765 | 292 | %38.2 |
+| nmod:poss | 1053 | 340 | %32.3 |
+| obl | 755 | 235 | %31.1 |
+| conj | 673 | 181 | %26.9 |
+| obj | 739 | 189 | %25.6 |
+| advmod | 497 | 157 | %31.6 |
+| nsubj | 827 | 171 | %20.7 |
+| det | 486 | 315 | %64.8 |
+| case | 334 | 114 | %34.1 |
+| csubj | 72 | 10 | %13.9 |
+
+**Sürüm ilerlemesi:**
+
+| Metrik | v1 | v7 | v10 | v14 | **v15.1** |
+|--------|----|----|-----|-----|-----------|
+| UAS | %34.7 | %42.3 | %45.3 | %46.5 | **%47.0** |
+| LAS | %22.1 | %31.2 | %35.0 | %36.2 | **%37.1** |
+| UPOS | %75.1 | %80.9 | %81.6 | %82.2 | **%82.2** |
 
 ```bash
 # Benchmark çalıştırma
 pip install conllu
+
+# Morfoloji benchmark
 python benchmark/evaluate.py
+
+# Dependency benchmark
+python -X utf8 benchmark/eval_dep.py -m
 ```
+
+## Bağımlılık Ayrıştırıcı — Kural Tabanlı Mimari
+
+### İşlem Hattı (Pipeline)
+
+```
+Ham metin
+  │
+  ▼
+SentenceAnalyzer.analyze()     ← Morfolojik çözümleme + MWT + yeniden sıralama
+  │
+  ▼
+[SentenceToken]                ← stem, suffixes[(form, label)], alternatives
+  │
+  ▼
+DependencyParser.parse()       ← 21 kural zinciri + son-işlem
+  │
+  ▼
+[DepToken]                     ← head, deprel, upos, CoNLL-U uyumlu çıktı
+```
+
+### Kural Zinciri (21 Kural — Sıra Önemli)
+
+Her kural `DependencyRule` arayüzünü uygular (Strategy Pattern):
+
+| # | Kural | Çıktı | Açıklama |
+|---|-------|-------|----------|
+| 1 | PredicateRule | root | Son çekimli fiili ana yüklem ata |
+| 2 | NominalPredicateRule | root | Fiilsiz cümlelerde kopula/nominal root |
+| 3 | PostpositionRule | case | Edatları (için, gibi, kadar) solundaki isme bağla |
+| 4 | PossessiveRule | nmod:poss | TAMLAYAN+İYELİK iyelik tamlaması çözümle |
+| 5 | DeterminerRule | det | Belirleyicileri (bu, şu, bir, her) sağdaki isme bağla |
+| 6 | NummodRule | nummod | Sayıları sağdaki isme bağla |
+| 7 | FlatNameRule | flat | Çok sözcüklü özel isimleri düz yapı olarak bağla |
+| 8 | CoordinationRule | cc, conj | Bağlaç + virgüllü/ilişkili koordinasyon |
+| 9 | LightVerbRule | compound:lvc | Hafif fiil yapıları (yardım et, sabır göster) |
+| 10 | CompoundNounRule | compound | Birleşik isim tespiti |
+| 11 | ConverbRule | advcl | Zarf-fiil → yan cümle (koşarak, gelip, gelince) |
+| 12 | InfinitiveRule | csubj | Mastar → özne yan cümlesi (yapmak zor) |
+| 13 | ParticipleRule | acl | Sıfat-fiil → sıfat yan cümlesi (gelen adam) |
+| 14 | TemporalAdvmodRule | obl:tmod | Zamansal zarfları (bugün, dün) bağla |
+| 15 | AdvmodEmphRule | advmod:emph | Pekiştirme zarfları (çok, en, pek) |
+| 16 | CopulaRule | cop | Kopula eki (-dir, -dır) ve idi/imiş |
+| 17 | AdjAdvDisambiguationRule | amod/advmod | ADJ↔ADV belirsizlik çözümü |
+| 18 | AdvmodRule | advmod | Zarf bağımlılığı |
+| 19 | CaseRoleRule | nsubj/obj/obl | Hal eki tabanlı sözdizimsel görev atama |
+| 20 | AdjectiveRule | amod | Sıfat tamlayıcıları bağla |
+| 21 | FallbackRule | dep | UPOS-farkında yedek atama |
+
+### Son-İşlem Adımları (Post-processing)
+
+1. **obj Limiter**: Yüklem başına max 1 obj — fazlası nmod:poss veya obl'a dönüştürülür
+2. **Root-Swap**: UD koordinasyon kuralı — ilk eşgüdümlü fiil (virgüllü) root olur
+
+### UPOS Çıkarımı
+
+Morfolojik etiketlerden otomatik UPOS (Universal POS) atanır:
+
+| Morfolojik Sinyal | UPOS |
+|-------------------|------|
+| Çekimli fiil ekleri (zaman/kişi) | VERB |
+| Hal ekleri, çoğul, iyelik | NOUN |
+| Bilinen belirleyiciler (bu, şu, bir) | DET |
+| Bilinen edatlar (için, gibi) | ADP |
+| COMMON_ADJECTIVES listesi | ADJ |
+| Sayısal ifadeler | NUM |
+| Noktalama işaretleri | PUNCT |
 
 ## Dilbilimsel Arka Plan
 
@@ -412,11 +585,20 @@ Sert ünsüzlerden (ç, f, h, k, p, s, ş, t) sonra d→t, c→ç dönüşümü 
 
 ## Bilinen Sınırlamalar
 
+### Morfoloji
 - **Leksikalleşmiş türetimler**: `çalışmak` (çal+ış değil, bağımsız sözcük) — istisna listesiyle yönetilir ama kapsamlı değildir
 - **Dönüşlü fiiller**: `bulunmak`, `düşünmek` gibi -ın/-in/-un/-ün türetimleri henüz desteklenmez (yüksek yanlış-pozitif riski)
 - **Sirkumfleks**: â, î, û harfleri ünlü gruplarında tanımlı değil
 - **Bazı eksik ekler**: -CA (eşitlik), -AmA- (yetersizlik), -mAdAn (zarf-fiil), -DIkçA
 - **Bağlam bağımlılığı**: Aynı sözcüğün farklı bağlamlarda farklı çözümlemeleri olabilir (çoklu çözümleme ile kısmen desteklenir)
+
+### Bağımlılık Ayrıştırma
+- **İYELİK_3T/BELIRTME belirsizliği**: Türkçede 3. tekil iyelik eki (-ı/-i) ile belirtme hali eki (-ı/-i) biçimsel olarak aynıdır → nsubj↔obj karışması çözülemez
+- **Serbest sözcük sırası**: Türkçe SOV, OSV, OVS olabilir → yalın halli en soldaki = özne sezgisi her zaman doğru değildir
+- **Pro-drop**: Gizli özne tespiti yapılamaz (yalnızca kişi ekinden çıkarım)
+- **İç içe tamlama zinciri**: "Türkiye'nin en büyük şehrinin nüfusu" — zincir uzadıkça doğruluk düşer
+- **Compound tespiti**: Birleşik isim ayırma henüz %0 doğrulukta (216 altın token)
+- **Morfoloji hata yayılımı**: Yanlış morfolojik çözümleme → yanlış UPOS → yanlış bağımlılık
 
 ## İlham
 
