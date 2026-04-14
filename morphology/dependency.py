@@ -123,6 +123,30 @@ _DERIV_ADJ_RE: re.Pattern[str] = re.compile(
     r")", re.IGNORECASE
 )
 
+# Lokasyon-ilgi sıfatı: BULUNMA(-DA) + ki → sıfat işlevi
+# arasındaki, altındaki, önündeki, bendeki, evindeki vb.
+_DAKI_ADJ_RE: re.Pattern[str] = re.compile(
+    r".{2,}[dt][ae]ki$", re.IGNORECASE
+)
+
+# Bileşik geçmiş zaman formu tespiti — İYELİK_3T/BELIRTME altında gizli fiil
+# Morfolojik çözümleyici bu yapıları tanımadığında yalın isim gibi görünür
+_HIDDEN_PAST_VERB_RE: re.Pattern[str] = re.compile(
+    r"(?:"
+    r".{3,}[yY]ord[uü]$"                   # -yordu (şimdiki+hikâye: diyordu)
+    r"|.{3,}m[ıiuü]ş[tT][ıiuü]$"          # -mIştI (duyulan+hikâye: gerekmişti)
+    r"|.{3,}[aeıioöuü]r[dt][ıiuü]$"        # -VrdI (geniş+hikâye: olurdu, severdi)
+    r"|.{4,}[yY][dt][ıiuü]$"               # -ydI (kopula+hikâye: Çiftçiydi)
+    r"|.{3,}[aeıioöuü]lm[ıiuü]ş$"         # -AlmIş (yeterlk+duyulan: görebilmiş)
+    r")", re.IGNORECASE
+)
+
+# -mIş formu tespiti — İŞTEŞ olarak yanlış etiketlenen duyulan geçmiş/sıfat-fiil
+# kurulmuş, yazılmış, açılmış, demiş, gelmiş vb.
+_MIS_VERB_RE: re.Pattern[str] = re.compile(
+    r".{2,}m[ıiuü]ş$", re.IGNORECASE
+)
+
 # Fiilden türeme etiketleri — _infer_upos'ta VERB tespiti için
 VERBAL_NOUN_LABELS: frozenset[str] = frozenset({
     "MASTAR", "İSİM_FİİL", "İŞTEŞ", "EDİLGEN", "ETTİRGEN",
@@ -241,6 +265,16 @@ COMMON_ADJECTIVES: frozenset[str] = frozenset({
     "durgun", "doygun", "çekingen", "nadir", "zarif",
     "alışılmış", "tanıdık", "kararlı", "bağımsız",
     "fransız", "alman", "arap", "kürt", "rum", "ermeni",
+    # v16 ekleme — UPOS/deprel hata analizi
+    "favori", "mahalli", "çekinik", "yıllık", "yardımcı",
+    "ilgili", "etik", "yepyeni", "bağlı", "parasız",
+    "nazik", "rasyonel", "emin", "estetik", "kurulu",
+    "yaklaşık", "dengeli", "görüntülü", "zanlı", "güleryüzlü",
+    "ölümlü", "şekerli", "huzurlu", "yetkili", "coşkulu",
+    "küresel", "katı", "yoğun", "sürekli", "acil",
+    "kalıcı", "geçici", "günlük", "aylık", "haftalık",
+    "yüzlük", "sınırlı", "bilinçli", "sağlıklı", "doğal",
+    "ulvi", "zahiri", "batıni", "müstakil", "münferit",
 })
 
 # Bilinen zarflar — eksiz kullanımda UPOS=ADV çıkarımı için
@@ -688,9 +722,21 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str],
     if has_iyelik_belirtme and _NOMINALIZED_VERB_RE.search(w):
         return "VERB"
 
+    # Bileşik geçmiş zaman tespiti:
+    # İYELİK_3T/BELIRTME altında gizli hikâye bileşik zamanları
+    # diyordu, gerekmişti, olurdu, Çiftçiydi vb.
+    if has_iyelik_belirtme and _HIDDEN_PAST_VERB_RE.search(w):
+        return "VERB"
+
     # Form-tabanlı zarf-fiil tespiti: -ken, -mAdAn, -DIkçA vb.
     if _CONVERB_FORM_RE.search(w):
         return "VERB"
+
+    # ── Lokasyon-ilgi sıfatı: -DAki ──────────────────────────────
+    # arasındaki, altındaki, önündeki vb. → ADJ
+    # BULUNMA(-de/-da) + ki yapısı → sıfat işlevi
+    if _DAKI_ADJ_RE.search(w):
+        return "ADJ"
 
     # ── Türetim eki tabanlı UPOS tespiti ──────────────────────────
     # Uzun et al. (1992) "Türkiye Türkçesinin Türetim Ekleri" referansıyla
@@ -1072,26 +1118,22 @@ class AdjectiveRule(DependencyRule):
         for i, t in enumerate(tokens):
             if t.is_assigned:
                 continue
-            # Yapım eki sıfat niteliğini bozmaz
-            if t._suffixes and not _has_only_derivational(t):
+            # Sadece ADJ-UPOS tokenlar → güvenli amod ataması
+            if t.upos != "ADJ":
                 continue
-            if t.upos not in ("NOUN", "ADJ"):
-                continue
-            # Strateji 1: ekli isim (orijinal — her NOUN/ADJ için)
+            # Strateji 1: ekli isim sağda → amod
             head = self._find_right_inflected_noun(tokens, i)
             if head:
                 t.head = head.id
                 t.deprel = "amod"
-                t.upos = "ADJ"
-                applied.append("SIFAT→AMOD")
+                applied.append("ADJ→AMOD")
                 continue
-            # Strateji 2: ADJ UPOS + sağda bare/inflected NOUN
-            if t.upos == "ADJ":
-                head = self._find_right_any_noun(tokens, i)
-                if head:
-                    t.head = head.id
-                    t.deprel = "amod"
-                    applied.append("ADJ→AMOD_BARE")
+            # Strateji 2: sağda bare/inflected NOUN
+            head = self._find_right_any_noun(tokens, i)
+            if head:
+                t.head = head.id
+                t.deprel = "amod"
+                applied.append("ADJ→AMOD_BARE")
         return applied
 
     @staticmethod
@@ -1114,10 +1156,14 @@ class AdjectiveRule(DependencyRule):
     def _find_right_any_noun(
         tokens: list[DepToken], start: int,
     ) -> DepToken | None:
-        """Sağdaki ilk ismi bulur (ekli/eksiz); araya ADJ/DET/NUM girebilir."""
+        """Sağdaki ilk ismi bulur (ekli/eksiz); araya ADJ/DET/NUM girebilir.
+        
+        Not: is_assigned kontrolü yapılmaz — bir isim hem head (obj/nsubj)
+        hem de amod target olabilir (UD'de amod bir modifier ilişkisidir).
+        """
         for j in range(start + 1, len(tokens)):
             t = tokens[j]
-            if t.upos in ("NOUN", "PROPN") and not t.is_assigned:
+            if t.upos in ("NOUN", "PROPN"):
                 return t
             if t.upos in ("ADJ", "DET", "NUM"):
                 continue
@@ -1209,7 +1255,13 @@ class ParticipleRule(DependencyRule):
         for i, t in enumerate(tokens):
             if t.is_assigned:
                 continue
-            if not t.has_any_label(PARTICIPLE_LABELS):
+            # Morfolojik etiket VEYA form-tabanlı -mIş tespiti
+            is_participle = t.has_any_label(PARTICIPLE_LABELS)
+            if not is_participle:
+                # -mIş formu: İŞTEŞ olarak yanlış etiketlenmiş olabilir
+                if t.upos == "VERB" and _MIS_VERB_RE.search(t.form):
+                    is_participle = True
+            if not is_participle:
                 continue
 
             # Aşama 1: Sağdaki isme acl bağla
@@ -1981,6 +2033,44 @@ class FallbackRule(DependencyRule):
                     t.deprel = "conj"
                     applied.append("FALLBACK→CONJ_VERB")
                     continue
+                # Sıfat-fiil ama ParticipleRule'da sağda isim bulamadı
+                if t.has_any_label(PARTICIPLE_LABELS):
+                    # Sağda isim varsa acl olarak bağla (daha geniş arama)
+                    target = self._find_right_noun_wide(tokens, i)
+                    if target:
+                        t.head = target.id
+                        t.deprel = "acl"
+                        applied.append("FALLBACK→ACL")
+                        continue
+                    # Sağda isim yok → ccomp (tümleç cümlesi) veya nsubj adayı
+                    t.head = root_id
+                    t.deprel = "ccomp"
+                    applied.append("FALLBACK→CCOMP_PART")
+                    continue
+                # -mIş formu: İŞTEŞ olarak etiketlenmiş ama aslında duyulan geçmiş
+                # kurulmuş, yazılmış, demiş, gelmiş vb.
+                if _MIS_VERB_RE.search(t.form):
+                    target = self._find_right_noun_wide(tokens, i)
+                    if target:
+                        t.head = target.id
+                        t.deprel = "acl"
+                        applied.append("FALLBACK→ACL_MIS")
+                        continue
+                    # Sağda isim yok → finite predicate olarak conj
+                    t.head = root_id
+                    t.deprel = "conj"
+                    applied.append("FALLBACK→CONJ_MIS")
+                    continue
+
+            # NOUN/PROPN: TAMLAYAN ekli → nmod:poss olarak sağdaki isme bağla
+            if t.upos in ("NOUN", "PROPN"):
+                if t.has_label("TAMLAYAN"):
+                    target = self._find_right_possessed(tokens, i)
+                    if target:
+                        t.head = target.id
+                        t.deprel = "nmod:poss"
+                        applied.append("FALLBACK→NMOD_POSS")
+                        continue
 
             local_pred = _find_local_predicate(tokens, t.id, root_id)
             t.head = local_pred
@@ -2012,6 +2102,31 @@ class FallbackRule(DependencyRule):
         for j in range(start - 1, max(start - 4, -1), -1):
             if tokens[j].upos in ("VERB", "NOUN", "ADJ", "PROPN", "ADV"):
                 return tokens[j]
+        return None
+
+    @staticmethod
+    def _find_right_noun_wide(tokens: list[DepToken], start: int) -> DepToken | None:
+        """start'ın sağındaki NOUN/PROPN'u daha geniş pencerede bul (8 token)."""
+        for j in range(start + 1, min(start + 8, len(tokens))):
+            t = tokens[j]
+            if t.upos in ("NOUN", "PROPN"):
+                return t
+            if t.upos in ("VERB",) and not t.has_any_label(PARTICIPLE_LABELS):
+                break
+        return None
+
+    @staticmethod
+    def _find_right_possessed(tokens: list[DepToken], start: int) -> DepToken | None:
+        """TAMLAYAN'lı tokenın sağındaki İYELİK'li ismi bul (6 token pencere)."""
+        for j in range(start + 1, min(start + 6, len(tokens))):
+            t = tokens[j]
+            if t.upos in ("NOUN", "PROPN") and t.has_iyelik:
+                return t
+            if t.upos in ("ADJ", "DET", "NUM"):
+                continue
+            if t.upos in ("NOUN", "PROPN"):
+                return t
+            break
         return None
 
     @staticmethod
@@ -2158,8 +2273,8 @@ class DependencyParser:
             # 16-19: Genel bağımlılıklar
             AdjAdvDisambiguationRule(),
             AdvmodRule(),
+            AdjectiveRule(),       # CaseRoleRule'dan ÖNCE → ADJ tokenları claim et
             CaseRoleRule(),
-            AdjectiveRule(),
             # 20: Fallback
             FallbackRule(),
         ]
