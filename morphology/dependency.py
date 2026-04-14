@@ -2230,7 +2230,41 @@ class DependencyParser:
         # Son-işlem: her yüklem başına en fazla 1 obj tut
         self._limit_obj_per_pred(dep_tokens)
 
+        # Son-işlem: koordinasyon root düzeltmesi
+        self._swap_root_for_coordination(dep_tokens)
+
         return dep_tokens
+
+    @staticmethod
+    def _swap_root_for_coordination(tokens: list[DepToken]) -> None:
+        """UD konvansiyonu: ilk eşgüdümlü öge root olmalı.
+
+        Koşul: ilk conj VERB + virgüllü + root'tan önce → swap.
+        """
+        root = next((t for t in tokens if t.deprel == "root"), None)
+        if not root:
+            return
+        # İlk conj (root'a bağlı, root'tan önce, VERB, virgüllü)
+        first_conj = None
+        for t in tokens:
+            if (t.deprel == "conj" and t.head == root.id
+                    and t.id < root.id and t.upos == "VERB"
+                    and t.has_comma_after):
+                first_conj = t
+                break
+        if not first_conj:
+            return
+        # Swap: first_conj → root, root → conj
+        old_root_id = root.id
+        new_root_id = first_conj.id
+        first_conj.head = 0
+        first_conj.deprel = "root"
+        root.head = new_root_id
+        root.deprel = "conj"
+        # Diğer conj'lar yeni root'a bağlan
+        for t in tokens:
+            if t.deprel == "conj" and t.head == old_root_id and t.id != new_root_id:
+                t.head = new_root_id
 
     @staticmethod
     def _limit_obj_per_pred(tokens: list[DepToken]) -> None:
