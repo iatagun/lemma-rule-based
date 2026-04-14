@@ -99,6 +99,23 @@ _CONVERB_FORM_RE: re.Pattern[str] = re.compile(
     r")", re.IGNORECASE
 )
 
+# ── Türetim eki tabanlı UPOS tespiti ──────────────────────────────
+# Uzun et al. (1992) "Türkiye Türkçesinin Türetim Ekleri" referansı.
+# Sıfat (ADJ) türeten en sık türetim ekleri:
+#   -lI (Ç39 İ7C): güçlü, mutlu, tuzlu, anlamlı, yetkili (1259+ örnek)
+#   -sIz (İ72): güçsüz, evsiz, sessiz, anlamsız (150+ örnek)
+#   -sAl (İ70): ulusal, bilimsel, evrensel, toplumsal (80+ örnek)
+#   -CI (Ç39): yolcu, dışçı (1259 — çoğunlukla AD ama ADJ kullanımı da var)
+#   -(I)msI: yeşilimsi, mavimsi (nadir)
+_DERIV_ADJ_RE: re.Pattern[str] = re.compile(
+    r"(?:"
+    r".{3,}[lL][ıiuü]$"        # -lI: güçlü, mutlu, anlamlı (taban min 3 harf)
+    r"|.{2,}s[ıiuü]z$"         # -sIz: sessiz, evsiz (taban min 2 harf)
+    r"|.{2,}s[ae]l$"            # -sAl: ulusal, bilimsel (taban min 2 harf)
+    r"|.{3,}[ıiuü]ms[ıiuü]$"  # -(I)msI: yeşilimsi, mavimsi (taban min 3 harf)
+    r")", re.IGNORECASE
+)
+
 # Fiilden türeme etiketleri — _infer_upos'ta VERB tespiti için
 VERBAL_NOUN_LABELS: frozenset[str] = frozenset({
     "MASTAR", "İSİM_FİİL", "İŞTEŞ", "EDİLGEN", "ETTİRGEN",
@@ -192,6 +209,13 @@ COMMON_ADJECTIVES: frozenset[str] = frozenset({
     "bembeyaz", "sivri", "milli", "yerleşik", "organik",
     "stratejik", "diplomatik", "sistematik", "otoriter",
     "birinci", "ikinci", "üçüncü",
+    # v9 ekleme — BOUN frekans analizi + türetim eki kitabı
+    "rahatsız", "altın", "yarım", "çeşitli", "olumsuz",
+    "gizli", "sözde", "organize", "karışık", "birtakım",
+    "kocaman", "kara", "taze", "kritik", "dönük", "katlı",
+    "korkunç", "sayın", "yakışıklı", "muhtemel", "evrensel",
+    "sanal", "geçen", "şeffaf", "yoğunlaşmış", "sürdürülebilir",
+    "somutlaşmış", "mevzii", "vicdani", "uluslararası",
 })
 
 # Bilinen zarflar — eksiz kullanımda UPOS=ADV çıkarımı için
@@ -394,11 +418,12 @@ class DepToken:
     # ── Fabrika Metodu ────────────────────────────────────────────
 
     @classmethod
-    def from_sentence_token(cls, st: SentenceToken, idx: int) -> DepToken:
+    def from_sentence_token(cls, st: SentenceToken, idx: int,
+                            is_first: bool = False) -> DepToken:
         """SentenceToken'dan DepToken oluşturur."""
         a = st.analysis
         feats = _extract_feats(a) if a else {}
-        upos = _infer_upos(st, feats)
+        upos = _infer_upos(st, feats, is_first=is_first)
 
         return cls(
             id=idx,
@@ -501,7 +526,8 @@ def _extract_feats(a: MorphemeAnalysis) -> dict[str, str]:
     return feats
 
 
-def _infer_upos(st: SentenceToken, feats: dict[str, str]) -> str:
+def _infer_upos(st: SentenceToken, feats: dict[str, str],
+                is_first: bool = False) -> str:
     """Morfolojik çözümleme + bağlam ipuçlarından UPOS tahmin eder."""
     w = turkish_lower(st.word)
     a = st.analysis
@@ -578,6 +604,34 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str]) -> str:
     # Form-tabanlı zarf-fiil tespiti: -ken, -mAdAn, -DIkçA vb.
     if _CONVERB_FORM_RE.search(w):
         return "VERB"
+
+    # ── Türetim eki tabanlı UPOS tespiti ──────────────────────────
+    # Uzun et al. (1992) "Türkiye Türkçesinin Türetim Ekleri" referansıyla
+    # en sık ADJ türeten eklere bakarak UPOS belirleme.
+    # KOŞUL: Sözcüğün morfolojik çözümlemesinde hal/iyelik eki OLMAMALI.
+    # Yoksa "yılı"(yıl+ı/İYELİK), "hali"(hal+i/İYELİK) gibi formlar
+    # yanlışlıkla ADJ olarak etiketlenir.
+    has_case_or_poss = False
+    for _, label in a.suffixes:
+        subs = label.split("/")
+        for s in subs:
+            if s in CASE_LABELS or s in IYELIK_LABELS or s == "ÇOĞUL":
+                has_case_or_poss = True
+                break
+        if has_case_or_poss:
+            break
+    if not has_case_or_poss and _DERIV_ADJ_RE.search(w):
+        return "ADJ"
+
+    # ── Büyük harf tabanlı PROPN tespiti ──────────────────────────
+    # Strateji:
+    #   1. Apostrof var → büyük olasılıkla PROPN (Türkiye'nin, İstanbul'a)
+    #   2. Cümle-içi büyük harf + hal/iyelik eki yok → PROPN
+    has_apostrophe = "'" in st.word or "\u2019" in st.word
+    if has_apostrophe and st.word and st.word[0].isupper():
+        return "PROPN"
+    if not is_first and not has_case_or_poss and st.word and st.word[0].isupper():
+        return "PROPN"
 
     return "NOUN"
 
@@ -724,6 +778,11 @@ class CaseRoleRule(DependencyRule):
             # 2) Hal eki → doğrudan görev eşleme
             #    İsimleşmiş fiil: VERB + BELIRTME → ccomp (tümleç yan cümlesi)
             #    geldiğini biliyorum → geldiğini = ccomp
+            #    ADJ/ADV/DET: hal eki morph artifact olabilir → atla
+            #    (AdjectiveRule / AdvmodRule bunları sonra yakalar)
+            if t.upos in ("ADJ", "ADV", "DET"):
+                continue
+
             role = self._detect_case_role(t)
             if role:
                 if role == "obj" and t.upos == "VERB":
@@ -1844,7 +1903,7 @@ class DependencyParser:
             return []
 
         dep_tokens = [
-            DepToken.from_sentence_token(st, i + 1)
+            DepToken.from_sentence_token(st, i + 1, is_first=(i == 0))
             for i, st in enumerate(sentence_tokens)
         ]
 

@@ -46,6 +46,11 @@ from morphology.dependency import DependencyParser
 def parse_conllu(path: Path):
     """CoNLL-U dosyasını cümle cümle okur.
 
+    MWT (multi-word token) alt-tokenları birleştirilerek tek token'a
+    dönüştürülür. Birleştirilen token'ın form'u MWT yüzey formundan,
+    diğer özellikleri (upos, head, deprel) ana alt-token'dan alınır.
+    Copula/AUX alt-tokenları düşürülür.
+
     Yields:
         (sent_id, text, tokens) where tokens is list of dicts with:
           id, form, lemma, upos, head, deprel
@@ -53,6 +58,8 @@ def parse_conllu(path: Path):
     sent_id = ""
     text = ""
     tokens = []
+    # MWT yüzey form eşlemesi: (start_id, end_id) → surface_form
+    mwt_ranges: dict[tuple[int, int], str] = {}
 
     with open(path, encoding="utf-8") as f:
         for line in f:
@@ -63,16 +70,23 @@ def parse_conllu(path: Path):
                 text = line.split("=", 1)[1].strip()
             elif line == "":
                 if tokens:
-                    yield sent_id, text, tokens
+                    merged = _merge_mwt_tokens(tokens, mwt_ranges)
+                    yield sent_id, text, merged
                     tokens = []
+                    mwt_ranges = {}
             elif line.startswith("#"):
                 continue
             else:
                 cols = line.split("\t")
                 if len(cols) < 8:
                     continue
-                # Multi-word token (1-2 gibi) veya empty node (1.1) atla
-                if "-" in cols[0] or "." in cols[0]:
+                # Empty node (1.1) atla
+                if "." in cols[0]:
+                    continue
+                # Multi-word token (1-2 gibi) → yüzey form kaydet
+                if "-" in cols[0]:
+                    parts = cols[0].split("-")
+                    mwt_ranges[(int(parts[0]), int(parts[1]))] = cols[1]
                     continue
                 tokens.append({
                     "id": int(cols[0]),
@@ -85,7 +99,48 @@ def parse_conllu(path: Path):
                 })
 
     if tokens:
-        yield sent_id, text, tokens
+        merged = _merge_mwt_tokens(tokens, mwt_ranges)
+        yield sent_id, text, merged
+
+
+def _merge_mwt_tokens(
+    tokens: list[dict],
+    mwt_ranges: dict[tuple[int, int], str],
+) -> list[dict]:
+    """MWT alt-tokenlarını birleştir.
+
+    Strateji: MWT aralığındaki ilk alt-token'ın özelliklerini koru,
+    form'u MWT yüzey formuyla değiştir. Diğer alt-tokenları (cop/aux)
+    düşür. Head referanslarını güncelle.
+    """
+    if not mwt_ranges:
+        return tokens
+
+    # MWT aralığındaki ID'leri belirle: hangi ID'ler düşürülecek
+    drop_ids: set[int] = set()
+    main_id_map: dict[int, int] = {}  # dropped_id → main_id
+    for (start, end), surface in mwt_ranges.items():
+        # İlk alt-token ana token, diğerleri düşürülür
+        for tid in range(start + 1, end + 1):
+            drop_ids.add(tid)
+            main_id_map[tid] = start
+
+    # Birleştirilmiş token listesi
+    merged: list[dict] = []
+    for t in tokens:
+        if t["id"] in drop_ids:
+            continue
+        # MWT ana token'ının form'unu güncelle
+        for (start, end), surface in mwt_ranges.items():
+            if t["id"] == start:
+                t = {**t, "form": surface}
+                break
+        # Head düşürülen bir token'a işaret ediyorsa, ana token'a yönlendir
+        if t["head"] in drop_ids:
+            t = {**t, "head": main_id_map[t["head"]]}
+        merged.append(t)
+
+    return merged
 
 
 # ═══════════════════════════════════════════════════════════════════
