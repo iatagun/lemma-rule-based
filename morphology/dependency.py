@@ -1535,7 +1535,9 @@ class FlatNameRule(DependencyRule):
         i = 0
         while i < len(tokens):
             t = tokens[i]
-            if t.form[0].isupper() and not t.is_assigned:
+            # Zincir başı: büyük harfle başlayan, atanmamış, NOUN/PROPN
+            if (t.form[0].isupper() and not t.is_assigned
+                    and t.upos in ("NOUN", "PROPN")):
                 chain_start = i
                 j = i + 1
                 while j < len(tokens):
