@@ -80,6 +80,12 @@ VERB_FINAL_LABELS: frozenset[str] = frozenset({
     "BİLDİRME",
 })
 
+# Çekimli fiil ekleri — FallbackRule'da conj tespiti için
+_FINITE_TENSE_LABELS: frozenset[str] = frozenset({
+    "GEÇMİŞ_ZAMAN", "DUYULAN_GEÇMİŞ", "GELECEK_ZAMAN",
+    "ŞİMDİKİ_ZAMAN", "GENİŞ_ZAMAN", "GENİŞ_ZAMAN_OLMSZ",
+})
+
 PARTICIPLE_LABELS: frozenset[str] = frozenset({
     "SIFAT_FİİL", "SIFAT_FİİL_-DIk", "SIFAT_FİİL_-DIğ",
 })
@@ -280,21 +286,33 @@ COMMON_ADVERBS: frozenset[str] = frozenset({
 COMMON_NOUNS: frozenset[str] = frozenset({
     # -An sonlu (GENİŞ_ZAMAN/SIFAT_FİİL ile çakışan)
     "zaman", "başkan", "ozan", "divan", "meydan", "kazan",
-    "düzen", "neden", "güven", "yüzen",
+    "düzen", "neden", "güven", "yüzen", "başbakan", "hayran",
     # -Im/-Um sonlu (MASTAR ile çakışan)
     "bilim", "eğitim", "geçim", "toplum", "hücum", "önlem",
     "eylem", "devam", "teslim", "temsil", "yatırım", "ikram",
-    "yaşam",
+    "yaşam", "üretim", "işlem", "program", "dilim",
     # -Ar/-Er sonlu (GENİŞ_ZAMAN ile çakışan)
-    "karar", "pazar", "sınır", "şeker", "kültür",
+    "karar", "pazar", "sınır", "şeker", "kültür", "değer",
+    "hayır", "asır",
     # -Iş sonlu (İŞTEŞ ile çakışan)
     "artış", "bakış", "çıkış", "giriş", "dönüş", "yürüyüş",
+    "buluş",
     # -İp/-Up sonlu
     "takip", "sahip",
+    # -mAk sonlu (MASTAR ile çakışan)
+    "yemek",
+    # Postpozisyonel isimler
+    "tarafından", "bakımından", "yüzünden", "yönünden",
+    # var/yok ailesi (BOUN: NOUN olarak etiketler)
+    "vardır", "yoktur",
     # Diğer yanlış-çözümlemeler
     "akşam", "parmak", "albüm", "helikopter", "deniz",
     "politika", "yardım", "bölge", "dahil", "insan",
-    "adam", "tahmin", "talep", "taraf",
+    "adam", "tahmin", "talep", "taraf", "kereviz",
+    "satanizm", "kader",
+    # Yaygın kök isimler (çekimli formları VERB oluyor)
+    "yan", "gün", "yıl", "su", "ateş", "kapı", "yer",
+    "sıra", "otel", "anne", "baba", "kız",
 })
 
 # Sayı sözcükleri — UPOS=NUM, deprel=nummod
@@ -631,6 +649,18 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str],
         return "NOUN"
     if a and a.stem and a.stem.lower() in COMMON_NOUNS:
         return "NOUN"
+
+    # Çoğul isim tespiti: -lar/-ler soneki + ÇOĞUL etiketi → NOUN
+    # "insanlar", "adamlar" gibi formlar fiil olarak yanlış çözümlenir
+    if a and a.suffixes:
+        has_cogul = any("ÇOĞUL" in lbl for _, lbl in a.suffixes)
+        if has_cogul and not any(
+            sub in VERB_FINAL_LABELS
+            for _, lbl in a.suffixes
+            for sub in lbl.split("/")
+            if sub != "ÇOĞUL"
+        ):
+            return "NOUN"
 
     if not a or not a.suffixes:
         return "NOUN"
@@ -1154,13 +1184,13 @@ class ParticipleRule(DependencyRule):
             acl_head = None
             for j in range(i + 1, len(tokens)):
                 candidate = tokens[j]
-                if candidate.upos in ("NOUN", "PROPN"):
+                if candidate.upos in ("NOUN", "PROPN", "PRON"):
                     acl_head = candidate
                     t.head = candidate.id
                     t.deprel = "acl"
                     applied.append("SIFAT_FİİL→ACL")
                     break
-                if candidate.upos not in ("ADJ", "DET", "NUM"):
+                if candidate.upos not in ("ADJ", "DET", "NUM", "ADV"):
                     break
 
             if not acl_head:
@@ -1893,6 +1923,33 @@ class FallbackRule(DependencyRule):
                     applied.append("FALLBACK→AMOD")
                     continue
 
+            # DET: belirleyici → sağdaki ilk içerik sözcüğüne det
+            if t.upos == "DET":
+                target = self._find_right_content(tokens, i)
+                if target:
+                    t.head = target.id
+                    t.deprel = "det"
+                    applied.append("FALLBACK→DET")
+                    continue
+
+            # NUM: sayı → sağda NOUN varsa nummod
+            if t.upos == "NUM":
+                target = self._find_right_noun(tokens, i)
+                if target:
+                    t.head = target.id
+                    t.deprel = "nummod"
+                    applied.append("FALLBACK→NUMMOD")
+                    continue
+
+            # VERB: fiil → finite ise conj adayı, SIFAT_FİİL ise ccomp
+            if t.upos == "VERB":
+                if t.has_any_label(_FINITE_TENSE_LABELS):
+                    # Çekimli fiil → eşgüdüm (conj) olarak root'a bağla
+                    t.head = root_id
+                    t.deprel = "conj"
+                    applied.append("FALLBACK→CONJ_VERB")
+                    continue
+
             local_pred = _find_local_predicate(tokens, t.id, root_id)
             t.head = local_pred
             t.deprel = "dep"
@@ -1922,6 +1979,14 @@ class FallbackRule(DependencyRule):
         """start'ın solundaki en yakın içerik sözcüğünü bul."""
         for j in range(start - 1, max(start - 4, -1), -1):
             if tokens[j].upos in ("VERB", "NOUN", "ADJ", "PROPN", "ADV"):
+                return tokens[j]
+        return None
+
+    @staticmethod
+    def _find_right_content(tokens: list[DepToken], start: int) -> DepToken | None:
+        """start'ın sağındaki en yakın içerik sözcüğünü bul (UPOS bağımsız)."""
+        for j in range(start + 1, min(start + 5, len(tokens))):
+            if tokens[j].upos in ("NOUN", "PROPN", "VERB", "ADJ", "PRON", "NUM"):
                 return tokens[j]
         return None
 
