@@ -1991,6 +1991,21 @@ class FallbackRule(DependencyRule):
                     applied.append("FALLBACK→DISCOURSE_Q")
                     continue
 
+            # PART: "ki" → mark (tümce bağlayıcı/vurgulayıcı)
+            # BOUN'da ki genellikle mark (SCONJ) olarak etiketlenir
+            if t.upos == "PART" and turkish_lower(t.form) == "ki":
+                target = self._find_left_verb(tokens, i)
+                if target:
+                    t.head = target.id
+                    t.deprel = "mark"
+                    applied.append("FALLBACK→MARK_KI")
+                    continue
+                # Soldaki fiil yoksa root'a bağla
+                t.head = root_id
+                t.deprel = "mark"
+                applied.append("FALLBACK→MARK_KI_ROOT")
+                continue
+
             # INTJ: ünlem → discourse, root'a bağla
             if t.upos == "INTJ":
                 t.head = root_id
