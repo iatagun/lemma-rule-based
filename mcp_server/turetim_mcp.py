@@ -1,25 +1,74 @@
 """
-Türkçe Türetim Ekleri MCP Sunucusu
-===================================
-Uzun et al. (1992) "Türkiye Türkçesinin Türetim Ekleri" kitabından
-191 türetim ekinin yapılandırılmış veritabanı.
+Türkçe Morfoloji & Türetim Ekleri MCP Sunucusu
+================================================
+İki katmanlı MCP:
+  1. BİLGİ TABANI — 191 türetim eki referansı (Uzun et al. 1992)
+  2. AKTİF MOTOR  — Gerçek morfolojik çözümleme, cümle analizi,
+                    dependency parsing ve benchmark değerlendirmesi.
 
-VS Code içinde Copilot Chat'e Türkçe morfoloji bilgisi sağlar.
+VS Code Copilot Chat'e Türkçe dilbilim asistanı olarak hizmet verir.
 """
 
 from mcp.server.fastmcp import FastMCP
 import json
 import os
+import sys
+from pathlib import Path
+
+# Proje kök dizinini sys.path'e ekle (morphology paketine erişim için)
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
 mcp = FastMCP(
-    "Türkçe Türetim Ekleri",
+    "Türkçe Morfoloji Asistanı",
     instructions=(
-        "Türkçe türetim ekleri bilgi sunucusu. "
-        "191 türetim ekinin tam envanteri, sıklık verileri, "
-        "UPOS/deprel çıkarım kuralları ve çatı eki analizi sağlar. "
-        "Kaynak: Uzun et al. (1992), TDK Sözlük 7. Baskı veritabanı."
+        "Türkçe morfoloji ve sözdizim analiz sunucusu. "
+        "İki katmanlı mimari: (1) 191 türetim ekinin yapılandırılmış bilgi tabanı, "
+        "(2) çalışan morfolojik çözümleyici, cümle analizörü ve dependency parser. "
+        "Sözcük çözümle, cümle analiz et, dependency ağacı çiz, benchmark çalıştır. "
+        "Kaynak: Uzun et al. (1992) + lemma-rule-based kural tabanlı motor."
     ),
 )
+
+
+# ============================================================
+# AKTİF MOTOR — Lazy Singleton
+# ============================================================
+_analyzer = None
+_sentence_analyzer = None
+_dep_parser = None
+
+
+def _get_analyzer():
+    """Morfolojik çözümleyiciyi lazily başlatır."""
+    global _analyzer
+    if _analyzer is None:
+        from morphology import create_default_analyzer
+        dict_path = _PROJECT_ROOT / "turkish_words.txt"
+        if dict_path.exists():
+            _analyzer = create_default_analyzer(dictionary_path=dict_path)
+        else:
+            _analyzer = create_default_analyzer()
+    return _analyzer
+
+
+def _get_sentence_analyzer():
+    """Cümle analizörünü lazily başlatır."""
+    global _sentence_analyzer
+    if _sentence_analyzer is None:
+        from morphology.sentence import SentenceAnalyzer
+        _sentence_analyzer = SentenceAnalyzer(_get_analyzer())
+    return _sentence_analyzer
+
+
+def _get_dep_parser():
+    """Dependency parser'ı lazily başlatır."""
+    global _dep_parser
+    if _dep_parser is None:
+        from morphology.dependency import DependencyParser
+        _dep_parser = DependencyParser()
+    return _dep_parser
 
 # ============================================================
 # VERİ: 191 Türetim Eki
@@ -685,13 +734,357 @@ def tam_envanter_ozet() -> str:
 
 
 # ============================================================
-# KAYNAKLAR (RESOURCES)
+# AKTİF MOTOR ARAÇLARI (ACTIVE ANALYSIS TOOLS)
 # ============================================================
+
+@mcp.tool()
+def sozcuk_cozumle(sozcuk: str) -> str:
+    """Bir Türkçe sözcüğü morfolojik olarak çözümler.
+    Kök, ekler, lemma bilgisini döndürür.
+    Örnek: sozcuk_cozumle('evlerinden') → ev + ÇOĞUL + İYELİK + AYRILMA"""
+    try:
+        analyzer = _get_analyzer()
+        result = analyzer.analyze(sozcuk)
+        lemma = result.lemma or result.root or result.stem
+
+        lines = [f"## Morfolojik Çözümleme: {sozcuk}\n"]
+        lines.append(f"**Kök (stem):** {result.stem}")
+        lines.append(f"**Lemma:** {lemma}")
+
+        if result.suffixes:
+            lines.append(f"\n**Ekler ({len(result.suffixes)}):**")
+            for form, label in result.suffixes:
+                lines.append(f"  - `{form}` → {label}")
+            chain = f"{result.stem} + " + " + ".join(
+                f"-{form}({label})" for form, label in result.suffixes
+            )
+            lines.append(f"\n**Zincir:** {chain}")
+        else:
+            lines.append("\n**Ekler:** (yok — kök sözcük)")
+
+        # Parçalar
+        parts = result.parts if hasattr(result, "parts") else [result.stem] + [s[0] for s in result.suffixes]
+        lines.append(f"\n**Parçalar:** {' | '.join(parts)}")
+
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Çözümleme hatası: {e}"
+
+
+@mcp.tool()
+def sozcuk_tum_cozumlemeler(sozcuk: str, max_sonuc: int = 5) -> str:
+    """Bir sözcüğün tüm olası morfolojik çözümlemelerini döndürür.
+    Belirsizlik durumlarında (ör. 'yazar' = yaz+ar mı, yazar mı?)
+    tüm alternatifleri sıralı gösterir."""
+    try:
+        analyzer = _get_analyzer()
+        results = analyzer.analyze_all(sozcuk, max_results=max_sonuc)
+
+        if not results:
+            return f"'{sozcuk}' için çözümleme bulunamadı."
+
+        lines = [f"## '{sozcuk}' için {len(results)} çözümleme\n"]
+        for i, r in enumerate(results, 1):
+            lemma = r.lemma or r.root or r.stem
+            if r.suffixes:
+                suffix_str = " + ".join(f"-{f}({l})" for f, l in r.suffixes)
+                lines.append(f"**{i}.** `{r.stem}` + {suffix_str}  (lemma: {lemma})")
+            else:
+                lines.append(f"**{i}.** `{r.stem}` (kök sözcük, lemma: {lemma})")
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Çözümleme hatası: {e}"
+
+
+@mcp.tool()
+def cumle_analiz(cumle: str) -> str:
+    """Bir Türkçe cümleyi tam olarak analiz eder:
+    morfolojik çözümleme + bağlam kuralları + dependency ağacı + CoNLL-U.
+    Örnek: cumle_analiz('Ali güzel kitabı okudu.')"""
+    try:
+        sa = _get_sentence_analyzer()
+        dp = _get_dep_parser()
+
+        # Cümle morfoloji
+        tokens = sa.analyze(cumle)
+        # Dependency parsing
+        dep_tokens = dp.parse(tokens, text=cumle)
+
+        lines = [f"## Cümle Analizi: {cumle}\n"]
+
+        # Morfoloji tablosu
+        lines.append("### Morfoloji")
+        lines.append("| # | Sözcük | Kök | Lemma | Ekler | Bağlam Kuralları |")
+        lines.append("|---|--------|-----|-------|-------|-----------------|")
+        for i, t in enumerate(tokens, 1):
+            lemma = t.analysis.lemma or t.analysis.root or t.analysis.stem
+            if t.analysis.suffixes:
+                ek_str = ", ".join(f"-{f}({l})" for f, l in t.analysis.suffixes)
+            else:
+                ek_str = "—"
+            ctx = ", ".join(t.context_applied) if t.context_applied else "—"
+            lines.append(f"| {i} | {t.word} | {t.analysis.stem} | {lemma} | {ek_str} | {ctx} |")
+
+        # Dependency ağacı
+        lines.append("\n### Dependency Ağacı")
+        lines.append("```")
+        tree = dp.to_tree(dep_tokens)
+        lines.append(tree)
+        lines.append("```")
+
+        # Dependency tablosu
+        lines.append("\n### Dependency Detay")
+        lines.append("| ID | Form | Lemma | UPOS | Head | Deprel | Feats |")
+        lines.append("|----|------|-------|------|------|--------|-------|")
+        for t in dep_tokens:
+            feats_s = t.feats_str if hasattr(t, "feats_str") else str(t.feats)
+            lines.append(
+                f"| {t.id} | {t.form} | {t.lemma} | {t.upos} | {t.head} | {t.deprel} | {feats_s} |"
+            )
+
+        # CoNLL-U
+        lines.append("\n### CoNLL-U Çıktı")
+        lines.append("```conllu")
+        lines.append(dp.to_conllu(dep_tokens, text=cumle))
+        lines.append("```")
+
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Cümle analiz hatası: {e}"
+
+
+@mcp.tool()
+def cumle_conllu(cumle: str) -> str:
+    """Bir cümleyi CoNLL-U (Universal Dependencies) formatında döndürür.
+    Direkt pipeline çıktısı — başka araçlara girdi olarak kullanılabilir."""
+    try:
+        sa = _get_sentence_analyzer()
+        dp = _get_dep_parser()
+        tokens = sa.analyze(cumle)
+        dep_tokens = dp.parse(tokens, text=cumle)
+        return dp.to_conllu(dep_tokens, text=cumle)
+    except Exception as e:
+        return f"Hata: {e}"
+
+
+@mcp.tool()
+def sozcuk_karsilastir(sozcuk: str, beklenen_lemma: str = "", beklenen_upos: str = "") -> str:
+    """Bir sözcüğün çözümlemesini beklenen değerlerle karşılaştırır.
+    Gold standard ile pred karşılaştırması yapmak için kullanılır.
+    Örnek: sozcuk_karsilastir('kitabı', beklenen_lemma='kitap', beklenen_upos='NOUN')"""
+    try:
+        analyzer = _get_analyzer()
+        result = analyzer.analyze(sozcuk)
+        pred_lemma = result.lemma or result.root or result.stem
+
+        lines = [f"## Karşılaştırma: {sozcuk}\n"]
+        lines.append(f"**Predicted lemma:** {pred_lemma}")
+        lines.append(f"**Predicted stem:** {result.stem}")
+
+        if result.suffixes:
+            lines.append(f"**Predicted ekler:** {', '.join(l for _, l in result.suffixes)}")
+
+        if beklenen_lemma:
+            match = "✅" if pred_lemma == beklenen_lemma else "❌"
+            lines.append(f"\n**Lemma:** {match} beklenen=`{beklenen_lemma}` → tahmin=`{pred_lemma}`")
+
+        if beklenen_upos:
+            # UPOS için cümle bağlamı gerekir — tek sözcükle en iyi tahmin
+            sa = _get_sentence_analyzer()
+            dp = _get_dep_parser()
+            tokens = sa.analyze(sozcuk)
+            dep_tokens = dp.parse(tokens, text=sozcuk)
+            pred_upos = dep_tokens[0].upos if dep_tokens else "?"
+            match = "✅" if pred_upos == beklenen_upos else "❌"
+            lines.append(f"**UPOS:** {match} beklenen=`{beklenen_upos}` → tahmin=`{pred_upos}`")
+
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Karşılaştırma hatası: {e}"
+
+
+@mcp.tool()
+def benchmark_calistir(max_cumle: int = 50) -> str:
+    """BOUN Treebank üzerinde benchmark çalıştırır.
+    UAS, LAS, UPOS doğruluğu ve deprel bazlı kırılımı döndürür.
+    max_cumle: Kaç cümle değerlendirilsin (varsayılan: 50, max: 979)"""
+    try:
+        conllu_path = _PROJECT_ROOT / "benchmark" / "test.conllu"
+        if not conllu_path.exists():
+            return "benchmark/test.conllu bulunamadı."
+
+        # Import lazily
+        sys.path.insert(0, str(_PROJECT_ROOT))
+        from benchmark.eval_dep import evaluate
+
+        sa = _get_sentence_analyzer()
+        dp = _get_dep_parser()
+
+        max_cumle = min(max(max_cumle, 1), 979)
+
+        results = evaluate(
+            conllu_path=conllu_path,
+            sa=sa,
+            dp=dp,
+            max_sentences=max_cumle,
+            deprel_matrix=True,
+        )
+
+        total = results["total_tokens"]
+        if total == 0:
+            return "Değerlendirme yapılamadı (0 token)."
+
+        uas_pct = results["uas"] / total * 100
+        las_pct = results["las"] / total * 100
+        upos_pct = results["upos_correct"] / total * 100
+        deprel_pct = results["deprel_correct"] / total * 100
+
+        lines = [f"## Benchmark Sonuçları ({max_cumle} cümle, {total} token)\n"]
+        lines.append("| Metrik | Doğru | Toplam | Oran |")
+        lines.append("|--------|-------|--------|------|")
+        lines.append(f"| **UAS** | {results['uas']} | {total} | **%{uas_pct:.1f}** |")
+        lines.append(f"| **LAS** | {results['las']} | {total} | **%{las_pct:.1f}** |")
+        lines.append(f"| **UPOS** | {results['upos_correct']} | {total} | **%{upos_pct:.1f}** |")
+        lines.append(f"| **Deprel** | {results['deprel_correct']} | {total} | **%{deprel_pct:.1f}** |")
+        lines.append(f"\n**Perfect LAS cümle:** {results['sent_perfect_las']}/{results['sent_count']}")
+        lines.append(f"**Token uyuşmazlık:** {results['token_mismatch_sents']} cümle")
+
+        # Deprel kırılımı (en büyük 15)
+        if results["deprel_counts"]:
+            lines.append("\n### Deprel Bazlı Kırılım (Top 15)")
+            lines.append("| Deprel | Gold | Hit | Oran |")
+            lines.append("|--------|------|-----|------|")
+            sorted_deprels = sorted(
+                results["deprel_counts"].items(), key=lambda x: x[1], reverse=True
+            )
+            for deprel, count in sorted_deprels[:15]:
+                hits = results["deprel_hits"].get(deprel, 0)
+                pct = hits / count * 100 if count else 0
+                lines.append(f"| {deprel} | {count} | {hits} | %{pct:.1f} |")
+
+        # UPOS kırılımı
+        if results["upos_counts"]:
+            lines.append("\n### UPOS Bazlı Kırılım")
+            lines.append("| UPOS | Gold | Hit | Oran |")
+            lines.append("|------|------|-----|------|")
+            sorted_upos = sorted(
+                results["upos_counts"].items(), key=lambda x: x[1], reverse=True
+            )
+            for upos, count in sorted_upos[:10]:
+                hits = results["upos_hits"].get(upos, 0)
+                pct = hits / count * 100 if count else 0
+                lines.append(f"| {upos} | {count} | {hits} | %{pct:.1f} |")
+
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Benchmark hatası: {e}"
+
+
+@mcp.tool()
+def hata_analizi(max_cumle: int = 30, max_hata: int = 10) -> str:
+    """Benchmark'teki hataları analiz eder: hangi sözcüklerde, hangi deprel'lerde
+    hata yapılıyor? Geliştirme öncelikleri için kullanılır."""
+    try:
+        conllu_path = _PROJECT_ROOT / "benchmark" / "test.conllu"
+        if not conllu_path.exists():
+            return "benchmark/test.conllu bulunamadı."
+
+        from benchmark.eval_dep import evaluate
+
+        sa = _get_sentence_analyzer()
+        dp = _get_dep_parser()
+
+        results = evaluate(
+            conllu_path=conllu_path,
+            sa=sa,
+            dp=dp,
+            max_sentences=min(max_cumle, 979),
+            collect_errors=max_hata,
+        )
+
+        lines = ["## Hata Analizi\n"]
+
+        # Confusion matrisi: en sık karıştırılan deprel çiftleri
+        if results["deprel_confusion"]:
+            lines.append("### Deprel Karıştırma (Gold → Pred, Top 15)")
+            lines.append("| Gold | Pred | Sayı |")
+            lines.append("|------|------|------|")
+            pairs = []
+            for gold_dep, pred_counts in results["deprel_confusion"].items():
+                for pred_dep, cnt in pred_counts.items():
+                    if gold_dep != pred_dep:
+                        pairs.append((gold_dep, pred_dep, cnt))
+            pairs.sort(key=lambda x: x[2], reverse=True)
+            for gold, pred, cnt in pairs[:15]:
+                lines.append(f"| {gold} | {pred} | {cnt} |")
+
+        # En büyük kayıplar (gold çok ama hit az)
+        if results["deprel_counts"]:
+            lines.append("\n### En Büyük Kayıplar (Düşük Recall)")
+            lines.append("| Deprel | Gold | Hit | Kayıp | Oran |")
+            lines.append("|--------|------|-----|-------|------|")
+            losses = []
+            for deprel, count in results["deprel_counts"].items():
+                hits = results["deprel_hits"].get(deprel, 0)
+                loss = count - hits
+                pct = hits / count * 100 if count else 0
+                losses.append((deprel, count, hits, loss, pct))
+            losses.sort(key=lambda x: x[3], reverse=True)
+            for dep, cnt, hit, loss, pct in losses[:10]:
+                lines.append(f"| {dep} | {cnt} | {hit} | {loss} | %{pct:.0f} |")
+
+        # Toplanan hatalar
+        if results.get("errors"):
+            lines.append(f"\n### Örnek Hatalar ({len(results['errors'])} adet)")
+            for err in results["errors"][:max_hata]:
+                lines.append(f"\n**Token:** `{err.get('form', '?')}` (sent: {err.get('sent_id', '?')})")
+                lines.append(f"  Gold: head={err.get('gold_head')}, deprel={err.get('gold_deprel')}, upos={err.get('gold_upos')}")
+                lines.append(f"  Pred: head={err.get('pred_head')}, deprel={err.get('pred_deprel')}, upos={err.get('pred_upos')}")
+
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Hata analizi hatası: {e}"
+
+
+@mcp.tool()
+def coklu_cumle_analiz(metin: str) -> str:
+    """Birden fazla cümle içeren bir metni analiz eder.
+    Her cümle için ayrı dependency ağacı oluşturur.
+    Nokta, soru/ünlem işaretlerinden cümle ayrımı yapar."""
+    try:
+        import re
+        sa = _get_sentence_analyzer()
+        dp = _get_dep_parser()
+
+        # Basit cümle bölme
+        cumleler = [c.strip() for c in re.split(r'(?<=[.!?])\s+', metin) if c.strip()]
+        if not cumleler:
+            cumleler = [metin]
+
+        lines = [f"## Metin Analizi ({len(cumleler)} cümle)\n"]
+
+        for i, cumle in enumerate(cumleler, 1):
+            tokens = sa.analyze(cumle)
+            dep_tokens = dp.parse(tokens, text=cumle)
+
+            lines.append(f"### Cümle {i}: {cumle}")
+            lines.append("```")
+            lines.append(dp.to_tree(dep_tokens))
+            lines.append("```")
+
+            # Özet tablo
+            for t in dep_tokens:
+                lines.append(f"  {t.id}. {t.form} → {t.lemma} ({t.upos}) --{t.deprel}--> {t.head}")
+            lines.append("")
+
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Metin analizi hatası: {e}"
 
 @mcp.resource("turetim://skill/full")
 def skill_full() -> str:
     """skill_turetim.md dosyasının tam içeriği."""
-    skill_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "skill_turetim.md")
+    skill_path = _PROJECT_ROOT / "skill_turetim.md"
     try:
         with open(skill_path, "r", encoding="utf-8") as f:
             return f.read()
