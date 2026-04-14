@@ -1155,6 +1155,34 @@ class ConverbRule(DependencyRule):
         return applied
 
 
+class InfinitiveRule(DependencyRule):
+    """Mastar fiilleri (-mAk) yerel yükleme csubj olarak bağlar.
+
+    Türkçede mastar fiiller cümle öznesi (csubj) veya
+    açık tümleç (xcomp) olabilir.
+    Örnek: 'Abartmak gerekiyor' → abartmak ──csubj──▶ gerekiyor
+           'Olmak istiyorum'    → olmak ──csubj──▶ istiyorum
+    """
+
+    def apply(self, tokens: list[DepToken]) -> list[str]:
+        root_id = _find_root_id(tokens)
+        if root_id == 0:
+            return []
+        applied: list[str] = []
+        for t in tokens:
+            if t.is_assigned or t.id == root_id:
+                continue
+            if not t.has_label("MASTAR"):
+                continue
+            if t.upos != "VERB":
+                continue
+            local_pred = _find_local_predicate(tokens, t.id, root_id)
+            t.head = local_pred
+            t.deprel = "csubj"
+            applied.append("MASTAR→CSUBJ")
+        return applied
+
+
 class ParticipleRule(DependencyRule):
     """Sıfat-fiilleri sağdaki isme acl olarak bağlar (scope-aware).
 
@@ -2121,6 +2149,7 @@ class DependencyParser:
             CompoundNounRule(),
             # 11-12: Yan cümleler
             ConverbRule(),
+            InfinitiveRule(),
             ParticipleRule(),
             # 13-15: Özel yapılar (CaseRoleRule'dan önce)
             TemporalAdvmodRule(),
@@ -2198,7 +2227,33 @@ class DependencyParser:
         if trace:
             self._last_trace = trace_log
 
+        # Son-işlem: her yüklem başına en fazla 1 obj tut
+        self._limit_obj_per_pred(dep_tokens)
+
         return dep_tokens
+
+    @staticmethod
+    def _limit_obj_per_pred(tokens: list[DepToken]) -> None:
+        """Her yüklem başına en fazla 1 obj bırakır.
+
+        Fazla obj tokenlarını → nmod:poss (İYELİK varsa) veya obl yapar.
+        Yükleme en yakın olan obj korunur.
+        """
+        from collections import defaultdict
+        pred_objs: dict[int, list[DepToken]] = defaultdict(list)
+        for t in tokens:
+            if t.deprel == "obj":
+                pred_objs[t.head].append(t)
+        for head_id, objs in pred_objs.items():
+            if len(objs) <= 1:
+                continue
+            # En yakın obj'yi koru (yüklemin hemen solundaki)
+            objs.sort(key=lambda t: abs(t.id - head_id))
+            for t in objs[1:]:
+                if t.has_iyelik:
+                    t.deprel = "nmod:poss"
+                else:
+                    t.deprel = "obl"
 
     @staticmethod
     def _detect_commas(dep_tokens: list[DepToken], text: str) -> None:
