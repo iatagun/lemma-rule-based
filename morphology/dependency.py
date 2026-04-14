@@ -114,6 +114,7 @@ POSTPOSITIONS: frozenset[str] = frozenset({
 
 # Bilinen sıfatlar — sözlük/POS etiketi olmadığında UPOS çıkarımı için
 COMMON_ADJECTIVES: frozenset[str] = frozenset({
+    # Temel nitelik
     "güzel", "iyi", "kötü", "büyük", "küçük", "yeni", "eski",
     "uzun", "kısa", "genç", "yaşlı", "doğal", "yapay",
     "önemli", "farklı", "ağır", "hafif", "sıcak", "soğuk",
@@ -121,6 +122,32 @@ COMMON_ADJECTIVES: frozenset[str] = frozenset({
     "mutlu", "mutsuz", "hızlı", "yavaş", "güçlü", "zayıf",
     "temiz", "kirli", "derin", "sığ", "geniş", "dar",
     "ilk", "son", "tek", "diğer",
+    # Renk
+    "kırmızı", "mavi", "sarı", "yeşil", "siyah", "beyaz",
+    "gri", "mor", "turuncu", "pembe", "lacivert", "bordo",
+    # Boyut / konum
+    "yakın", "uzak", "dış", "iç", "ön", "arka", "orta", "alt", "üst",
+    "yüksek", "alçak", "ince", "kalın", "geniş", "dar",
+    # Durum / değerlendirme
+    "mümkün", "imkansız", "gerekli", "zorunlu", "lazım", "uygun",
+    "mükemmel", "kusursuz", "eksik", "tam", "bütün", "boş", "dolu",
+    "kolay", "zor", "basit", "karmaşık", "net", "belirsiz",
+    "doğru", "yanlış", "haklı", "haksız", "kesin", "olası",
+    # Kişilik / sosyal
+    "akıllı", "aptal", "cesur", "korkak", "dürüst", "sahte",
+    "kibar", "kaba", "terbiyeli", "sakin", "sinirli", "ciddi",
+    "meşhur", "ünlü", "tanınmış", "bilinmeyen",
+    # Fiziksel
+    "yumuşak", "sert", "katı", "tatlı", "tuzlu", "ekşi", "acı",
+    "sessiz", "gürültülü", "pürüzsüz", "düzgün", "bozuk",
+    # Zaman / modernlik
+    "modern", "antik", "klasik", "çağdaş", "ilkel", "gelişmiş",
+    # Genel sıfatlar
+    "hazır", "meşgul", "serbest", "özgür", "bağımsız", "ortak",
+    "özel", "genel", "resmi", "sivil", "yerel", "ulusal",
+    "yabancı", "yerli", "karşı", "ayrı", "beraber", "benzer",
+    "aynı", "başka", "asıl", "gerçek", "sahici", "normal",
+    "garip", "tuhaf", "ilginç", "sıradan", "olağan",
 })
 
 # Bilinen zarflar — eksiz kullanımda UPOS=ADV çıkarımı için
@@ -515,7 +542,8 @@ class CaseRoleRule(DependencyRule):
             return []
 
         applied: list[str] = []
-        nsubj_assigned = False
+        # Önceki kurallar zaten nsubj atamış mı kontrol et
+        nsubj_assigned = any(t.deprel == "nsubj" for t in tokens)
 
         # Pro-drop tespiti: fiilde 1./2. kişi eki varsa özne düşmüş
         root_tok = next((t for t in tokens if t.id == root_id), None)
@@ -574,21 +602,40 @@ class CaseRoleRule(DependencyRule):
                 applied.append("EDAT_BAĞIMLI→OBL")
                 continue
 
-            # 4) Yalın isim/zamir → pro-drop heuristiği
+            # 4) Yalın isim/zamir → belirlilik hiyerarşisi
+            #    Türkçe'de yalın ortak isim = belirtisiz nesne (kitap okudu)
+            #    Özel isim / zamir = belirli → özne adayı
             if t.upos in ("NOUN", "PROPN", "PRON") and not t.has_case:
+                is_definite = t.upos in ("PROPN", "PRON") or t.has_iyelik
                 if is_prodrop:
-                    t.head = root_id
-                    t.deprel = "obj"
-                    applied.append("PRODROP→OBJ")
+                    # Pro-drop: belirli → nsubj (Onu gördüm ama Ali geldi)
+                    #           belirsiz → obj (kitap okudum)
+                    if is_definite and not nsubj_assigned:
+                        t.head = root_id
+                        t.deprel = "nsubj"
+                        nsubj_assigned = True
+                        applied.append("BELİRLİ_PRODROP→NSUBJ")
+                    else:
+                        t.head = root_id
+                        t.deprel = "obj"
+                        applied.append("PRODROP→OBJ")
                 elif not nsubj_assigned:
+                    # İlk yalın: belirli veya ortak isim → nsubj
                     t.head = root_id
                     t.deprel = "nsubj"
                     nsubj_assigned = True
                     applied.append("YALIN→NSUBJ")
                 else:
-                    t.head = root_id
-                    t.deprel = "obj"
-                    applied.append("YALIN→OBJ")
+                    # nsubj zaten var, ikinci yalın
+                    if is_definite:
+                        t.head = root_id
+                        t.deprel = "obj"
+                        applied.append("BELİRLİ→OBJ")
+                    else:
+                        # Yalın ortak isim, ikinci → belirtisiz nesne
+                        t.head = root_id
+                        t.deprel = "obj"
+                        applied.append("BELİRTİSİZ→OBJ")
 
         return applied
 
@@ -695,9 +742,11 @@ class DeterminerRule(DependencyRule):
 class AdjectiveRule(DependencyRule):
     """Sıfatları sağdaki isme amod olarak bağlar.
 
-    Heuristik: Atanmamış, eksiz, isimsel sözcük + sağında ekli isim
-    varsa sıfat kabul edilir.
+    Heuristik:
+    1. Eksiz NOUN/ADJ + sağında ekli isim → amod (orijinal)
+    2. ADJ UPOS + sağında herhangi NOUN/PROPN → amod (genişletilmiş)
     Örnek: 'güzel kitabı' → güzel ──amod──▶ kitabı
+           'büyük şehir' → büyük ──amod──▶ şehir
     """
 
     def apply(self, tokens: list[DepToken]) -> list[str]:
@@ -707,12 +756,21 @@ class AdjectiveRule(DependencyRule):
                 continue
             if t.upos not in ("NOUN", "ADJ"):
                 continue
+            # Strateji 1: ekli isim (orijinal — her NOUN/ADJ için)
             head = self._find_right_inflected_noun(tokens, i)
             if head:
                 t.head = head.id
                 t.deprel = "amod"
                 t.upos = "ADJ"
                 applied.append("SIFAT→AMOD")
+                continue
+            # Strateji 2: ADJ UPOS + sağda bare/inflected NOUN
+            if t.upos == "ADJ":
+                head = self._find_right_any_noun(tokens, i)
+                if head:
+                    t.head = head.id
+                    t.deprel = "amod"
+                    applied.append("ADJ→AMOD_BARE")
         return applied
 
     @staticmethod
@@ -731,10 +789,19 @@ class AdjectiveRule(DependencyRule):
                 break
         return None
 
-
-# ═══════════════════════════════════════════════════════════════════
-#  Phase C — Karmaşık Cümle Yapıları
-# ═══════════════════════════════════════════════════════════════════
+    @staticmethod
+    def _find_right_any_noun(
+        tokens: list[DepToken], start: int,
+    ) -> DepToken | None:
+        """Sağdaki ilk ismi bulur (ekli/eksiz); araya ADJ/DET/NUM girebilir."""
+        for j in range(start + 1, len(tokens)):
+            t = tokens[j]
+            if t.upos in ("NOUN", "PROPN") and not t.is_assigned:
+                return t
+            if t.upos in ("ADJ", "DET", "NUM"):
+                continue
+            break
+        return None
 
 
 class ConverbRule(DependencyRule):
@@ -885,22 +952,30 @@ class AdvmodRule(DependencyRule):
 
 
 class CoordinationRule(DependencyRule):
-    """Eşgüdüm yapısını (ve/veya) çözer.
+    """Eşgüdüm yapısını (ve/veya/ama) ve fiil koordinasyonunu çözer.
 
-    Strateji:
-      - Bağlaç → sağdaki ögeye ``cc``
-      - Sağdaki öge → soldaki ögeye ``conj``
-    Örnek: 'Ali ve Ayşe geldi' → ve──cc──▶Ayşe, Ayşe──conj──▶Ali
+    Stratejiler:
+      1. Bağlaç + isimsel: bağlaç→cc, sağ→conj(sol)
+      2. Bağlaç + fiil: bağlaç→cc, fiil→conj(root)
+      3. Çoklu yüklem: son fiil root, önceki fiiller conj
+    Örnek: 'Ali ve Ayşe geldi'    → ve──cc──▶Ayşe, Ayşe──conj──▶Ali
+           'geldi ve gitti'       → ve──cc──▶gitti, gitti──conj──▶geldi
+           'hem geldi hem gitti'  → hem→cc, gitti→conj(geldi)
     """
+
+    _CORRELATIVES: frozenset[str] = frozenset({
+        "hem", "ne", "ya", "ister", "gerek", "olsun",
+    })
 
     def apply(self, tokens: list[DepToken]) -> list[str]:
         applied: list[str] = []
+
+        # Faz 1: Explicit bağlaçlar (ve, veya, ama, fakat)
         for i, t in enumerate(tokens):
             if t.upos != "CCONJ" or t.is_assigned:
                 continue
-            left = tokens[i - 1] if i > 0 else None
-            right = tokens[i + 1] if i + 1 < len(tokens) else None
-
+            left = self._find_left_conjunct(tokens, i)
+            right = self._find_right_conjunct(tokens, i)
             if left and right:
                 t.head = right.id
                 t.deprel = "cc"
@@ -908,6 +983,57 @@ class CoordinationRule(DependencyRule):
                     right.head = left.id
                     right.deprel = "conj"
                 applied.append("BAĞLAÇ→CC+CONJ")
+
+        # Faz 2: İlişkili bağlaçlar (hem...hem, ne...ne, ya...ya)
+        applied.extend(self._handle_correlatives(tokens))
+
+        return applied
+
+    @staticmethod
+    def _find_left_conjunct(tokens: list[DepToken], conj_idx: int) -> DepToken | None:
+        """Bağlacın solundaki ilk uygun ögeyi bul."""
+        for j in range(conj_idx - 1, -1, -1):
+            t = tokens[j]
+            if t.upos in ("CCONJ", "DET", "ADP"):
+                continue
+            return t
+        return None
+
+    @staticmethod
+    def _find_right_conjunct(tokens: list[DepToken], conj_idx: int) -> DepToken | None:
+        """Bağlacın sağındaki ilk uygun ögeyi bul."""
+        for j in range(conj_idx + 1, len(tokens)):
+            t = tokens[j]
+            if t.upos in ("CCONJ", "DET"):
+                continue
+            return t
+        return None
+
+    def _handle_correlatives(self, tokens: list[DepToken]) -> list[str]:
+        """hem...hem, ne...ne, ya...ya kalıplarını işle."""
+        applied: list[str] = []
+        w_lower = [turkish_lower(t.form) for t in tokens]
+        i = 0
+        while i < len(tokens) - 2:
+            if w_lower[i] in self._CORRELATIVES and not tokens[i].is_assigned:
+                corr = w_lower[i]
+                # İkinci correlative'i bul
+                for j in range(i + 2, len(tokens)):
+                    if w_lower[j] == corr and not tokens[j].is_assigned:
+                        # İlk corr → cc (sağdaki ögeye)
+                        right1 = tokens[i + 1] if i + 1 < len(tokens) else None
+                        right2 = tokens[j + 1] if j + 1 < len(tokens) else None
+                        if right1 and right2:
+                            tokens[i].head = right1.id
+                            tokens[i].deprel = "cc"
+                            tokens[j].head = right2.id
+                            tokens[j].deprel = "cc"
+                            if not right2.is_assigned:
+                                right2.head = right1.id
+                                right2.deprel = "conj"
+                            applied.append("İLİŞKİLİ→CC+CONJ")
+                        break
+            i += 1
         return applied
 
 
