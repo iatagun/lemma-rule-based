@@ -13,7 +13,11 @@ venv/
 env/
 
 # IDE / Editor
-.vscode/
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+.vscode/*.code-workspace
+!.vscode/mcp.json
 .idea/
 *.swp
 *.swo

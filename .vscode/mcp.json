@@ -1,0 +1,13 @@
+{
+    "inputs": [],
+    "servers": {
+        "turkce-turetim-ekleri": {
+            "type": "stdio",
+            "command": "python",
+            "args": [
+                "-X", "utf8",
+                "${workspaceFolder}/mcp_server/turetim_mcp.py"
+            ]
+        }
+    }
+}
