@@ -141,6 +141,16 @@ IYELIK_LABELS: frozenset[str] = frozenset({
     "İYELİK_1Ç", "İYELİK_2Ç", "İYELİK_3Ç",
 })
 
+
+def _has_only_derivational(token) -> bool:
+    """Token yalnızca yapım eki taşıyor mu (çekim eki yok)?"""
+    if not token._suffixes:
+        return False
+    return all(
+        label.startswith("YAPIM_") for _, label in token._suffixes
+    )
+
+
 DETERMINERS: frozenset[str] = frozenset({
     "bir", "bu", "şu", "o", "her", "bazı", "birçok",
     "tüm", "bütün", "hiçbir", "birkaç", "kimi", "öbür",
@@ -218,6 +228,12 @@ COMMON_ADJECTIVES: frozenset[str] = frozenset({
     "korkunç", "sayın", "yakışıklı", "muhtemel", "evrensel",
     "sanal", "geçen", "şeffaf", "yoğunlaşmış", "sürdürülebilir",
     "somutlaşmış", "mevzii", "vicdani", "uluslararası",
+    # v13 ekleme — BOUN amod frekans analizi
+    "fazla", "türk", "böyle", "öyle", "siyasi", "toplumsal",
+    "müthiş", "anonim", "engin", "ölümcül", "yetersiz",
+    "durgun", "doygun", "çekingen", "nadir", "zarif",
+    "alışılmış", "tanıdık", "kararlı", "bağımsız",
+    "fransız", "alman", "arap", "kürt", "rum", "ermeni",
 })
 
 # Bilinen zarflar — eksiz kullanımda UPOS=ADV çıkarımı için
@@ -828,6 +844,13 @@ class CaseRoleRule(DependencyRule):
             if t.upos in ("ADJ", "ADV", "DET"):
                 continue
 
+            # Bilinen sıfatlar + sağda isim → sıfat tamlayıcısı olma ihtimali
+            # CaseRoleRule'un obj/nsubj atamasından muaf tut
+            if t.form.lower() in COMMON_ADJECTIVES:
+                right = self._right_content_word(tokens, t.id)
+                if right and right.upos in ("NOUN", "PROPN"):
+                    continue
+
             role = self._detect_case_role(t)
             if role:
                 if role == "obj" and t.upos == "VERB":
@@ -886,6 +909,18 @@ class CaseRoleRule(DependencyRule):
         return frozenset(
             t.head for t in tokens if t.deprel == "case"
         )
+
+    @staticmethod
+    def _right_content_word(tokens: list[DepToken], tid: int) -> DepToken | None:
+        """Token'ın sağındaki ilk içerik sözcüğünü bulur (DET/NUM atlayarak)."""
+        found = False
+        for tk in tokens:
+            if tk.id <= tid:
+                continue
+            if tk.upos in ("DET", "NUM", "ADJ"):
+                continue
+            return tk
+        return None
 
     def _detect_case_role(self, t: DepToken) -> str | None:
         """Hal eki varsa karşılık gelen bağımlılık ilişkisini döndürür."""
@@ -1004,7 +1039,10 @@ class AdjectiveRule(DependencyRule):
     def apply(self, tokens: list[DepToken]) -> list[str]:
         applied: list[str] = []
         for i, t in enumerate(tokens):
-            if t.is_assigned or t._suffixes:
+            if t.is_assigned:
+                continue
+            # Yapım eki sıfat niteliğini bozmaz
+            if t._suffixes and not _has_only_derivational(t):
                 continue
             if t.upos not in ("NOUN", "ADJ"):
                 continue
@@ -1735,7 +1773,10 @@ class AdjAdvDisambiguationRule(DependencyRule):
     def apply(self, tokens: list[DepToken]) -> list[str]:
         applied: list[str] = []
         for i, t in enumerate(tokens):
-            if t.is_assigned or t._suffixes:
+            if t.is_assigned:
+                continue
+            # Yapım eki (YAPIM_*) sıfat niteliğini bozmaz
+            if t._suffixes and not _has_only_derivational(t):
                 continue
             if t.upos != "ADJ":
                 continue
