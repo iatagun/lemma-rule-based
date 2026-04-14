@@ -224,7 +224,7 @@ def evaluate(
         # Morfolojik çözümleme → Bağımlılık ayrıştırma
         try:
             st_tokens = sa.analyze(text)
-            pred_tokens = dp.parse(st_tokens)
+            pred_tokens = dp.parse(st_tokens, text=text)
         except Exception:
             total_tokens += len(gold_tokens)
             continue

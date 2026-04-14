@@ -245,6 +245,9 @@ COMMON_ADVERBS: frozenset[str] = frozenset({
     "asla",
     # Yön
     "içeri", "dışarı", "ileri", "geri",
+    # Yer (demonstratif zarflar)
+    "burada", "orada", "şurada", "buraya", "oraya", "şuraya",
+    "buradan", "oradan", "şuradan", "nerede", "nereye", "nereden",
     # Üstelik / ekleme
     "üstelik", "ayrıca", "dahası",
 })
@@ -334,6 +337,9 @@ QUESTION_PARTICLES: frozenset[str] = frozenset({
     "mıyız", "miyiz", "muyuz", "müyüz",
 })
 
+# Odaklama partikülü — BOUN'da PART olarak etiketlenen de/da/ki
+_FOCUS_PARTICLES: frozenset[str] = frozenset({"de", "da", "ki"})
+
 # Odaklama / pekiştirme edatları — advmod:emph
 EMPHASIS_PARTICLES: frozenset[str] = frozenset({
     "de", "da", "bile", "dahi", "sadece", "yalnızca",
@@ -414,6 +420,8 @@ class DepToken:
     _label_cache: frozenset[str] | None = field(
         default=None, repr=False, init=False,
     )
+    # Virgül bilgisi: bu tokendan sonra virgül var mı?
+    has_comma_after: bool = field(default=False, repr=False)
 
     # ── Fabrika Metodu ────────────────────────────────────────────
 
@@ -541,6 +549,10 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str],
 
     # Soru partikülü
     if w in QUESTION_PARTICLES:
+        return "PART"
+
+    # Odaklama partikülü (de/da/ki) — BOUN'da PART olarak etiketlenir
+    if w in _FOCUS_PARTICLES and not (a and a.suffixes):
         return "PART"
 
     # Bağımlama edatı
@@ -722,6 +734,7 @@ class CaseRoleRule(DependencyRule):
         "BULUNMA": "obl",
         "AYRILMA": "obl",
         "ARAÇ": "obl",
+        "VASITA": "obl",
     }
 
     def apply(self, tokens: list[DepToken]) -> list[str]:
@@ -1258,6 +1271,10 @@ class CoordinationRule(DependencyRule):
         # Faz 2: İlişkili bağlaçlar (hem...hem, ne...ne, ya...ya)
         applied.extend(self._handle_correlatives(tokens))
 
+        # Faz 3: Virgüllü koordinasyon (asindeton)
+        # "Ali, Ayşe, Mehmet" → Ayşe→conj→Ali, Mehmet→conj→Ali
+        applied.extend(self._handle_comma_coordination(tokens))
+
         return applied
 
     @staticmethod
@@ -1305,6 +1322,66 @@ class CoordinationRule(DependencyRule):
                             applied.append("İLİŞKİLİ→CC+CONJ")
                         break
             i += 1
+        return applied
+
+    # UPOS grupları: aynı grup içindeki tokenlar koordine olabilir
+    _COORD_COMPAT: dict[str, frozenset[str]] = {
+        "NOUN": frozenset({"NOUN", "PROPN", "NUM"}),
+        "PROPN": frozenset({"NOUN", "PROPN"}),
+        "VERB": frozenset({"VERB"}),
+        "ADJ": frozenset({"ADJ"}),
+        "ADV": frozenset({"ADV"}),
+        "NUM": frozenset({"NOUN", "NUM"}),
+    }
+
+    @staticmethod
+    def _handle_comma_coordination(tokens: list[DepToken]) -> list[str]:
+        """Virgüllü asindeton koordinasyonu: A, B, C → B→conj→A, C→conj→A.
+
+        Strateji: has_comma_after işareti olan tokenın sağındaki aynı
+        UPOS grubundan token'ı conj olarak bağla. İlk öge baş, sonrakiler conj.
+        """
+        applied: list[str] = []
+        n = len(tokens)
+
+        for i in range(n - 1):
+            t = tokens[i]
+            # Virgül yoksa atla
+            if not t.has_comma_after:
+                continue
+            # Sol token content olmalı
+            if t.upos in ("PUNCT", "CCONJ", "DET", "ADP", "PART"):
+                continue
+
+            # Sağdaki content token'ı bul (DET/ADP atlayarak)
+            right = None
+            for j in range(i + 1, n):
+                cand = tokens[j]
+                if cand.upos in ("PUNCT", "CCONJ", "DET", "ADP", "PART"):
+                    continue
+                right = cand
+                break
+
+            if not right or right.is_assigned:
+                continue
+
+            # UPOS uyumluluk kontrolü
+            compat = CoordinationRule._COORD_COMPAT.get(t.upos)
+            if not compat or right.upos not in compat:
+                continue
+
+            # Zincir başını bul (t zaten conj ise, onun head'ine bağla)
+            head = t
+            while head.deprel == "conj" and head.head != 0:
+                prev = next((tok for tok in tokens if tok.id == head.head), None)
+                if prev is None:
+                    break
+                head = prev
+
+            right.head = head.id
+            right.deprel = "conj"
+            applied.append("VİRGÜL→CONJ")
+
         return applied
 
 
@@ -1890,12 +1967,14 @@ class DependencyParser:
         self,
         sentence_tokens: list[SentenceToken],
         *,
+        text: str = "",
         trace: bool = False,
     ) -> list[DepToken]:
         """SentenceToken listesini bağımlılık ağacına dönüştürür.
 
         Args:
             sentence_tokens: Morfolojik çözümleme çıktısı.
+            text: Orijinal cümle metni (virgül tespiti için).
             trace: True ise kural uygulamalarını loglar, self._last_trace'e yazar.
         """
         if not sentence_tokens:
@@ -1906,6 +1985,10 @@ class DependencyParser:
             DepToken.from_sentence_token(st, i + 1, is_first=(i == 0))
             for i, st in enumerate(sentence_tokens)
         ]
+
+        # Orijinal metinde virgül konumlarını tespit et
+        if text:
+            self._detect_commas(dep_tokens, text)
 
         trace_log: list[dict] = []
 
@@ -1942,6 +2025,29 @@ class DependencyParser:
             self._last_trace = trace_log
 
         return dep_tokens
+
+    @staticmethod
+    def _detect_commas(dep_tokens: list[DepToken], text: str) -> None:
+        """Orijinal metinden virgül konumlarını tespit edip tokenlara işaretle."""
+        pos = 0
+        for i, t in enumerate(dep_tokens):
+            idx = text.find(t.form, pos)
+            if idx < 0:
+                # Case-insensitive fallback
+                idx = text.lower().find(t.form.lower(), pos)
+            if idx < 0:
+                continue
+            end = idx + len(t.form)
+            # Bir sonraki tokena kadar olan aralıkta virgül var mı?
+            if i + 1 < len(dep_tokens):
+                next_idx = text.find(dep_tokens[i + 1].form, end)
+                if next_idx < 0:
+                    next_idx = text.lower().find(dep_tokens[i + 1].form.lower(), end)
+                if next_idx >= 0:
+                    between = text[end:next_idx]
+                    if "," in between:
+                        t.has_comma_after = True
+            pos = end
 
     # ── Çıktı Formatları ──────────────────────────────────────────
 
