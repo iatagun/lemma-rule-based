@@ -152,11 +152,33 @@ COMMON_ADJECTIVES: frozenset[str] = frozenset({
 
 # Bilinen zarflar — eksiz kullanımda UPOS=ADV çıkarımı için
 COMMON_ADVERBS: frozenset[str] = frozenset({
+    # Derece / miktar
     "çok", "az", "daha", "en", "pek", "hiç", "hep", "artık",
-    "bile", "sadece", "yalnız", "henüz", "hâlâ", "zaten",
+    "biraz", "epey", "fazla", "aşırı", "iyice", "hayli",
+    "oldukça", "gayet", "son derece",
+    # Zaman
     "dün", "bugün", "yarın", "şimdi", "sonra", "önce",
     "hemen", "yine", "tekrar", "bazen", "sık", "geç", "erken",
-    "asla", "ancak", "belki", "kesinlikle", "oldukça", "gayet",
+    "henüz", "hâlâ", "zaten", "artık", "sürekli", "daima",
+    "devamlı", "nihayet", "sonunda", "derhal", "önceden",
+    # Tarz / biçim
+    "böyle", "şöyle", "öyle", "birlikte", "beraber",
+    "doğrudan", "açıkça",
+    # Değerlendirme / kesinlik
+    "gerçekten", "aslında", "genellikle", "mutlaka",
+    "kesinlikle", "muhakkak", "elbette", "tabii",
+    "neredeyse", "yaklaşık", "herhalde",
+    # Odaklama / sınırlama
+    "bile", "sadece", "yalnız", "ancak",
+    "özellikle", "yalnızca",
+    # Soru / belirsizlik
+    "belki", "acaba",
+    # Olumsuzluk
+    "asla",
+    # Yön
+    "içeri", "dışarı", "ileri", "geri",
+    # Üstelik / ekleme
+    "üstelik", "ayrıca", "dahası",
 })
 
 # Sayı sözcükleri — UPOS=NUM, deprel=nummod
@@ -908,6 +930,46 @@ class ParticipleRule(DependencyRule):
         return None
 
 
+class MultiPredicateRule(DependencyRule):
+    """Çok yüklemli cümlelerde ikincil çekimli fiilleri conj olarak bağlar.
+
+    PredicateRule en sağdaki çekimli fiili root yapar.
+    ConverbRule zarf-fiilleri advcl yapar.
+    ParticipleRule sıfat-fiilleri acl yapar.
+    Geriye kalan indicative fiiller (geçmiş, şimdiki, gelecek, geniş) → conj(root).
+
+    DİLEK_ŞART ve EMİR hariç tutulur — bunlar tipik olarak advcl'dir.
+
+    Örnek: 'Geldi, gördü, kazandı' → gördü──conj──▶kazandı, geldi──conj──▶kazandı
+    """
+
+    _INDICATIVE_TENSES: frozenset[str] = frozenset({
+        "GEÇMİŞ_ZAMAN", "DUYULAN_GEÇMİŞ", "GELECEK_ZAMAN",
+        "ŞİMDİKİ_ZAMAN", "GENİŞ_ZAMAN", "GENİŞ_ZAMAN_OLMSZ",
+    })
+
+    def apply(self, tokens: list[DepToken]) -> list[str]:
+        root_id = _find_root_id(tokens)
+        if root_id == 0:
+            return []
+        applied: list[str] = []
+        for t in tokens:
+            if t.is_assigned or t.id == root_id:
+                continue
+            if t.upos != "VERB":
+                continue
+            # Sadece indicative (haber kipi) fiiller → conj
+            if not t.has_any_label(self._INDICATIVE_TENSES):
+                continue
+            # Zarf-fiil veya sıfat-fiil değilse → conj
+            if t.has_any_label(CONVERB_LABELS | PARTICIPLE_LABELS):
+                continue
+            t.head = root_id
+            t.deprel = "conj"
+            applied.append("ÇOK_YÜKLEM→CONJ")
+        return applied
+
+
 class PostpositionRule(DependencyRule):
     """Edatları solundaki sözcüğe case olarak bağlar.
 
@@ -1429,13 +1491,13 @@ def _build_tree_lines(
 
 
 class DependencyParser:
-    """Kural-tabanlı bağımlılık çözümleyici (v3 — 20 kural).
+    """Kural-tabanlı bağımlılık çözümleyici (v5 — 20 kural).
 
     ``SentenceAnalyzer`` çıktısını tüketir, konfigüre edilebilir
     kural zincirini sırayla uygular. Kurallar dışarıdan enjekte
     edilebilir (DIP); varsayılan zincir tüm fazları kapsar.
 
-    v3 kural sırası:
+    v5 kural sırası:
       1. PredicateRule          — root
       2. NominalPredicateRule   — nominal root
       3. PostpositionRule       — case
@@ -1445,17 +1507,20 @@ class DependencyParser:
       7. FlatNameRule           — flat (BOUN uyumlu)
       8. CoordinationRule       — cc + conj
       9. LightVerbRule          — compound:lvc
-     10. CompoundNounRule       — compound (belirtisiz tamlama)  [YENİ]
+     10. CompoundNounRule       — compound (belirtisiz tamlama)
      11. ConverbRule            — advcl
      12. ParticipleRule         — acl (scope-aware)
      13. TemporalAdvmodRule     — obl:tmod
-     14. AdvmodEmphRule         — advmod:emph (de/da/bile)      [YENİ]
-     15. CopulaRule             — cop (değil/idi/imiş)          [YENİ]
+     14. AdvmodEmphRule         — advmod:emph (de/da/bile)
+     15. CopulaRule             — cop (değil/idi/imiş)
      16. AdjAdvDisambiguationRule — amod/advmod
      17. AdvmodRule             — advmod
      18. CaseRoleRule           — nsubj/obj/obl
      19. AdjectiveRule          — amod
      20. FallbackRule           — dep
+
+    MultiPredicateRule tanımlı fakat zincirde devre dışı — root
+    çakışması riski nedeniyle (gelecek sürüm için hazır).
     """
 
     def __init__(
@@ -1469,7 +1534,7 @@ class DependencyParser:
 
     @staticmethod
     def _default_rules() -> list[DependencyRule]:
-        """Varsayılan kural zincirini üretir (v3 — 20 kural)."""
+        """Varsayılan kural zincirini üretir (v5 — 20 kural)."""
         return [
             # 1-2: Yüklem (en yüksek öncelik)
             PredicateRule(),
