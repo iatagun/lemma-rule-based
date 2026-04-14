@@ -89,6 +89,16 @@ CONVERB_LABELS: frozenset[str] = frozenset({
     "ZARF_FİİL_-Ip", "ZARF_FİİL_-ken",
 })
 
+# Form-tabanlı zarf-fiil tespiti (morph analyzer bu ekleri tanımayabiliyor)
+_CONVERB_FORM_RE: re.Pattern[str] = re.compile(
+    r"(?:"
+    r"[aeıioöuü]rken$"         # -Irken/-Arken (yaparken, gülerken, olurken)
+    r"|[ıiuü]nc[ae]$"          # -IncA (ölünce, gelince, yapınca)
+    r"|m[ae]d[ae]n$"            # -mAdAn (yemeden, gitmeden)
+    r"|[dt][ıiuü]k[çc][ae]$"   # -DIkçA (yaklaştıkça, geldikçe)
+    r")", re.IGNORECASE
+)
+
 # Fiilden türeme etiketleri — _infer_upos'ta VERB tespiti için
 VERBAL_NOUN_LABELS: frozenset[str] = frozenset({
     "MASTAR", "İSİM_FİİL", "İŞTEŞ", "EDİLGEN", "ETTİRGEN",
@@ -551,6 +561,10 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str]) -> str:
     if has_iyelik_belirtme and _NOMINALIZED_VERB_RE.search(w):
         return "VERB"
 
+    # Form-tabanlı zarf-fiil tespiti: -ken, -mAdAn, -DIkçA vb.
+    if _CONVERB_FORM_RE.search(w):
+        return "VERB"
+
     return "NOUN"
 
 
@@ -931,7 +945,11 @@ class AdjectiveRule(DependencyRule):
 class ConverbRule(DependencyRule):
     """Zarf-fiilleri ana yükleme advcl olarak bağlar.
 
+    İki sinyal:
+      1. Morfolojik etiket: CONVERB_LABELS (ZARF_FİİL_-ArAk vb.)
+      2. Form-tabanlı: _CONVERB_FORM_RE (-ken, -mAdAn, -DIkçA vb.)
     Örnek: 'koşarak geldi' → koşarak ──advcl──▶ geldi
+           'gülerken düştü' → gülerken ──advcl──▶ düştü
     """
 
     def apply(self, tokens: list[DepToken]) -> list[str]:
@@ -942,7 +960,9 @@ class ConverbRule(DependencyRule):
         for t in tokens:
             if t.is_assigned or t.id == root_id:
                 continue
-            if t.has_any_label(CONVERB_LABELS):
+            is_converb = (t.has_any_label(CONVERB_LABELS)
+                          or _CONVERB_FORM_RE.search(t.form.lower()))
+            if is_converb:
                 t.head = root_id
                 t.deprel = "advcl"
                 applied.append("ZARF_FİİL→ADVCL")
