@@ -176,6 +176,12 @@ COMMON_ADJECTIVES: frozenset[str] = frozenset({
     "pasif", "olumlu", "pozitif", "negatif",
     "etkili", "verimli", "yaratıcı", "yoğun", "sabit",
     "değerli", "önceki", "sonraki", "mevcut", "güncel",
+    # v7 ekleme — amod→obj hata analizinden
+    "türlü", "başarılı", "büyülü", "sinsi", "faydalı",
+    "kuvvetli", "politik", "kronik", "ideolojik", "feodal",
+    "bembeyaz", "sivri", "milli", "yerleşik", "organik",
+    "stratejik", "diplomatik", "sistematik", "otoriter",
+    "birinci", "ikinci", "üçüncü",
 })
 
 # Bilinen zarflar — eksiz kullanımda UPOS=ADV çıkarımı için
@@ -505,10 +511,11 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str]) -> str:
         return "NUM"
 
     # Zarf ve sıfat: tam sözcük eşleşmesi — morfolojik çözümleme hatalı
-    # olabilir ("daha" → dah+a/YÖNELME gibi). Ek koşulu kaldırıldı.
+    # olabilir ("daha" → dah+a/YÖNELME, "yeni" → yen+i/İYELİK gibi).
+    # Ek koşulu kaldırıldı: tam eşleşme morfolojik hatayı override eder.
     if w in COMMON_ADVERBS:
         return "ADV"
-    if w in COMMON_ADJECTIVES and not (a and a.suffixes):
+    if w in COMMON_ADJECTIVES:
         return "ADJ"
 
     # Fiil olarak yanlış çözümlenen isimler: tam sözcük veya kök eşleşmesi
@@ -779,13 +786,20 @@ class PossessiveRule(DependencyRule):
 
     Belirtili: TAMLAYAN + İYELİK → nmod:poss
     Belirtisiz (3. tekil): yalın + İYELİK_3T → CompoundNounRule'a bırak
+    Zamir tamlayan: benim/senin/onun/bizim/sizin + İYELİK → nmod:poss
 
-    Strateji: TAMLAYAN ekli sözcüğü sağdaki İYELİK ekli sözcüğe bağla.
-    Arama kapsamı genişletilmiş: sıfat, belirleyici, sayı, başka
-    tamlayan sözcükleri atlayarak İYELİK taşıyan baş aranır.
+    Strateji: TAMLAYAN ekli veya tamlayan zamiri olan sözcüğü
+    sağdaki İYELİK ekli sözcüğe bağla.
     Örnek: 'ülkenin geleceği' → ülkenin ──nmod:poss──▶ geleceği
-           'çocuğun güzel kitabı' → çocuğun ──nmod:poss──▶ kitabı
+           'benim kitabım'   → benim ──nmod:poss──▶ kitabım
     """
+
+    # Tamlayan zamirleri — morph analyzer TAMLAYAN etiketi üretmeyebilir
+    _GEN_PRONOUNS: frozenset[str] = frozenset({
+        "benim", "senin", "onun", "bizim", "sizin", "onların",
+        "bunun", "şunun", "bunların", "şunların",
+        "kendi", "kendinin", "kendisinin",
+    })
 
     # Arama sırasında atlanabilecek UPOS türleri
     _SKIP_UPOS: frozenset[str] = frozenset({
@@ -795,7 +809,11 @@ class PossessiveRule(DependencyRule):
     def apply(self, tokens: list[DepToken]) -> list[str]:
         applied: list[str] = []
         for i, t in enumerate(tokens):
-            if t.is_assigned or not t.has_label("TAMLAYAN"):
+            if t.is_assigned:
+                continue
+            is_gen = (t.has_label("TAMLAYAN")
+                      or t.form.lower() in self._GEN_PRONOUNS)
+            if not is_gen:
                 continue
             # Sağdaki ilk İYELİK-ekli sözcüğü bul (geniş arama)
             for j in range(i + 1, len(tokens)):
