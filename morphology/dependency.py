@@ -149,6 +149,8 @@ DETERMINERS: frozenset[str] = frozenset({
 
 CONJUNCTIONS: frozenset[str] = frozenset({
     "ve", "veya", "ya", "ama", "fakat", "ancak", "ile", "ne",
+    "hem", "oysa", "hâlbuki", "halbuki", "gerek",
+    "yani", "örneğin", "hatta", "eğer",
 })
 
 POSTPOSITIONS: frozenset[str] = frozenset({
@@ -240,7 +242,7 @@ COMMON_ADVERBS: frozenset[str] = frozenset({
     "bile", "sadece", "yalnız", "ancak",
     "özellikle", "yalnızca",
     # Soru / belirsizlik
-    "belki", "acaba",
+    "belki", "acaba", "nasıl",
     # Olumsuzluk
     "asla",
     # Yön
@@ -250,6 +252,9 @@ COMMON_ADVERBS: frozenset[str] = frozenset({
     "buradan", "oradan", "şuradan", "nerede", "nereye", "nereden",
     # Üstelik / ekleme
     "üstelik", "ayrıca", "dahası",
+    # v11 ekleme — BOUN frekans analizi
+    "böylece", "tamamen", "yeniden", "sanki", "ardından",
+    "sonradan", "baştan", "henüz", "meselâ", "mesela",
 })
 
 # Sık fiil-olarak-yanlış-çözümlenen isimler — _infer_upos'ta VERB→NOUN düzeltme
@@ -308,17 +313,37 @@ PRONOUNS: frozenset[str] = frozenset({
     "onu", "ona", "onda", "ondan", "onun", "onunla",
     "bizi", "bize", "bizde", "bizden", "bizim", "bizimle",
     "sizi", "size", "sizde", "sizden", "sizin", "sizinle",
-    "onları", "onlara", "onlarda", "onlardan", "onların",
+    "onlar", "onları", "onlara", "onlarda", "onlardan", "onların",
+    # İşaret zamiri çekimleri (bu/şu/o → bun-/şun-)
+    "bunu", "bunun", "buna", "bundan", "bunla", "bununla",
+    "bunlar", "bunları", "bunların", "bunlara", "bunlarda", "bunlardan",
+    "şunu", "şunun", "şuna", "şundan", "şununla",
+    "şunlar", "şunları", "şunların", "şunlara", "şunlarda",
+    # Dönüşlü zamir (kendi) genişletme
     "kendi", "kendisi", "kendim", "kendin", "kendimiz", "kendiniz",
-    "kim", "kimi", "kime", "kimde", "kimden", "kimin",
+    "kendisine", "kendisini", "kendisinin", "kendisinden", "kendisiyle",
+    "kendime", "kendimi", "kendimin", "kendimden", "kendimle",
+    "kendine", "kendini", "kendinin", "kendinden", "kendinle",
+    "kendileri", "kendilerine", "kendilerini", "kendilerinin",
+    # Soru zamirleri
+    "kim", "kimi", "kime", "kimde", "kimden", "kimin", "kimse",
     "ne", "neyi", "neye", "nede", "neden", "neyin",
-    "nere", "nereye", "nerede", "nereden", "nereyi",
-    "buraya", "burada", "buradan", "burayı",
+    "neler", "neleri", "nelere", "nelerden", "nelerin",
+    "nere", "nereye", "nerede", "nereden", "nereyi", "nerenin",
+    # Yer zamirleri
+    "buraya", "burada", "buradan", "burayı", "buranın",
     "şuraya", "şurada", "şuradan",
-    "oraya", "orada", "oradan", "orayı",
-    "herkes", "hepsi", "hepimiz", "hepiniz",
-    "hiçbiri", "birisi", "birbirimiz", "birbiri",
-    "hangisi", "hangileri",
+    "oraya", "orada", "oradan", "orayı", "oranın",
+    # Belgisiz zamirler
+    "herkes", "herkesi", "herkese", "herkeste", "herkesten", "herkesin",
+    "hepsi", "hepsini", "hepsine", "hepsinden", "hepsinin",
+    "hepimiz", "hepiniz",
+    "hiçbiri", "hiçbirini", "hiçbirine", "hiçbirinden", "hiçbirinin",
+    "birisi", "birisine", "birisini", "birisinin",
+    "biri", "birini", "birine", "birinde", "birinden", "birinin",
+    "birbirimiz", "birbiri", "birbirine", "birbirini", "birbirinin",
+    "birbirinden", "birbirlerini", "birbirlerine",
+    "hangisi", "hangileri", "hangisine", "hangisini",
 })
 
 # Zamir kökleri — çekimli formları tanımak için
@@ -326,6 +351,7 @@ PRONOUN_STEMS: frozenset[str] = frozenset({
     "ben", "sen", "o", "biz", "siz", "onlar",
     "kendi", "kim", "ne", "nere",
     "bura", "şura", "ora",
+    "bun", "şun",  # bu/şu → bun-/şun- çekim kökü
     "herkes", "hep", "hiçbir", "biri", "birbir",
     "hangi",
 })
@@ -343,7 +369,7 @@ _FOCUS_PARTICLES: frozenset[str] = frozenset({"de", "da", "ki"})
 # Odaklama / pekiştirme edatları — advmod:emph
 EMPHASIS_PARTICLES: frozenset[str] = frozenset({
     "de", "da", "bile", "dahi", "sadece", "yalnızca",
-    "özellikle", "hatta", "yalnız",
+    "özellikle", "yalnız",
 })
 
 # Ünlemler — UPOS=INTJ
@@ -351,12 +377,14 @@ INTERJECTIONS: frozenset[str] = frozenset({
     "evet", "hayır", "tamam", "peki", "hay",
     "eyvah", "oh", "ah", "vah", "bravo", "aman",
     "maalesef", "lütfen", "merhaba", "güle",
+    "haydi", "hadi", "hey", "ey", "sakın", "hooop",
+    "tey", "ha", "aaa", "tabi",
 })
 
 # Bağımlama edatları — UPOS=SCONJ
 SUBORDINATORS: frozenset[str] = frozenset({
     "ki", "diye", "çünkü", "madem", "mademki",
-    "eğer", "şayet", "halbuki", "oysa", "oysaki",
+    "şayet", "oysaki",
 })
 
 # Hafif fiil + isimleştirme kalıbı (etmeyi, yapması, olduğu, …)
@@ -1251,12 +1279,20 @@ class CoordinationRule(DependencyRule):
         "hem", "ne", "ya", "ister", "gerek", "olsun",
     })
 
+    # SCONJ words that function as cc (coordinating) in BOUN
+    _SCONJ_AS_CC: frozenset[str] = frozenset({"çünkü"})
+
     def apply(self, tokens: list[DepToken]) -> list[str]:
         applied: list[str] = []
 
         # Faz 1: Explicit bağlaçlar (ve, veya, ama, fakat)
         for i, t in enumerate(tokens):
-            if t.upos != "CCONJ" or t.is_assigned:
+            is_cconj = t.upos == "CCONJ"
+            is_sconj_cc = (
+                t.upos == "SCONJ"
+                and turkish_lower(t.form) in self._SCONJ_AS_CC
+            )
+            if (not is_cconj and not is_sconj_cc) or t.is_assigned:
                 continue
             left = self._find_left_conjunct(tokens, i)
             right = self._find_right_conjunct(tokens, i)
