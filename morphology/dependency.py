@@ -793,23 +793,27 @@ class CaseRoleRule(DependencyRule):
             if t.is_assigned or t.id == root_id:
                 continue
 
+            # Yerel yüklem: çok-yüklemli cümlelerde en yakın sağ yüklemi bul
+            local_pred = _find_local_predicate(tokens, t.id, root_id)
+
             # 1) İyelik başı → BELIRTME eki iyelik fonksiyonunda
             #    Hal eki olarak sayma, yalın gibi değerlendir
             if t.id in poss_heads and t.has_iyelik:
                 role = self._detect_case_role_skip_belirtme(t)
                 if role:
-                    t.head = root_id
+                    t.head = local_pred
                     t.deprel = role
                     applied.append(f"HAL→{role.upper()}")
                     continue
                 # BELIRTME dışında hal eki yok → yalın gibi davran
+                # nsubj → root_id (ana yüklem öznesı), obj → local_pred
                 if not nsubj_assigned and not is_prodrop:
                     t.head = root_id
                     t.deprel = "nsubj"
                     nsubj_assigned = True
                     applied.append("İYELİK_BAŞI→NSUBJ")
                 else:
-                    t.head = root_id
+                    t.head = local_pred
                     t.deprel = "obj" if is_prodrop else "nsubj"
                     if not is_prodrop:
                         nsubj_assigned = True
@@ -827,18 +831,18 @@ class CaseRoleRule(DependencyRule):
             role = self._detect_case_role(t)
             if role:
                 if role == "obj" and t.upos == "VERB":
-                    t.head = root_id
+                    t.head = local_pred
                     t.deprel = "ccomp"
                     applied.append("FİİL_BELIRTME→CCOMP")
                 else:
-                    t.head = root_id
+                    t.head = local_pred
                     t.deprel = role
                     applied.append(f"HAL→{role.upper()}")
                 continue
 
             # 3) Edat bağımlısı var → obl ("ev için" → ev=obl)
             if t.id in has_case_child:
-                t.head = root_id
+                t.head = local_pred
                 t.deprel = "obl"
                 applied.append("EDAT_BAĞIMLI→OBL")
                 continue
@@ -846,35 +850,31 @@ class CaseRoleRule(DependencyRule):
             # 4) Yalın isim/zamir → belirlilik hiyerarşisi
             #    Türkçe'de yalın ortak isim = belirtisiz nesne (kitap okudu)
             #    Özel isim / zamir = belirli → özne adayı
+            #    nsubj → root_id (ana yüklem), obj → local_pred
             if t.upos in ("NOUN", "PROPN", "PRON") and not t.has_case:
                 is_definite = t.upos in ("PROPN", "PRON") or t.has_iyelik
                 if is_prodrop:
-                    # Pro-drop: belirli → nsubj (Onu gördüm ama Ali geldi)
-                    #           belirsiz → obj (kitap okudum)
                     if is_definite and not nsubj_assigned:
                         t.head = root_id
                         t.deprel = "nsubj"
                         nsubj_assigned = True
                         applied.append("BELİRLİ_PRODROP→NSUBJ")
                     else:
-                        t.head = root_id
+                        t.head = local_pred
                         t.deprel = "obj"
                         applied.append("PRODROP→OBJ")
                 elif not nsubj_assigned:
-                    # İlk yalın: belirli veya ortak isim → nsubj
                     t.head = root_id
                     t.deprel = "nsubj"
                     nsubj_assigned = True
                     applied.append("YALIN→NSUBJ")
                 else:
-                    # nsubj zaten var, ikinci yalın
                     if is_definite:
-                        t.head = root_id
+                        t.head = local_pred
                         t.deprel = "obj"
                         applied.append("BELİRLİ→OBJ")
                     else:
-                        # Yalın ortak isim, ikinci → belirtisiz nesne
-                        t.head = root_id
+                        t.head = local_pred
                         t.deprel = "obj"
                         applied.append("BELİRTİSİZ→OBJ")
 
@@ -1255,12 +1255,12 @@ class AdvmodRule(DependencyRule):
 
     @staticmethod
     def _find_target(tokens: list[DepToken], idx: int, root_id: int) -> int:
-        """Zarfın bağlanacağı hedefi belirle: sağ komşu ADJ/ADV → o; aksi → root."""
+        """Zarfın bağlanacağı hedefi belirle: sağ komşu ADJ/ADV → o; aksi → yerel yüklem."""
         if idx + 1 < len(tokens):
             right = tokens[idx + 1]
             if right.upos in ("ADJ", "ADV"):
                 return right.id
-        return root_id
+        return _find_local_predicate(tokens, tokens[idx].id, root_id)
 
 
 class CoordinationRule(DependencyRule):
@@ -1580,7 +1580,8 @@ class TemporalAdvmodRule(DependencyRule):
                 continue
             w = turkish_lower(t.form)
             if w in TEMPORAL_NOUNS and not t._suffixes:
-                t.head = root_id
+                local_pred = _find_local_predicate(tokens, t.id, root_id)
+                t.head = local_pred
                 t.deprel = "obl:tmod"
                 applied.append("ZAMAN→OBL_TMOD")
         return applied
@@ -1849,7 +1850,8 @@ class FallbackRule(DependencyRule):
                     applied.append("FALLBACK→AMOD")
                     continue
 
-            t.head = root_id
+            local_pred = _find_local_predicate(tokens, t.id, root_id)
+            t.head = local_pred
             t.deprel = "dep"
             applied.append("FALLBACK→DEP")
         return applied
@@ -1893,6 +1895,30 @@ def _find_root_id(tokens: list[DepToken]) -> int:
         if t.deprel == "root":
             return t.id
     return 0
+
+
+def _find_local_predicate(
+    tokens: list[DepToken], position: int, root_id: int,
+) -> int:
+    """Verilen konumdaki token için en yakın sağdaki yüklemi bulur.
+
+    Türkçe baş-sonu (head-final) yapısına göre argümanlar yüklemlerinden
+    ÖNCE gelir. Bu yardımcı, çok-yüklemli cümlelerde her argümanı
+    kendi yerel yüklemine bağlamak için kullanılır.
+
+    Yüklem adayları: root + advcl + acl + ccomp deprel'li tokenlar.
+    """
+    best_id = root_id
+    best_pos = len(tokens) + 1
+    for t in tokens:
+        if t.id <= position:
+            continue
+        if t.deprel in ("root", "advcl", "acl", "ccomp"):
+            idx = next((k for k, tok in enumerate(tokens) if tok.id == t.id), best_pos)
+            if idx < best_pos:
+                best_pos = idx
+                best_id = t.id
+    return best_id
 
 
 def _build_tree_lines(
