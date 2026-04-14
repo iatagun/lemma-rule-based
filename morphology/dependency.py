@@ -187,15 +187,15 @@ COMMON_ADVERBS: frozenset[str] = frozenset({
     # Zaman
     "dün", "bugün", "yarın", "şimdi", "sonra", "önce",
     "hemen", "yine", "tekrar", "bazen", "sık", "geç", "erken",
-    "henüz", "hâlâ", "zaten", "artık", "sürekli", "daima",
+    "henüz", "hâlâ", "hala", "zaten", "artık", "sürekli", "daima",
     "devamlı", "nihayet", "sonunda", "derhal", "önceden",
     # Tarz / biçim
     "böyle", "şöyle", "öyle", "birlikte", "beraber",
-    "doğrudan", "açıkça",
+    "doğrudan", "açıkça", "işte",
     # Değerlendirme / kesinlik
     "gerçekten", "aslında", "genellikle", "mutlaka",
     "kesinlikle", "muhakkak", "elbette", "tabii",
-    "neredeyse", "yaklaşık", "herhalde",
+    "neredeyse", "yaklaşık", "herhalde", "yeterince",
     # Odaklama / sınırlama
     "bile", "sadece", "yalnız", "ancak",
     "özellikle", "yalnızca",
@@ -207,6 +207,30 @@ COMMON_ADVERBS: frozenset[str] = frozenset({
     "içeri", "dışarı", "ileri", "geri",
     # Üstelik / ekleme
     "üstelik", "ayrıca", "dahası",
+})
+
+# Sık fiil-olarak-yanlış-çözümlenen isimler — _infer_upos'ta VERB→NOUN düzeltme
+# Morfolojik çözümleyici bu sözcükleri fiil+ek olarak parse eder:
+#   zaman → zam+an (GENİŞ_ZAMAN), bilim → bil+im (MASTAR) vb.
+# Tam sözcük eşleşmesi olduğunda NOUN olarak kabul et.
+COMMON_NOUNS: frozenset[str] = frozenset({
+    # -An sonlu (GENİŞ_ZAMAN/SIFAT_FİİL ile çakışan)
+    "zaman", "başkan", "ozan", "divan", "meydan", "kazan",
+    "düzen", "neden", "güven", "yüzen",
+    # -Im/-Um sonlu (MASTAR ile çakışan)
+    "bilim", "eğitim", "geçim", "toplum", "hücum", "önlem",
+    "eylem", "devam", "teslim", "temsil", "yatırım", "ikram",
+    "yaşam",
+    # -Ar/-Er sonlu (GENİŞ_ZAMAN ile çakışan)
+    "karar", "pazar", "sınır", "şeker", "kültür",
+    # -Iş sonlu (İŞTEŞ ile çakışan)
+    "artış", "bakış", "çıkış", "giriş", "dönüş", "yürüyüş",
+    # -İp/-Up sonlu
+    "takip", "sahip",
+    # Diğer yanlış-çözümlemeler
+    "akşam", "parmak", "albüm", "helikopter", "deniz",
+    "politika", "yardım", "bölge", "dahil", "insan",
+    "adam", "tahmin", "talep", "taraf",
 })
 
 # Sayı sözcükleri — UPOS=NUM, deprel=nummod
@@ -479,10 +503,22 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str]) -> str:
         return "ADP"
     if (w in NUMERALS or re.match(r"^\d+$", st.word)) and not (a and a.suffixes):
         return "NUM"
+
+    # Zarf ve sıfat: tam sözcük eşleşmesi — morfolojik çözümleme hatalı
+    # olabilir ("daha" → dah+a/YÖNELME gibi). Ek koşulu kaldırıldı.
+    if w in COMMON_ADVERBS:
+        return "ADV"
     if w in COMMON_ADJECTIVES and not (a and a.suffixes):
         return "ADJ"
-    if w in COMMON_ADVERBS and not (a and a.suffixes):
-        return "ADV"
+
+    # Fiil olarak yanlış çözümlenen isimler: tam sözcük veya kök eşleşmesi
+    # ("zaman"→zam+an/GENİŞ_ZAMAN, "bilim"→bil+im/MASTAR,
+    #  "insanlar"→insan+lar ama başka parse'da fiil gibi görünüyor vb.)
+    if w in COMMON_NOUNS:
+        return "NOUN"
+    if a and a.stem and a.stem.lower() in COMMON_NOUNS:
+        return "NOUN"
+
     if not a or not a.suffixes:
         return "NOUN"
 
@@ -799,12 +835,12 @@ class DeterminerRule(DependencyRule):
     def _find_right_nominal(
         tokens: list[DepToken], start: int,
     ) -> DepToken | None:
-        """Sağdaki ilk isimsel token'ı bulur (sıfat/det atlayarak)."""
+        """Sağdaki ilk isimsel token'ı bulur (sıfat/det/zarf atlayarak)."""
         for j in range(start + 1, len(tokens)):
             t = tokens[j]
             if t.is_nominal_head:
                 return t
-            if t.upos not in ("ADJ", "DET", "NUM"):
+            if t.upos not in ("ADJ", "DET", "NUM", "ADV"):
                 break
         return None
 
@@ -1040,10 +1076,14 @@ class PostpositionRule(DependencyRule):
 
 
 class AdvmodRule(DependencyRule):
-    """Zarfları (ADV) yükleme advmod olarak bağlar.
+    """Zarfları (ADV) yükleme veya komşu sıfat/zarfa advmod olarak bağlar.
 
-    Örnek: 'çok seviyor' → çok ──advmod──▶ seviyor
-           'dün geldim'  → dün ──advmod──▶ geldim
+    Strateji:
+      1. Sağ komşu ADJ/ADV ise → o tokene bağla ("çok güzel" → çok→güzel)
+      2. Aksi halde → yükleme bağla ("dün geldim" → dün→geldim)
+    Örnek: 'çok güzel kitap' → çok ──advmod──▶ güzel
+           'daha iyi oldu'  → daha ──advmod──▶ iyi
+           'hemen geldim'   → hemen ──advmod──▶ geldim
     """
 
     def apply(self, tokens: list[DepToken]) -> list[str]:
@@ -1051,14 +1091,24 @@ class AdvmodRule(DependencyRule):
         if root_id == 0:
             return []
         applied: list[str] = []
-        for t in tokens:
+        for i, t in enumerate(tokens):
             if t.is_assigned or t.id == root_id:
                 continue
             if t.upos == "ADV":
-                t.head = root_id
+                target = self._find_target(tokens, i, root_id)
+                t.head = target
                 t.deprel = "advmod"
                 applied.append("ZARF→ADVMOD")
         return applied
+
+    @staticmethod
+    def _find_target(tokens: list[DepToken], idx: int, root_id: int) -> int:
+        """Zarfın bağlanacağı hedefi belirle: sağ komşu ADJ/ADV → o; aksi → root."""
+        if idx + 1 < len(tokens):
+            right = tokens[idx + 1]
+            if right.upos in ("ADJ", "ADV"):
+                return right.id
+        return root_id
 
 
 class CoordinationRule(DependencyRule):
@@ -1481,10 +1531,12 @@ class AdjAdvDisambiguationRule(DependencyRule):
 
 
 class FallbackRule(DependencyRule):
-    """Atanmamış token'ları root'a genel (dep) olarak bağlar.
+    """Atanmamış token'ları UPOS-aware olarak bağlar.
 
-    Hiçbir kural tarafından yakalanamayan sözcüklerin ağaçta
-    yetim kalmamasını sağlar (graceful degradation).
+    Strateji:
+      - CCONJ → cc (root'a)
+      - DET → sağdaki en yakın NOUN/PROPN'a det
+      - Geri kalan → root'a dep (graceful degradation)
     """
 
     def apply(self, tokens: list[DepToken]) -> list[str]:
@@ -1492,12 +1544,41 @@ class FallbackRule(DependencyRule):
         if root_id == 0:
             return []
         applied: list[str] = []
-        for t in tokens:
-            if not t.is_assigned and t.id != root_id:
+        for i, t in enumerate(tokens):
+            if t.is_assigned or t.id == root_id:
+                continue
+
+            # CCONJ: bağlaç → cc olarak root'a bağla
+            if t.upos == "CCONJ":
                 t.head = root_id
-                t.deprel = "dep"
-                applied.append("FALLBACK→DEP")
+                t.deprel = "cc"
+                applied.append("FALLBACK→CC")
+                continue
+
+            # DET: sağdaki en yakın NOUN/PROPN'a det bağla
+            if t.upos == "DET":
+                target = self._find_right_noun(tokens, i)
+                if target:
+                    t.head = target.id
+                    t.deprel = "det"
+                    applied.append("FALLBACK→DET")
+                    continue
+
+            t.head = root_id
+            t.deprel = "dep"
+            applied.append("FALLBACK→DEP")
         return applied
+
+    @staticmethod
+    def _find_right_noun(tokens: list[DepToken], start: int) -> DepToken | None:
+        """start'ın sağındaki en yakın NOUN/PROPN tokenini bul."""
+        for j in range(start + 1, min(start + 5, len(tokens))):
+            if tokens[j].upos in ("NOUN", "PROPN"):
+                return tokens[j]
+            if tokens[j].upos not in ("ADJ", "NUM", "DET", "ADV"):
+                break
+        return None
+
 
 
 # ═══════════════════════════════════════════════════════════════════
