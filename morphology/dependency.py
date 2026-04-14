@@ -89,6 +89,24 @@ CONVERB_LABELS: frozenset[str] = frozenset({
     "ZARF_FİİL_-Ip", "ZARF_FİİL_-ken",
 })
 
+# Fiilden türeme etiketleri — _infer_upos'ta VERB tespiti için
+VERBAL_NOUN_LABELS: frozenset[str] = frozenset({
+    "MASTAR", "İSİM_FİİL", "İŞTEŞ", "EDİLGEN", "ETTİRGEN",
+})
+
+# İsimleşmiş fiil formu tespiti — İYELİK_3T/BELIRTME altında gizli sıfat-fiil/isim-fiil
+# -DIk/-DIğ participle, -EcEk/-EcEğ future participle, -mA/-mAs gerund
+_NOMINALIZED_VERB_RE: re.Pattern[str] = re.compile(
+    r"(?:"
+    r"[dt][ıiuü][ğk]"         # -DIk/-DIğ participle
+    r"|[ea]c[ea][ğk]"         # -EcEk/-EcEğ future participle
+    r"|m[ea]s[ıiuü]"          # -mAsI gerund (etmesini, yapması)
+    r"|m[ea]y[ıiuü]"          # -mAyI infinitive+acc (etmeyi, yapmayı)
+    r"|m[ea]l[ıiuü]"          # -mAlI necessity (aldanmamalı)
+    r"|[ıiuü]labil"           # -Ilabil- possibility passive
+    r")", re.IGNORECASE
+)
+
 CASE_LABELS: frozenset[str] = frozenset(_CASE_LABEL_TO_UD.keys())
 
 IYELIK_LABELS: frozenset[str] = frozenset({
@@ -148,6 +166,16 @@ COMMON_ADJECTIVES: frozenset[str] = frozenset({
     "yabancı", "yerli", "karşı", "ayrı", "beraber", "benzer",
     "aynı", "başka", "asıl", "gerçek", "sahici", "normal",
     "garip", "tuhaf", "ilginç", "sıradan", "olağan",
+    # BOUN benchmark sık karşılaşılan (v6 ekleme)
+    "adlı", "bol", "bilimsel", "kişisel", "hoşnut", "etnik",
+    "teknik", "değişik", "uygar", "dini", "askeri", "siyasi",
+    "ekonomik", "toplumsal", "sosyal", "kültürel", "tarihsel",
+    "bireysel", "hukuki", "yasal", "mali", "milli",
+    "kapsamlı", "belli", "belirli", "temel",
+    "esas", "somut", "soyut", "potansiyel", "aktif",
+    "pasif", "olumlu", "pozitif", "negatif",
+    "etkili", "verimli", "yaratıcı", "yoğun", "sabit",
+    "değerli", "önceki", "sonraki", "mevcut", "güncel",
 })
 
 # Bilinen zarflar — eksiz kullanımda UPOS=ADV çıkarımı için
@@ -466,6 +494,19 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str]) -> str:
                 return "VERB"
             if sub in CONVERB_LABELS:
                 return "VERB"
+            if sub in VERBAL_NOUN_LABELS:
+                return "VERB"
+
+    # Form-tabanlı isimleşmiş fiil tespiti:
+    # İYELİK_3T/BELIRTME altında gizli -DIk, -EcEk, -mA yapıları
+    has_iyelik_belirtme = False
+    for _, label in a.suffixes:
+        subs = label.split("/")
+        if "İYELİK_3T" in subs or "BELIRTME" in subs:
+            has_iyelik_belirtme = True
+            break
+    if has_iyelik_belirtme and _NOMINALIZED_VERB_RE.search(w):
+        return "VERB"
 
     return "NOUN"
 
@@ -610,11 +651,18 @@ class CaseRoleRule(DependencyRule):
                 continue
 
             # 2) Hal eki → doğrudan görev eşleme
+            #    İsimleşmiş fiil: VERB + BELIRTME → ccomp (tümleç yan cümlesi)
+            #    geldiğini biliyorum → geldiğini = ccomp
             role = self._detect_case_role(t)
             if role:
-                t.head = root_id
-                t.deprel = role
-                applied.append(f"HAL→{role.upper()}")
+                if role == "obj" and t.upos == "VERB":
+                    t.head = root_id
+                    t.deprel = "ccomp"
+                    applied.append("FİİL_BELIRTME→CCOMP")
+                else:
+                    t.head = root_id
+                    t.deprel = role
+                    applied.append(f"HAL→{role.upper()}")
                 continue
 
             # 3) Edat bağımlısı var → obl ("ev için" → ev=obl)
