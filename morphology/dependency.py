@@ -318,7 +318,7 @@ EMPHASIS_PARTICLES: frozenset[str] = frozenset({
 
 # Ünlemler — UPOS=INTJ
 INTERJECTIONS: frozenset[str] = frozenset({
-    "evet", "hayır", "yok", "tamam", "peki", "hay",
+    "evet", "hayır", "tamam", "peki", "hay",
     "eyvah", "oh", "ah", "vah", "bravo", "aman",
     "maalesef", "lütfen", "merhaba", "güle",
 })
@@ -334,6 +334,20 @@ _LVC_NOM_RE = re.compile(
     r"^(et|yap|ol|kıl|buyur|eyle)(me|ma|iş|ış|uş|üş)",
     re.IGNORECASE,
 )
+
+# "ol" ile başlayan ama hafif fiil olmayan sözcükler
+_OL_BLACKLIST: frozenset[str] = frozenset({
+    "olay", "olağan", "olağanüstü", "olası", "olasılık", "oluşum",
+    "olgu", "oluk", "olumlu", "olumsuz", "olarak",
+})
+
+# Hafif fiil prefix eşlemesinden hariç tutulan formlar
+_LVC_FORM_BLACKLIST: frozenset[str] = frozenset({
+    "olarak",   # ADP/case — "X olarak" = "as X"
+    "yapısı", "yapısını", "yapısının", "yapısında",  # yapı (structure)
+    "yapılan", "yapılır", "yapılmış",  # yapıl- (passive of yap) — genellikle acl
+    "etik", "etiket",  # bağımsız sözcükler
+})
 
 # Pro-drop: 1. ve 2. kişi ekleri → özne düşmüş
 PRODROP_PERSON_LABELS: frozenset[str] = frozenset({
@@ -1241,41 +1255,68 @@ class CoordinationRule(DependencyRule):
 
 
 class LightVerbRule(DependencyRule):
-    """Hafif fiil yapılarını compound:lvc olarak bağlar.
+    """Hafif fiil yapılarını compound:lvc olarak bağlar (BOUN konvansiyonu).
 
-    Yalın isim + hafif fiil (et, yap, ol, kıl, buyur, eyle)
-    birleşimini tespit eder. Hafif fiilin çekimli (etti) veya
-    isimleşmiş (etmeyi, yapması) formları da desteklenir.
-    Örnek: 'yardım etti'     → yardım ──compound:lvc──▶ etti
-           'dans etmeyi'     → dans ──compound:lvc──▶ etmeyi
+    BOUN Treebank'ta hafif fiil yapısında isim baş, fiil bağımlıdır:
+      söz + edecek → edecek ──compound:lvc──▶ söz
+      devam + ediyor → ediyor ──compound:lvc──▶ devam
+      neden + olan → olan ──compound:lvc──▶ neden
+
+    Strateji: Hafif fiil tespit edildiğinde, fiilin solundaki yalın
+    isme compound:lvc olarak bağla. İsim, fiilin aldığı sözdizimsel
+    rolü (root/advcl/obj vb.) üstlenir.
     """
 
     def apply(self, tokens: list[DepToken]) -> list[str]:
         applied: list[str] = []
         for i, t in enumerate(tokens):
-            if t.is_assigned or t.upos not in ("NOUN", "ADJ") or t._suffixes:
+            if t.is_assigned:
                 continue
-            if turkish_lower(t.form) in TEMPORAL_NOUNS:
+            # Hafif fiil tespiti
+            if not self._is_light_verb(t):
                 continue
-            if i + 1 >= len(tokens):
-                continue
-            right = tokens[i + 1]
-            if self._is_light_verb(right):
-                t.head = right.id
+            # Solundaki yalın isme bağla
+            left = self._find_left_noun(tokens, i)
+            if left:
+                t.head = left.id
                 t.deprel = "compound:lvc"
                 applied.append("HAFİF_FİİL→COMPOUND_LVC")
         return applied
 
     @staticmethod
     def _is_light_verb(token: DepToken) -> bool:
-        """Token'ın hafif fiil (çekimli veya isimleşmiş) olup olmadığını kontrol eder."""
-        if token.upos == "VERB" and token.lemma in LIGHT_VERBS:
+        """Token'ın hafif fiil olup olmadığını kontrol eder.
+
+        Lemma-tabanlı + form-tabanlı hibrit yaklaşım.
+        Morfolojik çözümleyici bazı hafif fiillere yanlış lemma atadığı için
+        (ederler→ederl, olan→olan) form prefix kontrolü de kullanılır.
+        """
+        w = turkish_lower(token.form)
+        if w in _LVC_FORM_BLACKLIST:
+            return False
+        if token.lemma in LIGHT_VERBS:
             return True
-        # İsimleşmiş hafif fiil: etmeyi, yapması, oluşu, …
-        if _LVC_NOM_RE.match(turkish_lower(token.form)):
+        if _LVC_NOM_RE.match(w):
             return True
+        for stem in ("et", "ed", "ol", "yap", "kıl", "buyur", "eyle"):
+            if w == stem:
+                return True
+            if w.startswith(stem) and len(w) > len(stem):
+                if stem == "ol" and w in _OL_BLACKLIST:
+                    continue
+                return True
         return False
 
+    @staticmethod
+    def _find_left_noun(tokens: list[DepToken], verb_idx: int) -> DepToken | None:
+        """Hafif fiilin solundaki yalın ismi bul."""
+        for j in range(verb_idx - 1, max(verb_idx - 3, -1), -1):
+            cand = tokens[j]
+            if cand.upos in ("NOUN", "ADJ") and not cand._suffixes:
+                if turkish_lower(cand.form) not in TEMPORAL_NOUNS:
+                    return cand
+            break  # sadece hemen soldaki tokene bak
+        return None
 
 class NummodRule(DependencyRule):
     """Sayıları sağdaki isme nummod olarak bağlar.
@@ -1602,6 +1643,40 @@ class FallbackRule(DependencyRule):
                     applied.append("FALLBACK→DET")
                     continue
 
+            # SCONJ: bağımlama bağlacı → mark, soldaki en yakın VERB'e bağla
+            if t.upos == "SCONJ":
+                target = self._find_left_verb(tokens, i)
+                if target:
+                    t.head = target.id
+                    t.deprel = "mark"
+                    applied.append("FALLBACK→MARK")
+                    continue
+
+            # PART (soru partikülleri): mi/mı/mu/mü → discourse:q
+            if t.upos == "PART" and turkish_lower(t.form) in QUESTION_PARTICLES:
+                target = self._find_left_content(tokens, i)
+                if target:
+                    t.head = target.id
+                    t.deprel = "discourse:q"
+                    applied.append("FALLBACK→DISCOURSE_Q")
+                    continue
+
+            # INTJ: ünlem → discourse, root'a bağla
+            if t.upos == "INTJ":
+                t.head = root_id
+                t.deprel = "discourse"
+                applied.append("FALLBACK→DISCOURSE")
+                continue
+
+            # ADJ: sıfat → sağda NOUN varsa amod, yoksa root'a advmod
+            if t.upos == "ADJ":
+                target = self._find_right_noun(tokens, i)
+                if target:
+                    t.head = target.id
+                    t.deprel = "amod"
+                    applied.append("FALLBACK→AMOD")
+                    continue
+
             t.head = root_id
             t.deprel = "dep"
             applied.append("FALLBACK→DEP")
@@ -1615,6 +1690,22 @@ class FallbackRule(DependencyRule):
                 return tokens[j]
             if tokens[j].upos not in ("ADJ", "NUM", "DET", "ADV"):
                 break
+        return None
+
+    @staticmethod
+    def _find_left_verb(tokens: list[DepToken], start: int) -> DepToken | None:
+        """start'ın solundaki en yakın VERB tokenini bul."""
+        for j in range(start - 1, max(start - 6, -1), -1):
+            if tokens[j].upos == "VERB":
+                return tokens[j]
+        return None
+
+    @staticmethod
+    def _find_left_content(tokens: list[DepToken], start: int) -> DepToken | None:
+        """start'ın solundaki en yakın içerik sözcüğünü bul."""
+        for j in range(start - 1, max(start - 4, -1), -1):
+            if tokens[j].upos in ("VERB", "NOUN", "ADJ", "PROPN", "ADV"):
+                return tokens[j]
         return None
 
 
