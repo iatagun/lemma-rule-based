@@ -84,6 +84,7 @@ VERB_FINAL_LABELS: frozenset[str] = frozenset({
 _FINITE_TENSE_LABELS: frozenset[str] = frozenset({
     "GEÇMİŞ_ZAMAN", "DUYULAN_GEÇMİŞ", "GELECEK_ZAMAN",
     "ŞİMDİKİ_ZAMAN", "GENİŞ_ZAMAN", "GENİŞ_ZAMAN_OLMSZ",
+    "KİŞİ_1T", "KİŞİ_2T", "KİŞİ_1Ç", "KİŞİ_2Ç", "KİŞİ_3Ç",
 })
 
 PARTICIPLE_LABELS: frozenset[str] = frozenset({
@@ -1144,6 +1145,9 @@ class ConverbRule(DependencyRule):
                 continue
             is_converb = (t.has_any_label(CONVERB_LABELS)
                           or _CONVERB_FORM_RE.search(t.form.lower()))
+            # DİLEK_ŞART: koşul fiilleri → advcl (gelse, yapılsa, dokunulsa)
+            if not is_converb and t.has_label("DİLEK_ŞART") and t.upos == "VERB":
+                is_converb = True
             if is_converb:
                 t.head = root_id
                 t.deprel = "advcl"
