@@ -367,6 +367,8 @@ COMMON_NOUNS: frozenset[str] = frozenset({
     # Büyük harfli kurum/unvan isimleri — PROPN false-positive azaltmak
     "devlet", "güney", "mayıs", "mart", "meclis", "genelkurmay",
     "cumhurbaşkan", "savcı", "dışişleri", "bakan",
+    # EDİLGEN false-positive: -il/-ul sonlu isimler (gön+ül→EDİLGEN hatası)
+    "gönül", "kurul", "tatil", "varil", "tahıl", "cahil", "temsil",
     # Yaygın kök isimler (çekimli formları VERB oluyor)
     "yan", "gün", "yıl", "su", "ateş", "kapı", "yer",
     "sıra", "otel", "anne", "baba", "kız",
@@ -711,7 +713,14 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str],
     if w in COMMON_NOUNS:
         return "NOUN"
     if a and a.stem and a.stem.lower() in COMMON_NOUNS:
-        return "NOUN"
+        # Fiil çekim eki (sıfat-fiil, zarf-fiil, zaman/kip) varsa NOUN zorlama
+        _verb_use = VERB_FINAL_LABELS | PARTICIPLE_LABELS | CONVERB_LABELS
+        has_verb_sfx = a.suffixes and any(
+            sub in _verb_use
+            for _, lbl in a.suffixes for sub in lbl.split("/")
+        )
+        if not has_verb_sfx:
+            return "NOUN"
 
     # Çoğul isim tespiti: -lar/-ler soneki + ÇOĞUL etiketi → NOUN
     # "insanlar", "adamlar" gibi formlar fiil olarak yanlış çözümlenir
