@@ -1596,9 +1596,9 @@ class CoordinationRule(DependencyRule):
                         )
                         if right1 and right2:
                             tokens[i].head = right1.id
-                            tokens[i].deprel = "cc"
+                            tokens[i].deprel = "cc:preconj"
                             tokens[j].head = right2.id
-                            tokens[j].deprel = "cc"
+                            tokens[j].deprel = "cc:preconj"
                             if da_idx is not None and not tokens[da_idx].is_assigned:
                                 tokens[da_idx].head = tokens[j].id
                                 tokens[da_idx].deprel = "fixed"
@@ -2161,9 +2161,11 @@ class FallbackRule(DependencyRule):
                 applied.append("FALLBACK→DISCOURSE")
                 continue
 
-            # ADJ: sıfat → sağda NOUN varsa amod, yoksa root'a advmod
+            # ADJ: sıfat → sağda NOUN varsa amod, yoksa VERB'e de dene
             if t.upos == "ADJ":
                 target = self._find_right_noun(tokens, i)
+                if not target:
+                    target = self._find_right_head_for_adj(tokens, i)
                 if target:
                     t.head = target.id
                     t.deprel = "amod"
@@ -2298,6 +2300,21 @@ class FallbackRule(DependencyRule):
         for j in range(start + 1, min(start + 5, len(tokens))):
             if tokens[j].upos in ("NOUN", "PROPN", "VERB", "ADJ", "PRON", "NUM"):
                 return tokens[j]
+        return None
+
+    @staticmethod
+    def _find_right_head_for_adj(tokens: list[DepToken], start: int) -> DepToken | None:
+        """ADJ için sağdaki VERB/ADJ hedefini bul (UPOS hatası telafisi).
+
+        Birçok NOUN, UPOS çıkarımında VERB olarak etiketlenir (adamlar,
+        kapılar vb.). Bu yardımcı NOUN bulunamazsa en yakın VERB/ADJ'yi döndürür.
+        """
+        for j in range(start + 1, min(start + 3, len(tokens))):
+            t = tokens[j]
+            if t.upos in ("VERB", "ADJ"):
+                return t
+            if t.upos in ("CCONJ", "ADP"):
+                break
         return None
 
 
