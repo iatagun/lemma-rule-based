@@ -687,7 +687,7 @@ COMMON_VERB_FORMS: frozenset[str] = frozenset({
     "vermeye", "gerekirse", "korka", "doya", "iken",
 })
 
-# Zaman isimleri — yalın kullanımda obl:tmod
+# Zaman isimleri — yalın kullanımda obl
 TEMPORAL_NOUNS: frozenset[str] = frozenset({
     "sabah", "öğle", "öğlen", "akşam", "gece", "gündüz",
     "hafta", "ay", "yıl", "sene", "mevsim",
@@ -696,6 +696,16 @@ TEMPORAL_NOUNS: frozenset[str] = frozenset({
     "ocak", "şubat", "mart", "nisan", "mayıs", "haziran",
     "temmuz", "ağustos", "eylül", "ekim", "kasım", "aralık",
     "bahar", "yaz", "sonbahar", "kış",
+})
+
+# Özne-alan yüklemler — VERB+BELIRTME bu yüklemlere bağlanırsa csubj olur
+# gerek- ailesi (tüm çekimler), lazım, sıfat yüklemler
+_CSUBJ_PREDICATES: frozenset[str] = frozenset({
+    "lazım", "lâzım", "gerekli", "gereklidir", "şart",
+    "önemli", "önemlidir", "güç", "zor", "kolay", "mümkün",
+    "olanaksız", "olanaksızdır", "imkansız", "imkânsız",
+    "gerçek", "gerçektir", "doğru", "yanlış", "mutlu", "normal",
+    "tesadüf", "tesadüftü", "belli",
 })
 
 # Hafif fiiller — compound:lvc yapılarının fiil bileşeni
@@ -1359,9 +1369,17 @@ class CaseRoleRule(DependencyRule):
             role = self._detect_case_role(t)
             if role:
                 if role == "obj" and t.upos == "VERB":
-                    t.head = local_pred
-                    t.deprel = "ccomp"
-                    applied.append("FİİL_BELIRTME→CCOMP")
+                    # Yüklem özne-alan bir predicate ise → csubj
+                    head_tok = tokens[local_pred - 1] if local_pred <= len(tokens) else None
+                    head_form = turkish_lower(head_tok.form) if head_tok else ""
+                    if head_form.startswith("gerek") or head_form in _CSUBJ_PREDICATES:
+                        t.head = local_pred
+                        t.deprel = "csubj"
+                        applied.append("FİİL_BELIRTME→CSUBJ")
+                    else:
+                        t.head = local_pred
+                        t.deprel = "ccomp"
+                        applied.append("FİİL_BELIRTME→CCOMP")
                 elif role == "obl" and turkish_lower(t.form).endswith(("maya", "meye")):
                     # MASTAR+YÖNELME: yazmaya başladı → ccomp (tümleç yan cümlesi)
                     t.head = local_pred
@@ -2212,12 +2230,35 @@ class NummodRule(DependencyRule):
     """Sayıları sağdaki isme nummod olarak bağlar.
 
     'bir' hariç (DET olarak kalır).
+    Sıra sayıları (birinci, ikinci…) ve dağıtım sayıları (birer, ikişer…)
+    BOUN'da genellikle amod olarak etiketlenir; nummod yerine amod atanır.
     Ardışık sayı zincirleri: ilk NUM → nummod, sonrakiler → flat.
     Örnek: 'üç kitap'          → üç ──nummod──▶ kitap
            '100 kişi'          → 100 ──nummod──▶ kişi
-           'beş yüz kişi'     → beş ──nummod──▶ kişi, yüz ──flat──▶ beş
-           'iki bin beş yüz'  → iki ──nummod──▶ ..., bin/beş/yüz ──flat──▶ iki
+           'birinci sınıf'    → birinci ──amod──▶ sınıf
     """
+
+    _ORDINAL_RE = re.compile(
+        r"(?:birinci|ikinci|üçüncü|dördüncü|beşinci|altıncı|yedinci"
+        r"|sekizinci|dokuzuncu|onuncu|sonuncu)",
+        re.IGNORECASE,
+    )
+    _ORDINAL_SUFFIX_RE = re.compile(
+        r"(?:[ıiuü]nc[ıiuü]|'?nc[ıiuü])$", re.IGNORECASE,
+    )
+    _DISTRIBUTIVE_RE = re.compile(
+        r"(?:birer|ikişer|üçer|dörtler|beşer|altışar|yedişer"
+        r"|sekizer|dokuzar|onar|yirmişer)",
+        re.IGNORECASE,
+    )
+
+    @classmethod
+    def _is_ordinal_or_distributive(cls, form: str) -> bool:
+        return bool(
+            cls._ORDINAL_RE.fullmatch(form)
+            or cls._ORDINAL_SUFFIX_RE.search(form)
+            or cls._DISTRIBUTIVE_RE.fullmatch(form)
+        )
 
     @staticmethod
     def _is_num_token(t: DepToken) -> bool:
@@ -2230,6 +2271,19 @@ class NummodRule(DependencyRule):
             if t.is_assigned:
                 continue
             if not self._is_num_token(t):
+                continue
+            # Sıra/dağıtım sayıları → amod (birinci, ikişer…)
+            if self._is_ordinal_or_distributive(t.form):
+                for j in range(i + 1, len(tokens)):
+                    candidate = tokens[j]
+                    if candidate.upos in ("NOUN", "PROPN"):
+                        t.head = candidate.id
+                        t.deprel = "amod"
+                        t.upos = "NUM"
+                        applied.append("SIRA_SAYI→AMOD")
+                        break
+                    if candidate.upos not in ("ADJ", "NUM"):
+                        break
                 continue
             # Ardışık NUM: önceki token zaten nummod/flat atanmışsa → flat
             if i > 0:
@@ -2350,11 +2404,12 @@ class ReduplicationRule(DependencyRule):
 
 
 class TemporalAdvmodRule(DependencyRule):
-    """Yalın zaman isimlerini obl:tmod olarak bağlar.
+    """Yalın zaman isimlerini obl olarak bağlar.
 
     Zaman isimleri (akşam, sabah, gece, gün adları, ay adları…)
-    yalın kullanıldığında nsubj değil obl:tmod olarak atanmalıdır.
-    Örnek: 'akşam geldim' → akşam ──obl:tmod──▶ geldim
+    yalın kullanıldığında nsubj değil obl olarak atanmalıdır.
+    BOUN Treebank obl:tmod alt-tipini tutarsız kullanır; düz obl tercih edilir.
+    Örnek: 'akşam geldim' → akşam ──obl──▶ geldim
     """
 
     def apply(self, tokens: list[DepToken]) -> list[str]:
@@ -2369,8 +2424,8 @@ class TemporalAdvmodRule(DependencyRule):
             if w in TEMPORAL_NOUNS and not t._suffixes:
                 local_pred = _find_local_predicate(tokens, t.id, root_id)
                 t.head = local_pred
-                t.deprel = "obl:tmod"
-                applied.append("ZAMAN→OBL_TMOD")
+                t.deprel = "obl"
+                applied.append("ZAMAN→OBL")
         return applied
 
 
@@ -2911,7 +2966,7 @@ class DependencyParser:
      10. CompoundNounRule       — compound (belirtisiz tamlama)
      11. ConverbRule            — advcl
      12. ParticipleRule         — acl (scope-aware)
-     13. TemporalAdvmodRule     — obl:tmod
+     13. TemporalAdvmodRule     — obl (zaman isimleri)
      14. AdvmodEmphRule         — advmod:emph (de/da/bile)
      15. CopulaRule             — cop (değil/idi/imiş)
      16. AdjAdvDisambiguationRule — amod/advmod
