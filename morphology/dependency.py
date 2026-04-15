@@ -708,6 +708,14 @@ _CSUBJ_PREDICATES: frozenset[str] = frozenset({
     "tesadüf", "tesadüftü", "belli",
 })
 
+# Edilgen bildirme fiilleri — tümleç yan cümlesi bu fiillere bağlanırsa csubj olur
+# belirtildi, öğrenildi, bilinmiyor, bildirildi, kararlaştırıldı, deniliyor vb.
+_PASSIVE_REPORT_RE = re.compile(
+    r'^(belirtil|öğrenil|bilin|bildiril|kararlaştırıl|denil|anlaşıl'
+    r'|söylen|kaydedil|vurgulan|açıklan|saptanıl)',
+    re.IGNORECASE,
+)
+
 # Hafif fiiller — compound:lvc yapılarının fiil bileşeni
 LIGHT_VERBS: frozenset[str] = frozenset({
     "et", "yap", "ol", "kıl", "buyur", "eyle",
@@ -1372,7 +1380,9 @@ class CaseRoleRule(DependencyRule):
                     # Yüklem özne-alan bir predicate ise → csubj
                     head_tok = tokens[local_pred - 1] if local_pred <= len(tokens) else None
                     head_form = turkish_lower(head_tok.form) if head_tok else ""
-                    if head_form.startswith("gerek") or head_form in _CSUBJ_PREDICATES:
+                    if (head_form.startswith("gerek")
+                            or head_form in _CSUBJ_PREDICATES
+                            or _PASSIVE_REPORT_RE.match(head_form)):
                         t.head = local_pred
                         t.deprel = "csubj"
                         applied.append("FİİL_BELIRTME→CSUBJ")
@@ -1506,8 +1516,10 @@ class PossessiveRule(DependencyRule):
     # Arama sırasında atlanabilecek UPOS türleri
     _SKIP_UPOS: frozenset[str] = frozenset({
         "ADJ", "DET", "NUM", "NOUN", "PROPN", "ADV",
-        "CCONJ", "PART",
+        "CCONJ", "PART", "PRON", "ADP",
     })
+
+    _MAX_SCAN_DISTANCE: int = 12
 
     def apply(self, tokens: list[DepToken]) -> list[str]:
         applied: list[str] = []
@@ -1518,8 +1530,9 @@ class PossessiveRule(DependencyRule):
                       or t.form.lower() in self._GEN_PRONOUNS)
             if not is_gen:
                 continue
-            # Sağdaki ilk İYELİK-ekli sözcüğü bul (geniş arama)
-            for j in range(i + 1, len(tokens)):
+            # Sağdaki ilk İYELİK-ekli sözcüğü bul (mesafe sınırlı arama)
+            max_j = min(i + 1 + self._MAX_SCAN_DISTANCE, len(tokens))
+            for j in range(i + 1, max_j):
                 candidate = tokens[j]
                 if candidate.has_iyelik:
                     t.head = candidate.id
@@ -2792,15 +2805,27 @@ class FallbackRule(DependencyRule):
                     applied.append("FALLBACK→CONJ_MIS")
                     continue
 
-            # NOUN/PROPN: TAMLAYAN ekli → nmod:poss olarak sağdaki isme bağla
+            # NOUN/PROPN: TAMLAYAN ekli → nmod:poss veya nsubj (VERB başlı)
             if t.upos in ("NOUN", "PROPN"):
                 if t.has_label("TAMLAYAN"):
                     target = self._find_right_possessed(tokens, i)
                     if target:
                         t.head = target.id
-                        t.deprel = "nmod:poss"
-                        applied.append("FALLBACK→NMOD_POSS")
+                        if target.upos == "VERB":
+                            t.deprel = "nsubj"
+                            applied.append("FALLBACK→NSUBJ_GEN")
+                        else:
+                            t.deprel = "nmod:poss"
+                            applied.append("FALLBACK→NMOD_POSS")
                         continue
+
+            # ADP: Solda isim yoksa → advmod (cümle başı Önce, Sonra vb.)
+            if t.upos == "ADP":
+                local_pred = _find_local_predicate(tokens, t.id, root_id)
+                t.head = local_pred
+                t.deprel = "advmod"
+                applied.append("FALLBACK→ADVMOD_ADP")
+                continue
 
             local_pred = _find_local_predicate(tokens, t.id, root_id)
             t.head = local_pred
@@ -2847,12 +2872,14 @@ class FallbackRule(DependencyRule):
 
     @staticmethod
     def _find_right_possessed(tokens: list[DepToken], start: int) -> DepToken | None:
-        """TAMLAYAN'lı tokenın sağındaki İYELİK'li ismi bul (6 token pencere)."""
-        for j in range(start + 1, min(start + 6, len(tokens))):
+        """TAMLAYAN'lı tokenın sağındaki İYELİK'li ismi bul (10 token pencere)."""
+        for j in range(start + 1, min(start + 10, len(tokens))):
             t = tokens[j]
             if t.upos in ("NOUN", "PROPN") and t.has_iyelik:
                 return t
-            if t.upos in ("ADJ", "DET", "NUM"):
+            if t.upos == "VERB" and t.has_iyelik:
+                return t
+            if t.upos in ("ADJ", "DET", "NUM", "PRON", "ADV", "ADP"):
                 continue
             if t.upos in ("NOUN", "PROPN"):
                 return t
