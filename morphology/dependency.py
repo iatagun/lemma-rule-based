@@ -124,6 +124,28 @@ _DERIV_ADJ_RE: re.Pattern[str] = re.compile(
     r")", re.IGNORECASE
 )
 
+# _DERIV_ADJ_RE tabanını çıkaran kalıplar (sözlük doğrulaması için)
+_DERIV_ADJ_BASE_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r"^(.{3,})[lL][ıiuü]$", re.IGNORECASE),     # -lI
+    re.compile(r"^(.{2,})s[ıiuü]z$", re.IGNORECASE),        # -sIz
+    re.compile(r"^(.{3,})s[ae]l$", re.IGNORECASE),           # -sAl
+    re.compile(r"^(.{3,})[ıiuü]ms[ıiuü]$", re.IGNORECASE),  # -(I)msI
+]
+
+
+def _extract_deriv_adj_base(form: str) -> str | None:
+    """Türetim eki sıfat formundan tabanı çıkarır.
+
+    Örnek: "şanslı" → "şans", "ruhsuz" → "ruh", "ulusal" → "ulus"
+    Eşleşme yoksa None döner.
+    """
+    wl = turkish_lower(form)
+    for pat in _DERIV_ADJ_BASE_PATTERNS:
+        m = pat.match(wl)
+        if m:
+            return m.group(1)
+    return None
+
 # Lokasyon-ilgi sıfatı: BULUNMA(-DA) + ki → sıfat işlevi
 # arasındaki, altındaki, önündeki, bendeki, evindeki vb.
 _DAKI_ADJ_RE: re.Pattern[str] = re.compile(
@@ -1039,6 +1061,14 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str],
     if not is_first and st.word and st.word[0].isupper():
         if not a or not a.suffixes:
             return "PROPN"
+
+    # ── Türetim eki tabanlı ADJ tespiti (erken — ek çıktısı olmasa bile) ──
+    # Morfolojik çözümleyici "şanslı", "ruhsuz" gibi sözcüklerde ek algılamaz
+    # ama form türetim eki kalıbına uyar. Taban sözlükte varsa → ADJ.
+    if (not a or not a.suffixes) and _DERIV_ADJ_RE.search(w):
+        base = _extract_deriv_adj_base(st.word)
+        if base and base in _load_noun_dict():
+            return "ADJ"
 
     if not a or not a.suffixes:
         return "NOUN"
