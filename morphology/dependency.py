@@ -26,6 +26,7 @@ Kullanım:
 from __future__ import annotations
 
 import logging
+import pathlib
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -146,6 +147,90 @@ _HIDDEN_PAST_VERB_RE: re.Pattern[str] = re.compile(
 _MIS_VERB_RE: re.Pattern[str] = re.compile(
     r".{2,}m[ıiuü]ş$", re.IGNORECASE
 )
+
+# -An/-En sıfat-fiil formu tespiti (olan, eden, açan, gelen, giden...)
+_AN_PARTICIPLE_RE: re.Pattern[str] = re.compile(
+    r".{2,}[aeıiouöü]?y?[ae]n$", re.IGNORECASE
+)
+
+# Yalnızca ek kısmını yakalar — gövde çıkarma için
+_AN_SUFFIX_RE: re.Pattern[str] = re.compile(
+    r"([aeıiouöü]?y?[ae]n)$", re.IGNORECASE
+)
+
+# ── Sözlük tabanlı -An sıfat-fiil doğrulama ──────────────────────
+_WORD_FILE = pathlib.Path(__file__).resolve().parent.parent / "turkish_words.txt"
+_VERB_DICT: set[str] | None = None
+
+
+def _load_verb_dict() -> set[str]:
+    """turkish_words.txt'den fiil mastarlarını yükle (lazy)."""
+    global _VERB_DICT
+    if _VERB_DICT is None:
+        _VERB_DICT = set()
+        if _WORD_FILE.exists():
+            with open(_WORD_FILE, encoding="utf-8") as f:
+                for line in f:
+                    w = line.strip().lower()
+                    if w.endswith(("mak", "mek")):
+                        _VERB_DICT.add(w)
+    return _VERB_DICT
+
+
+def _is_an_participle(form: str) -> bool:
+    """Sözcüğün -An/-En sıfat-fiil olup olmadığını sözlük ile doğrula.
+
+    Strateji: -An/-En ekini sıyır, kalan gövde+mak/mek sözlükte mi kontrol et.
+    Olumsuz (-mAyAn) ve yetersizlik (-AmAyAn) biçimlerini de tanır.
+    """
+    wl = turkish_lower(form)
+    if len(wl) < 4:
+        return False
+    # Son harf n olmalı, ondan önceki a veya e olmalı
+    if wl[-1] != "n" or wl[-2] not in "ae":
+        return False
+
+    verbs = _load_verb_dict()
+
+    def _check_stem(s: str) -> bool:
+        if not s or len(s) < 2:
+            return False
+        candidates = [s]
+        # Ünsüz yumuşaması ters çevir (yalnızca kısa gövdeler)
+        if len(s) <= 3:
+            if s[-1] == "d":
+                candidates.append(s[:-1] + "t")
+            elif s[-1] in ("g", "ğ"):
+                candidates.append(s[:-1] + "k")
+            elif s[-1] == "c":
+                candidates.append(s[:-1] + "ç")
+            elif s[-1] == "b":
+                candidates.append(s[:-1] + "p")
+        return any(c + "mak" in verbs or c + "mek" in verbs for c in candidates)
+
+    def _try_stem(stem: str) -> bool:
+        """Doğrudan ve olumsuz biçimleri kontrol et."""
+        if _check_stem(stem):
+            return True
+        if stem.endswith(("me", "ma")) and len(stem) > 3:
+            if _check_stem(stem[:-2]):
+                return True
+        if stem.endswith(("ama", "eme")) and len(stem) > 4:
+            if _check_stem(stem[:-3]):
+                return True
+        return False
+
+    # -an / -en (suf_len=2): olan, gelen, gören, bilinen
+    if len(wl) > 3:
+        if _try_stem(wl[:-2]):
+            return True
+
+    # -yan / -yen (suf_len=3): yalnızca [-3]=="y" → başlayan, taşıyan
+    if len(wl) > 4 and wl[-3] == "y":
+        if _try_stem(wl[:-3]):
+            return True
+
+    return False
 
 # Fiilden türeme etiketleri — _infer_upos'ta VERB tespiti için
 VERBAL_NOUN_LABELS: frozenset[str] = frozenset({
@@ -1355,11 +1440,16 @@ class ParticipleRule(DependencyRule):
             # ADV'ler sıfat-fiil değildir — SIFAT_FİİL etiketi false positive
             if t.upos == "ADV":
                 continue
-            # Morfolojik etiket VEYA form-tabanlı -mIş tespiti
+            # Morfolojik etiket VEYA form-tabanlı -mIş/-An tespiti
             is_participle = t.has_any_label(PARTICIPLE_LABELS)
             if not is_participle:
                 # -mIş formu: İŞTEŞ olarak yanlış etiketlenmiş olabilir
                 if t.upos == "VERB" and _MIS_VERB_RE.search(t.form):
+                    is_participle = True
+            if not is_participle:
+                # -An/-En sıfat-fiil formu: olan, eden, açan, gelen...
+                # Sözlük doğrulaması ile (stem+mak/mek kontrolü)
+                if t.upos == "VERB" and _is_an_participle(t.form):
                     is_participle = True
             if not is_participle:
                 continue
