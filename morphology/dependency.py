@@ -301,7 +301,7 @@ COMMON_ADVERBS: frozenset[str] = frozenset({
     # Değerlendirme / kesinlik
     "gerçekten", "aslında", "genellikle", "mutlaka",
     "kesinlikle", "muhakkak", "elbette", "tabii",
-    "neredeyse", "yaklaşık", "herhalde", "yeterince",
+    "neredeyse", "herhalde", "yeterince",
     # Odaklama / sınırlama
     "bile", "sadece", "yalnız", "ancak",
     "özellikle", "yalnızca",
@@ -1060,6 +1060,7 @@ class PossessiveRule(DependencyRule):
     # Arama sırasında atlanabilecek UPOS türleri
     _SKIP_UPOS: frozenset[str] = frozenset({
         "ADJ", "DET", "NUM", "NOUN", "PROPN", "ADV",
+        "CCONJ", "PART",
     })
 
     def apply(self, tokens: list[DepToken]) -> list[str]:
