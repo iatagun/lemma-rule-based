@@ -161,6 +161,7 @@ _AN_SUFFIX_RE: re.Pattern[str] = re.compile(
 # ── Sözlük tabanlı -An sıfat-fiil doğrulama ──────────────────────
 _WORD_FILE = pathlib.Path(__file__).resolve().parent.parent / "turkish_words.txt"
 _VERB_DICT: set[str] | None = None
+_NOUN_DICT: set[str] | None = None
 
 
 def _load_verb_dict() -> set[str]:
@@ -175,6 +176,49 @@ def _load_verb_dict() -> set[str]:
                     if w.endswith(("mak", "mek")):
                         _VERB_DICT.add(w)
     return _VERB_DICT
+
+
+def _load_noun_dict() -> set[str]:
+    """turkish_words.txt'den fiil-dışı sözcükleri yükle (lazy).
+
+    -lar/-ler çoğul belirsizliğini çözmek için kullanılır:
+    insanlar → insan ∈ sözlük → NOUN (GENİŞ_ZAMAN değil ÇOĞUL)
+    """
+    global _NOUN_DICT
+    if _NOUN_DICT is None:
+        _NOUN_DICT = set()
+        if _WORD_FILE.exists():
+            with open(_WORD_FILE, encoding="utf-8") as f:
+                for line in f:
+                    w = line.strip().lower()
+                    if not w.endswith(("mak", "mek")):
+                        _NOUN_DICT.add(w)
+    return _NOUN_DICT
+
+
+def _is_ambiguous_verb_base(base: str) -> bool:
+    """Çoğul kökünün fiil türevli olup olmadığını kontrol eder.
+
+    'parça' → parçalamak ∈ sözlük → belirsiz (True)
+    'insan' → insanlamak ∉ sözlük → güvenli isim (False)
+    """
+    verbs = _load_verb_dict()
+    for suf in ("mak", "mek", "lamak", "lemek", "etmek", "olmak"):
+        if base + suf in verbs:
+            return True
+    # İsim-fiil formları (-ma/-me gövde): yorulma→yorulmak
+    if base.endswith(("ma", "me")) and len(base) > 3:
+        stem = base[:-2]
+        if stem + "mak" in verbs or stem + "mek" in verbs:
+            return True
+    # Sıfat-fiil formları (-mış/-miş/-muş/-müş, -ış/-iş/-uş/-üş)
+    if base.endswith(("mış", "miş", "muş", "müş",
+                      "ış", "iş", "uş", "üş")):
+        return True
+    # Bilinen belirsiz kökler
+    if base in ("değil", "uçar", "eder"):
+        return True
+    return False
 
 
 def _is_an_participle(form: str) -> bool:
@@ -847,6 +891,14 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str],
         ):
             return "NOUN"
 
+    # Sözlük-tabanlı çoğul tespiti: -lar/-ler + kök ∈ sözlük → NOUN
+    # Morfolojik çözümleyici "insanlar"ı ins+an+lar (GENİŞ_ZAMAN) olarak
+    # yanlış çözümleyebilir. Gerçek kök sözlükte varsa → NOUN.
+    if w.endswith(("lar", "ler")) and len(w) > 5:
+        _base = w[:-3]
+        if _base in _load_noun_dict() and not _is_ambiguous_verb_base(_base):
+            return "NOUN"
+
     # ── Büyük harf tabanlı PROPN tespiti (erken) ────────────────
     # Apostrof + büyük harf → PROPN (Türkiye'nin, İstanbul'a, Atatürk'ün)
     has_apostrophe = "'" in st.word or "\u2019" in st.word
@@ -1130,6 +1182,11 @@ class CaseRoleRule(DependencyRule):
                     t.head = local_pred
                     t.deprel = "ccomp"
                     applied.append("FİİL_BELIRTME→CCOMP")
+                elif role == "obl" and turkish_lower(t.form).endswith(("maya", "meye")):
+                    # MASTAR+YÖNELME: yazmaya başladı → ccomp (tümleç yan cümlesi)
+                    t.head = local_pred
+                    t.deprel = "ccomp"
+                    applied.append("MASTAR_YÖNELME→CCOMP")
                 else:
                     t.head = local_pred
                     t.deprel = role
