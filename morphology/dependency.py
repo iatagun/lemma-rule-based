@@ -2151,16 +2151,25 @@ class LightVerbRule(DependencyRule):
     def apply(self, tokens: list[DepToken]) -> list[str]:
         applied: list[str] = []
         for i, t in enumerate(tokens):
-            if t.is_assigned:
+            # Root dahil: hafif fiil root'taysa isim baş olur
+            if t.is_assigned and t.deprel != "root":
                 continue
             # Hafif fiil tespiti
             if not self._is_light_verb(t):
                 continue
             # Solundaki yalın isme bağla
             left = self._find_left_noun(tokens, i)
-            if left:
+            if left and not left.is_assigned:
+                was_root = t.deprel == "root"
                 t.head = left.id
                 t.deprel = "compound:lvc"
+                if was_root:
+                    # İsim yeni root olur, önceki bağımlılar aktarılır
+                    left.head = 0
+                    left.deprel = "root"
+                    for other in tokens:
+                        if other.head == t.id and other.id != left.id:
+                            other.head = left.id
                 applied.append("HAFİF_FİİL→COMPOUND_LVC")
         return applied
 
