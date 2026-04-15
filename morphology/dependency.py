@@ -389,6 +389,22 @@ NUMERALS: frozenset[str] = frozenset({
     "yüzde",
 })
 
+# Bilinen fiil biçimleri — morph analyzer tanıyamıyor, UPOS=VERB zorla
+# olmak/etmek/demek paradigmaları + diğer yüksek frekanslı fiil çekimleri
+COMMON_VERB_FORMS: frozenset[str] = frozenset({
+    # olmak paradigması
+    "olan", "olur", "oldu", "olsa", "olsun", "olursa", "olurdu",
+    "olmuştu", "olma", "olduğuna", "olursunuz",
+    # etmek paradigması
+    "eden", "eder", "etmeye", "ettiler", "etmişti",
+    # demek paradigması
+    "dedi", "der", "dedim", "diyorum",
+    # Diğer güvenli fiil biçimleri (gold ≥%100 VERB)
+    "açan", "kaldı", "alır", "açar", "bakın", "edin",
+    "girdi", "inceldi", "verdi", "sürdü", "istedi", "istedim",
+    "vermeye", "gerekirse", "korka", "doya", "iken",
+})
+
 # Zaman isimleri — yalın kullanımda obl:tmod
 TEMPORAL_NOUNS: frozenset[str] = frozenset({
     "sabah", "öğle", "öğlen", "akşam", "gece", "gündüz",
@@ -716,6 +732,8 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str],
         return "ADV"
     if w in COMMON_ADJECTIVES:
         return "ADJ"
+    if w in COMMON_VERB_FORMS:
+        return "VERB"
 
     # Fiil olarak yanlış çözümlenen isimler: tam sözcük veya kök eşleşmesi
     # ("zaman"→zam+an/GENİŞ_ZAMAN, "bilim"→bil+im/MASTAR,
