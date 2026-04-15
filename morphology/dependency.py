@@ -2191,6 +2191,9 @@ class LightVerbRule(DependencyRule):
             # Solundaki yalın isme bağla
             left = self._find_left_noun(tokens, i)
             if left and not left.is_assigned:
+                # ADJ + ol- kopula yapısıdır, LVC değil (mutlu olmak, büyük olmak)
+                if left.upos == "ADJ" and turkish_lower(t.form).startswith("ol"):
+                    continue
                 was_root = t.deprel == "root"
                 t.head = left.id
                 t.deprel = "compound:lvc"
