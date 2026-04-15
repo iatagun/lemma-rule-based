@@ -276,7 +276,138 @@ def _is_an_participle(form: str) -> bool:
 
     return False
 
-# Fiilden türeme etiketleri — _infer_upos'ta VERB tespiti için
+
+def _is_false_sifat_fiil_ablative(form: str) -> bool:
+    """SIFAT_FİİL etiketli sözcüğün aslında İSİM+AYRILMA olup olmadığını kontrol et.
+
+    Morfolojik çözümleyici -dAn/-tAn ayrılma ekindeki -An/-en'i yanlışlıkla
+    SIFAT_FİİL (-An) olarak algılayabilir. Bu fonksiyon ayrılma ekini sıyırıp
+    kalan gövdenin sözlükte isim olup olmadığını doğrular.
+
+    Örnek: "kapıdan" → kapı ∈ sözlük → True (yanlış SIFAT_FİİL)
+           "belirten" → belirt ∉ isim sözlüğü → False (gerçek SIFAT_FİİL)
+    """
+    w = turkish_lower(form)
+    if len(w) < 5:
+        return False
+
+    # -mAdAn zarf-fiil formlarını dışla (yemeden, uyumadan, durmadan)
+    if re.match(r'.*m[ae]d[ae]n$', w):
+        return False
+
+    nouns = _load_noun_dict()
+    verbs = _load_verb_dict()
+
+    # Ayrılma eki desenleri (uzundan kısaya)
+    _ABL_PATTERNS = (
+        # çoğul + iyelik + n-tampon + ayrılma
+        re.compile(r'l[ae]r[ıiuü]nd[ae]n$'),
+        # iyelik-s + n-tampon + ayrılma
+        re.compile(r's[ıiuü]nd[ae]n$'),
+        # iyelik + n-tampon + ayrılma
+        re.compile(r'[ıiuü]nd[ae]n$'),
+        # çoğul + ayrılma
+        re.compile(r'l[ae]rd[ae]n$'),
+        # n-tampon + ayrılma (3T iyelik sonrası)
+        re.compile(r'nd[ae]n$'),
+        # yalın ayrılma
+        re.compile(r'd[ae]n$'),
+        re.compile(r't[ae]n$'),
+    )
+
+    for pat in _ABL_PATTERNS:
+        m = pat.search(w)
+        if not m:
+            continue
+        base = w[:m.start()]
+        if len(base) < 2:
+            continue
+        if base not in nouns:
+            continue
+        # Kökün aynı zamanda fiil gövdesi olup olmadığını kontrol et
+        if (base + "mak") in verbs or (base + "mek") in verbs:
+            return False
+        # -tAn sıyırma durumunda: base + "t" fiil gövdesi olabilir
+        # (yır+tan=yırtmak, art+an=artmak, büyü+ten=büyütmek)
+        if w[m.start()] == "t":
+            if (base + "tmak") in verbs or (base + "tmek") in verbs:
+                return False
+        # -mA isim-fiil kökü kontrolü (erme+sinden → ermek)
+        if len(base) >= 4 and base[-2:] in ("ma", "me"):
+            stem = base[:-2]
+            if (stem + "mak") in verbs or (stem + "mek") in verbs:
+                return False
+        return True
+
+    return False
+
+
+# ── BİLDİRME kopula nominal yüklemi tespiti ────────────────
+# "gerçektir", "yasaktır", "ülkedir" gibi isim + -DIr copula yapılarını
+# VERB yerine NOUN olarak etiketlemek için kullanılır.
+_BILDIRME_STEM_RE: re.Pattern[str] = re.compile(
+    r"^(.+?)(d[ıiuü]r|t[ıiuü]r|[dt]ur|[dt]ür)$", re.IGNORECASE
+)
+
+# BİLDİRME dışında fiil-göstergesi olan ek etiketleri
+_BILDIRME_VERBAL_BLOCK: frozenset[str] = frozenset({
+    "GEÇMİŞ_ZAMAN", "GENİŞ_ZAMAN", "ŞİMDİKİ_ZAMAN", "GELECEK_ZAMAN",
+    "DUYULAN_GEÇMİŞ",
+    "KİŞİ_1T", "KİŞİ_2T", "KİŞİ_3T", "KİŞİ_1Ç", "KİŞİ_2Ç", "KİŞİ_3Ç",
+    "EMIR", "İSTEK", "GEREK", "ŞART", "SIFAT_FİİL", "ZARF_FİİL",
+    "İSİM_FİİL_-mA", "İSİM_FİİL_-Iş", "MASTAR",
+    "YETERLİLİK", "OLUMSUZ",
+})
+
+# Kopula öncesi gövdesi kesinlikle fiil/AUX olan sözcükler
+_BILDIRME_STEM_EXCLUDE: frozenset[str] = frozenset({"değil"})
+
+# GELECEK_ZAMAN-benzeri gövde kalıbı (olacak+tır, yiyecek+tir)
+_GELECEK_STEM_RE: re.Pattern[str] = re.compile(
+    r"[aeıiuüoö]c[ae]k$", re.IGNORECASE
+)
+
+
+def _is_nominal_bildirme(form: str, suffixes: list[tuple[str, str]]) -> bool:
+    """BİLDİRME ekli sözcüğün nominal yüklem olup olmadığını kontrol et.
+
+    Koşullar:
+    1. Sözcük -DIr/-tIr ile bitiyor
+    2. Gövde TDK isim sözlüğünde var
+    3. Gövde fiil sözlüğünde yok (gerek+tir → gerekmek ∈ fiil → False)
+    4. Gövde GELECEK_ZAMAN biçimi değil (yiyecek → False)
+    5. Morfolojik çözümlemede BİLDİRME dışında fiilsel ek yok
+
+    Örnek: "gerçektir" → gerçek ∈ isim sözlüğü → True (NOUN)
+           "gelmiştir" → GEÇMİŞ_ZAMAN var → False (VERB)
+    """
+    wl = turkish_lower(form)
+    m = _BILDIRME_STEM_RE.match(wl)
+    if not m:
+        return False
+    stem = m.group(1)
+
+    if stem in _BILDIRME_STEM_EXCLUDE:
+        return False
+
+    nouns = _load_noun_dict()
+    if stem not in nouns:
+        return False
+
+    verbs = _load_verb_dict()
+    if (stem + "mak") in verbs or (stem + "mek") in verbs:
+        return False
+
+    if _GELECEK_STEM_RE.search(stem):
+        return False
+
+    # Morfolojik çözümlemede BİLDİRME dışında fiilsel ek olmamalı
+    for _, label in suffixes:
+        for sub in label.split("/"):
+            if sub in _BILDIRME_VERBAL_BLOCK:
+                return False
+
+    return True
 VERBAL_NOUN_LABELS: frozenset[str] = frozenset({
     "MASTAR", "İSİM_FİİL", "İŞTEŞ", "EDİLGEN", "ETTİRGEN",
 })
@@ -925,6 +1056,27 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str],
         if all_voice:
             return "PROPN"
 
+    # ── Yanlış SIFAT_FİİL tespiti: İSİM+AYRILMA(-dAn) koruması ─────
+    # Morfolojik çözümleyici -dAn ayrılma ekindeki -An/-en'i SIFAT_FİİL
+    # olarak yanlış algılayabilir. Sözlük kontrolü ile isim kökü doğrula.
+    # "kapıdan" → kapı+dan (NOUN), "belirten" → belirt+en (VERB, gerçek)
+    _has_sifat_fiil = any(
+        "SIFAT_FİİL" in lbl
+        for _, lbl in a.suffixes
+    )
+    if _has_sifat_fiil and _is_false_sifat_fiil_ablative(st.word):
+        return "NOUN"
+
+    # ── BİLDİRME kopula nominal yüklemi koruması ──────────────────
+    # "gerçektir", "yasaktır", "ülkedir" gibi isim+kopula yapılarında
+    # BİLDİRME eki VERB döndürür. Sözlük kontrolü ile nominal yüklem doğrula.
+    _has_bildirme = any(
+        "BİLDİRME" in lbl
+        for _, lbl in a.suffixes
+    )
+    if _has_bildirme and _is_nominal_bildirme(st.word, a.suffixes):
+        return "NOUN"
+
     for _, label in a.suffixes:
         for sub in label.split("/"):
             if sub in VERB_FINAL_LABELS:
@@ -956,12 +1108,10 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str],
     # Form-tabanlı zarf-fiil tespiti: -ken, -mAdAn, -DIkçA vb.
     if _CONVERB_FORM_RE.search(w):
         return "VERB"
-
     # ── Lokasyon-ilgi sıfatı: -DAki ──────────────────────────────
-    # arasındaki, altındaki, önündeki vb. → ADJ
-    # BULUNMA(-de/-da) + ki yapısı → sıfat işlevi
-    if _DAKI_ADJ_RE.search(w):
-        return "ADJ"
+    # BOUN Treebank -daki sözcükleri tutarlı olarak NOUN etiketler.
+    # Bu nedenle form-tabanlı ADJ ataması kaldırıldı.
+    # (Eski: _DAKI_ADJ_RE → ADJ — 37 hatalı, 1 doğru)
 
     # ── Türetim eki tabanlı UPOS tespiti ──────────────────────────
     # Uzun et al. (1992) "Türkiye Türkçesinin Türetim Ekleri" referansıyla
@@ -1380,14 +1530,24 @@ class AdjectiveRule(DependencyRule):
     Heuristik:
     1. Eksiz NOUN/ADJ + sağında ekli isim → amod (orijinal)
     2. ADJ UPOS + sağında herhangi NOUN/PROPN → amod (genişletilmiş)
+    3. NOUN + -DAki biçimi + sağında NOUN/PROPN → amod (BOUN konvansiyonu)
     Örnek: 'güzel kitabı' → güzel ──amod──▶ kitabı
            'büyük şehir' → büyük ──amod──▶ şehir
+           'arasındaki fark' → arasındaki ──amod──▶ fark
     """
 
     def apply(self, tokens: list[DepToken]) -> list[str]:
         applied: list[str] = []
         for i, t in enumerate(tokens):
             if t.is_assigned:
+                continue
+            # ── -DAki NOUN → amod (BOUN: NOUN etiketli ama sıfat işlevli) ──
+            if t.upos == "NOUN" and _DAKI_ADJ_RE.search(t.form):
+                head = self._find_right_any_noun(tokens, i)
+                if head:
+                    t.head = head.id
+                    t.deprel = "amod"
+                    applied.append("DAKI_NOUN→AMOD")
                 continue
             # Sadece ADJ-UPOS tokenlar → güvenli amod ataması
             if t.upos != "ADJ":
