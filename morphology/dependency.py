@@ -959,11 +959,22 @@ class PredicateRule(DependencyRule):
 
     Strateji: Sağdan-sola tara, ilk çekimli fiili ``root`` yap.
     Türkçe SOV dil olduğu için yüklem genellikle cümle sonundadır.
+    Konuşma fiilleri (dedi, demiş vb.) morfolojik etiket olmasa da
+    VERB UPOS ile tanınır.
     """
+
+    _SPEECH_VERBS: frozenset[str] = frozenset({
+        "dedi", "dedim", "dedin", "dedik", "dediniz", "dediler",
+        "demiş", "demişti", "demişler",
+    })
 
     def apply(self, tokens: list[DepToken]) -> list[str]:
         for t in reversed(tokens):
             if t.has_any_label(VERB_FINAL_LABELS):
+                t.head = 0
+                t.deprel = "root"
+                return ["YÜKLEM_BUL"]
+            if t.upos == "VERB" and turkish_lower(t.form) in self._SPEECH_VERBS:
                 t.head = 0
                 t.deprel = "root"
                 return ["YÜKLEM_BUL"]
