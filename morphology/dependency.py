@@ -320,6 +320,10 @@ COMMON_ADVERBS: frozenset[str] = frozenset({
     # v11 ekleme — BOUN frekans analizi
     "böylece", "tamamen", "yeniden", "sanki", "ardından",
     "sonradan", "baştan", "henüz", "meselâ", "mesela",
+    # v16.13 ekleme — BOUN gold=ADV frekans analizi
+    "yıllarca", "birdenbire", "öylece", "aheste", "usul",
+    "yavaş", "peki", "sizce", "nedense", "meğerse",
+    "yoktu", "çabuk",
 })
 
 # Sık fiil-olarak-yanlış-çözümlenen isimler — _infer_upos'ta VERB→NOUN düzeltme
