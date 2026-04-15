@@ -1724,13 +1724,18 @@ class ConverbRule(DependencyRule):
 
 
 class InfinitiveRule(DependencyRule):
-    """Mastar fiilleri (-mAk) yerel yükleme csubj olarak bağlar.
+    """Mastar fiilleri (-mAk) yerel yükleme csubj veya xcomp olarak bağlar.
 
     Türkçede mastar fiiller cümle öznesi (csubj) veya
     açık tümleç (xcomp) olabilir.
+    Kontrol fiilleri (istemek, başlamak vb.) xcomp alır.
     Örnek: 'Abartmak gerekiyor' → abartmak ──csubj──▶ gerekiyor
-           'Olmak istiyorum'    → olmak ──csubj──▶ istiyorum
+           'Olmak istiyorum'    → olmak ──xcomp──▶ istiyorum
     """
+
+    _CONTROL_VERB_RE = re.compile(
+        r'^ist(?:e|i|iy|ed|ey)', re.IGNORECASE,
+    )
 
     def apply(self, tokens: list[DepToken]) -> list[str]:
         root_id = _find_root_id(tokens)
@@ -1745,9 +1750,15 @@ class InfinitiveRule(DependencyRule):
             if t.upos != "VERB":
                 continue
             local_pred = _find_local_predicate(tokens, t.id, root_id)
-            t.head = local_pred
-            t.deprel = "csubj"
-            applied.append("MASTAR→CSUBJ")
+            head_tok = tokens[local_pred - 1] if 1 <= local_pred <= len(tokens) else None
+            if head_tok and self._CONTROL_VERB_RE.match(head_tok.form):
+                t.head = local_pred
+                t.deprel = "xcomp"
+                applied.append("MASTAR→XCOMP")
+            else:
+                t.head = local_pred
+                t.deprel = "csubj"
+                applied.append("MASTAR→CSUBJ")
         return applied
 
 
