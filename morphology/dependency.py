@@ -2261,24 +2261,24 @@ class FlatNameRule(DependencyRule):
         i = 0
         while i < len(tokens):
             t = tokens[i]
-            # Zincir başı: büyük harfle başlayan, atanmamış, NOUN/PROPN
+            # Zincir başı: büyük harfle başlayan, atanmamış, NOUN/PROPN, ek almamış
             if (t.form[0].isupper() and not t.is_assigned
-                    and t.upos in ("NOUN", "PROPN")):
+                    and t.upos in ("NOUN", "PROPN")
+                    and not t._suffixes):
                 chain_start = i
                 j = i + 1
                 while j < len(tokens):
                     nxt = tokens[j]
                     if (nxt.form[0].isupper()
                             and not nxt.is_assigned
-                            and nxt.upos in ("NOUN", "PROPN")):
+                            and nxt.upos in ("NOUN", "PROPN")
+                            and not nxt._suffixes):
                         j += 1
                     else:
                         break
                 if j > chain_start + 1:
                     head_tok = tokens[chain_start]
                     head_tok.upos = "PROPN"
-                    object.__setattr__(head_tok, "_suffixes", ())
-                    object.__setattr__(head_tok, "_label_cache", None)
                     for k in range(chain_start + 1, j):
                         tokens[k].head = head_tok.id
                         tokens[k].deprel = "flat"
