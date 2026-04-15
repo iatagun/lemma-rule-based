@@ -2566,8 +2566,9 @@ class FallbackRule(DependencyRule):
             if t.is_assigned or t.id == root_id:
                 continue
 
-            # CCONJ: bağlaç → cc olarak root'a bağla
-            if t.upos == "CCONJ":
+            # CCONJ/SCONJ: bağlaç → cc olarak root'a bağla
+            # "Çünkü" (SCONJ) BOUN'da cc deprel alır
+            if t.upos in ("CCONJ", "SCONJ"):
                 t.head = root_id
                 t.deprel = "cc"
                 applied.append("FALLBACK→CC")
