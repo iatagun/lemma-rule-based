@@ -1297,6 +1297,9 @@ class ParticipleRule(DependencyRule):
         for i, t in enumerate(tokens):
             if t.is_assigned:
                 continue
+            # ADV'ler sıfat-fiil değildir — SIFAT_FİİL etiketi false positive
+            if t.upos == "ADV":
+                continue
             # Morfolojik etiket VEYA form-tabanlı -mIş tespiti
             is_participle = t.has_any_label(PARTICIPLE_LABELS)
             if not is_participle:
@@ -1350,13 +1353,14 @@ class ParticipleRule(DependencyRule):
     @classmethod
     def _detect_arg_role(cls, t: DepToken) -> str | None:
         """Token'ın hal ekine göre scope-içi rolünü belirler."""
+        # ADV her zaman advmod — hal eki etiketi false positive olabilir
+        if t.upos == "ADV":
+            return "advmod"
         for sub in t.labels:
             if sub in cls._CASE_TO_ROLE:
                 return cls._CASE_TO_ROLE[sub]
         if t.upos in ("NOUN", "PROPN") and not t.has_case:
             return "nsubj"
-        if t.upos == "ADV":
-            return "advmod"
         return None
 
 
@@ -2002,12 +2006,6 @@ class CompoundNounRule(DependencyRule):
                 if non_belirtme:
                     # YÖNELME/BULUNMA/AYRILMA gibi açık hal eki → bağımsız isim
                     continue
-                # Sadece BELIRTME → bağlam kontrolü:
-                # Sağında doğrudan fiil varsa → muhtemelen accusative nesne
-                if i + 2 < len(tokens):
-                    nxt = tokens[i + 2]
-                    if nxt.upos == "VERB" or nxt.has_any_label(VERB_FINAL_LABELS):
-                        continue
             # Tamlayan zaten bağlıysa atla (belirtili tamlama)
             if any(
                 tok.deprel == "nmod:poss" and tok.head == right.id
