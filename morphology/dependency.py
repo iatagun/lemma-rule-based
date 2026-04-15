@@ -880,15 +880,20 @@ class CaseRoleRule(DependencyRule):
             return []
 
         applied: list[str] = []
-        # Önceki kurallar zaten nsubj atamış mı kontrol et
-        nsubj_assigned = any(t.deprel == "nsubj" for t in tokens)
+        # Her yüklem için nsubj atanmış mı takip et
+        nsubj_per_pred: set[int] = {
+            t.head for t in tokens if t.deprel == "nsubj"
+        }
 
-        # Pro-drop tespiti: fiilde 1./2. kişi eki varsa özne düşmüş
-        root_tok = next((t for t in tokens if t.id == root_id), None)
-        is_prodrop = (
-            root_tok is not None
-            and root_tok.has_any_label(PRODROP_PERSON_LABELS)
-        )
+        # Yüklem→pro-drop haritası (1./2. kişi eki varsa özne düşmüş)
+        _prodrop_preds: set[int] = set()
+        for t in tokens:
+            if t.deprel == "root" or t.id == root_id:
+                if t.has_any_label(PRODROP_PERSON_LABELS):
+                    _prodrop_preds.add(t.id)
+            elif t.deprel in ("advcl", "ccomp", "acl", "csubj"):
+                if t.has_any_label(PRODROP_PERSON_LABELS):
+                    _prodrop_preds.add(t.id)
 
         # İyelik başı olan token'ları bul (nmod:poss bağımlısı var)
         poss_heads = frozenset(
@@ -915,17 +920,17 @@ class CaseRoleRule(DependencyRule):
                     applied.append(f"HAL→{role.upper()}")
                     continue
                 # BELIRTME dışında hal eki yok → yalın gibi davran
-                # nsubj → root_id (ana yüklem öznesı), obj → local_pred
-                if not nsubj_assigned and not is_prodrop:
-                    t.head = root_id
+                is_prodrop = local_pred in _prodrop_preds
+                if local_pred not in nsubj_per_pred and not is_prodrop:
+                    t.head = local_pred
                     t.deprel = "nsubj"
-                    nsubj_assigned = True
+                    nsubj_per_pred.add(local_pred)
                     applied.append("İYELİK_BAŞI→NSUBJ")
                 else:
                     t.head = local_pred
                     t.deprel = "obj" if is_prodrop else "nsubj"
                     if not is_prodrop:
-                        nsubj_assigned = True
+                        nsubj_per_pred.add(local_pred)
                     applied.append("İYELİK_BAŞI→OBJ" if is_prodrop else "İYELİK_BAŞI→NSUBJ")
                 continue
 
@@ -966,23 +971,25 @@ class CaseRoleRule(DependencyRule):
             # 4) Yalın isim/zamir → belirlilik hiyerarşisi
             #    Türkçe'de yalın ortak isim = belirtisiz nesne (kitap okudu)
             #    Özel isim / zamir = belirli → özne adayı
-            #    nsubj → root_id (ana yüklem), obj → local_pred
+            #    Per-predicate nsubj: her yüklem kendi öznesini alabilir
             if t.upos in ("NOUN", "PROPN", "PRON") and not t.has_case:
                 is_definite = t.upos in ("PROPN", "PRON") or t.has_iyelik
+                is_prodrop = local_pred in _prodrop_preds
+                pred_has_nsubj = local_pred in nsubj_per_pred
                 if is_prodrop:
-                    if is_definite and not nsubj_assigned:
-                        t.head = root_id
+                    if is_definite and not pred_has_nsubj:
+                        t.head = local_pred
                         t.deprel = "nsubj"
-                        nsubj_assigned = True
+                        nsubj_per_pred.add(local_pred)
                         applied.append("BELİRLİ_PRODROP→NSUBJ")
                     else:
                         t.head = local_pred
                         t.deprel = "obj"
                         applied.append("PRODROP→OBJ")
-                elif not nsubj_assigned:
-                    t.head = root_id
+                elif not pred_has_nsubj:
+                    t.head = local_pred
                     t.deprel = "nsubj"
-                    nsubj_assigned = True
+                    nsubj_per_pred.add(local_pred)
                     applied.append("YALIN→NSUBJ")
                 else:
                     if is_definite:
