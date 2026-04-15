@@ -2197,19 +2197,36 @@ class NummodRule(DependencyRule):
     """Sayıları sağdaki isme nummod olarak bağlar.
 
     'bir' hariç (DET olarak kalır).
-    Örnek: 'üç kitap' → üç ──nummod──▶ kitap
-           '100 kişi' → 100 ──nummod──▶ kişi
+    Ardışık sayı zincirleri: ilk NUM → nummod, sonrakiler → flat.
+    Örnek: 'üç kitap'          → üç ──nummod──▶ kitap
+           '100 kişi'          → 100 ──nummod──▶ kişi
+           'beş yüz kişi'     → beş ──nummod──▶ kişi, yüz ──flat──▶ beş
+           'iki bin beş yüz'  → iki ──nummod──▶ ..., bin/beş/yüz ──flat──▶ iki
     """
+
+    @staticmethod
+    def _is_num_token(t: DepToken) -> bool:
+        w = turkish_lower(t.form)
+        return w in NUMERALS or bool(re.match(r"^\d+$", t.form))
 
     def apply(self, tokens: list[DepToken]) -> list[str]:
         applied: list[str] = []
         for i, t in enumerate(tokens):
             if t.is_assigned:
                 continue
-            w = turkish_lower(t.form)
-            is_num = w in NUMERALS or bool(re.match(r"^\d+$", t.form))
-            if not is_num:
+            if not self._is_num_token(t):
                 continue
+            # Ardışık NUM: önceki token zaten nummod/flat atanmışsa → flat
+            if i > 0:
+                prev = tokens[i - 1]
+                if prev.deprel in ("nummod", "flat") and prev.upos == "NUM":
+                    chain_head_id = prev.head if prev.deprel == "flat" else prev.id
+                    t.head = chain_head_id
+                    t.deprel = "flat"
+                    t.upos = "NUM"
+                    applied.append("SAYI_ZİNCİR→FLAT")
+                    continue
+            # İlk NUM: sağda NOUN/PROPN ara → nummod
             for j in range(i + 1, len(tokens)):
                 candidate = tokens[j]
                 if candidate.upos in ("NOUN", "PROPN"):
