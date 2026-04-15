@@ -380,6 +380,13 @@ NUMERALS: frozenset[str] = frozenset({
     "dokuz", "on", "yirmi", "otuz", "kırk", "elli",
     "altmış", "yetmiş", "seksen", "doksan", "yüz", "bin",
     "milyon", "milyar", "trilyon", "sıfır",
+    # Sıra sayıları (ordinals)
+    "birinci", "ikinci", "üçüncü", "dördüncü", "beşinci",
+    "altıncı", "yedinci", "sekizinci", "dokuzuncu", "onuncu",
+    # Dağıtma sayıları
+    "birer", "ikişer", "üçer", "beşer", "onar",
+    # Yüzde ifadesi
+    "yüzde",
 })
 
 # Zaman isimleri — yalın kullanımda obl:tmod
@@ -696,7 +703,10 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str],
         return "CCONJ"
     if w in POSTPOSITIONS and not (a and a.suffixes):
         return "ADP"
-    if (w in NUMERALS or re.match(r"^\d+$", st.word)) and not (a and a.suffixes):
+    # Sayı sözcükleri: eksiz → NUM; rakam-başlangıçlı → her zaman NUM
+    if w in NUMERALS and not (a and a.suffixes):
+        return "NUM"
+    if re.match(r"^\d", st.word):
         return "NUM"
 
     # Zarf ve sıfat: tam sözcük eşleşmesi — morfolojik çözümleme hatalı
