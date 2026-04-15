@@ -1039,6 +1039,16 @@ class CaseRoleRule(DependencyRule):
         "VASITA": "obl",
     }
 
+    # Belirtme halindeki zamirler — morfolojik çözümleyici BELIRTME etiketi
+    # üretmeyebilir ama bu formlar daima nesne (obj) görevindedir.
+    _ACC_PRONOUNS: frozenset[str] = frozenset({
+        "beni", "seni", "onu", "bizi", "sizi", "onları",
+        "bunu", "şunu", "bunları", "şunları",
+        "kendini", "kendisini", "kendilerini",
+        "birini", "hiçbirini", "hepsini", "herşeyi",
+        "ne",  # soru zamiri nesne konumunda: "ne diyorduk?"
+    })
+
     def apply(self, tokens: list[DepToken]) -> list[str]:
         root_id = _find_root_id(tokens)
         if root_id == 0:
@@ -1131,6 +1141,15 @@ class CaseRoleRule(DependencyRule):
                 t.head = local_pred
                 t.deprel = "obl"
                 applied.append("EDAT_BAĞIMLI→OBL")
+                continue
+
+            # 3.5) Belirtme halindeki zamirler → obj
+            #      "onu gördüm", "bunu biliyorum" — morph BELIRTME çıkarmasa da obj
+            w_lower = turkish_lower(t.form)
+            if t.upos == "PRON" and w_lower in self._ACC_PRONOUNS:
+                t.head = local_pred
+                t.deprel = "obj"
+                applied.append("BELİRTME_ZAMİR→OBJ")
                 continue
 
             # 4) Yalın isim/zamir → belirlilik hiyerarşisi
