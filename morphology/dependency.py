@@ -2499,19 +2499,15 @@ class AdjAdvDisambiguationRule(DependencyRule):
                 t.deprel = "amod"
                 applied.append("SIFAT_ZARF→AMOD")
             elif right.upos == "VERB":
+                # BOUN konvansiyonu: ADJ + VERB → amod (yüklemsel sıfat)
+                # "mutlu oldu", "güçlü düşündü" → ADJ, VERB bağlamında bile amod
+                # Analiz: 44 amod TP vs 11 advmod kaybı = +33 net deprel
+                t.head = right.id
+                t.deprel = "amod"
                 if det_skipped:
-                    # DET/NUM atlayarak fiil bulduk → NP yapısı (nominal yüklem)
-                    t.head = right.id
-                    t.deprel = "amod"
                     applied.append("SIFAT_ZARF→AMOD_NOM")
                 else:
-                    root_id = _find_root_id(tokens)
-                    target = root_id if root_id != 0 else right.id
-                    t.head = target
-                    t.deprel = "advmod"
-                    # UPOS'u ADJ olarak koru — BOUN, sıfat-zarf sözcükleri
-                    # fiil bağlamında bile ADJ olarak etiketler
-                    applied.append("SIFAT_ZARF→ADVMOD")
+                    applied.append("SIFAT_ZARF→AMOD_VF")
 
         return applied
 
