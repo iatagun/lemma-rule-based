@@ -1814,6 +1814,56 @@ class FlatNameRule(DependencyRule):
         return applied
 
 
+class ReduplicationRule(DependencyRule):
+    """Türkçe ikileme (reduplication) tespiti: compound:redup.
+
+    Üç kalıp:
+    1) Tam tekrar — aynı biçim: ``sık sık``, ``yavaş yavaş``
+    2) Kök tekrarı — aynı lemma: ``der demez``, ``olursa olsun``
+    3) Eşanlamlı çiftler — sözlük tabanlı: ``toz duman``, ``aşağı yukarı``
+
+    BOUN kuralı: ikinci öge (sağdaki) compound:redup olarak birinciye bağlanır.
+    """
+
+    _REDUP_PAIRS: frozenset[tuple[str, str]] = frozenset({
+        ("paldır", "küldür"), ("konu", "komşu"), ("toz", "duman"),
+        ("saç", "sakal"), ("had", "hesap"), ("dolap", "molap"),
+        ("kaba", "saba"), ("yer", "gök"), ("aşağı", "yukarı"),
+        ("yaşam", "zor"), ("bağır", "çağır"), ("ol", "bit"),
+    })
+
+    def apply(self, tokens: list[DepToken]) -> list[str]:
+        applied: list[str] = []
+        for i in range(1, len(tokens)):
+            t = tokens[i]
+            if t.is_assigned:
+                continue
+            # Find previous non-PUNCT token
+            prev_idx = i - 1
+            if tokens[prev_idx].upos == "PUNCT" and i >= 2:
+                prev_idx = i - 2
+            prev = tokens[prev_idx]
+
+            t_form = turkish_lower(t.form)
+            p_form = turkish_lower(prev.form)
+            t_lem = turkish_lower(t.lemma) if t.lemma else t_form
+            p_lem = turkish_lower(prev.lemma) if prev.lemma else p_form
+
+            match = False
+            if t_form == p_form:
+                match = True
+            elif t_lem == p_lem and len(t_lem) >= 2:
+                match = True
+            elif (p_lem, t_lem) in self._REDUP_PAIRS:
+                match = True
+
+            if match:
+                t.head = prev.id
+                t.deprel = "compound:redup"
+                applied.append(f"İKİLEME({t.form})")
+        return applied
+
+
 class TemporalAdvmodRule(DependencyRule):
     """Yalın zaman isimlerini obl:tmod olarak bağlar.
 
@@ -2370,7 +2420,9 @@ class DependencyParser:
             DeterminerRule(),
             NummodRule(),
             FlatNameRule(),
-            # 8: Koordinasyon
+            # 8: İkileme (compound:redup)
+            ReduplicationRule(),
+            # 9: Koordinasyon
             CoordinationRule(),
             # 9-10: Bileşik yapılar
             LightVerbRule(),
