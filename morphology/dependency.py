@@ -2487,16 +2487,18 @@ class CopulaRule(DependencyRule):
 
     _COP_WORDS: frozenset[str] = frozenset({
         "değil", "değildir", "değildi", "değilmiş",
+        "değilim", "değilsin", "değiliz", "değilsiniz", "değiller",
         "idi", "imiş", "ise",
     })
 
     def apply(self, tokens: list[DepToken]) -> list[str]:
         applied: list[str] = []
         for i, t in enumerate(tokens):
-            if t.is_assigned:
-                continue
             w = turkish_lower(t.form)
             if w not in self._COP_WORDS:
+                continue
+            # Zaten doğru atanmışsa atla (root hariç — root→cop dönüşümü gerekebilir)
+            if t.is_assigned and t.deprel != "root":
                 continue
 
             # Sola doğru nominal baş ara
@@ -2510,11 +2512,19 @@ class CopulaRule(DependencyRule):
                     break
 
             if head_tok:
+                was_root = t.deprel == "root"
                 t.head = head_tok.id
                 t.deprel = "cop"
                 t.upos = "AUX"
+                if was_root:
+                    # Nominal yeni root olur, bağımlılar aktarılır
+                    head_tok.head = 0
+                    head_tok.deprel = "root"
+                    for other in tokens:
+                        if other.head == t.id and other.id != head_tok.id:
+                            other.head = head_tok.id
                 applied.append("KOPULA→COP")
-            else:
+            elif not t.is_assigned:
                 # Nominal baş bulunamadı → root'a bağla
                 root_id = _find_root_id(tokens)
                 if root_id:
