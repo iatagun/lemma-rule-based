@@ -445,6 +445,10 @@ QUESTION_PARTICLES: frozenset[str] = frozenset({
     "mi", "mı", "mu", "mü",
     "mısın", "misin", "musun", "müsün",
     "mıyız", "miyiz", "muyuz", "müyüz",
+    "mısınız", "misiniz", "musunuz", "müsünüz",
+    "midir", "mıdır",
+    "mıydı", "miydi", "muydu", "müydü",
+    "mıymış", "miymiş", "muymuş", "müymüş",
 })
 
 # Odaklama partikülü — BOUN'da PART olarak etiketlenen de/da/ki
@@ -659,9 +663,9 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str],
     if a and a.stem in PRONOUN_STEMS and a.suffixes:
         return "PRON"
 
-    # Soru partikülü
+    # Soru partikülü — BOUN tutarlı olarak AUX + discourse:q etiketler
     if w in QUESTION_PARTICLES:
-        return "PART"
+        return "AUX"
 
     # Odaklama partikülü (de/da/ki) — BOUN'da PART olarak etiketlenir
     if w in _FOCUS_PARTICLES and not (a and a.suffixes):
@@ -2128,8 +2132,8 @@ class FallbackRule(DependencyRule):
                     applied.append("FALLBACK→MARK")
                     continue
 
-            # PART (soru partikülleri): mi/mı/mu/mü → discourse:q
-            if t.upos == "PART" and turkish_lower(t.form) in QUESTION_PARTICLES:
+            # Soru partikülleri (AUX/PART): mi/mı/mu/mü → discourse:q
+            if t.upos in ("AUX", "PART") and turkish_lower(t.form) in QUESTION_PARTICLES:
                 target = self._find_left_content(tokens, i)
                 if target:
                     t.head = target.id
