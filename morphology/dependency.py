@@ -352,6 +352,13 @@ COMMON_NOUNS: frozenset[str] = frozenset({
     "politika", "yardım", "bölge", "dahil", "insan",
     "adam", "tahmin", "talep", "taraf", "kereviz",
     "satanizm", "kader",
+    # v17 ekleme — UPOS VERB→NOUN düzeltme (base-form, sözlükte, 0 break)
+    "yüzden", "aslan", "şehir", "bayram", "zafer", "kasım",
+    "sultan", "hanım", "kilise", "giyecek", "astım", "esmer",
+    "baldır", "ayran", "düşünce", "reform", "deprem", "biber",
+    "potasyum", "duman", "kibir", "katılım", "leopar", "sonbahar",
+    "kalorifer", "huzur", "lüfer", "karabiber", "kırmızıbiber",
+    "sekreter", "önder", "sevecen", "karakteristik", "cezasız",
     # Yaygın kök isimler (çekimli formları VERB oluyor)
     "yan", "gün", "yıl", "su", "ateş", "kapı", "yer",
     "sıra", "otel", "anne", "baba", "kız",
@@ -1149,12 +1156,17 @@ class AdjectiveRule(DependencyRule):
     def _find_right_inflected_noun(
         tokens: list[DepToken], start: int,
     ) -> DepToken | None:
-        """Sağdaki ilk ekli ismi bulur; araya sıfat/det girebilir."""
+        """Sağdaki ilk ekli ismi bulur; araya sıfat/det/CCONJ girebilir."""
         for j in range(start + 1, len(tokens)):
             t = tokens[j]
             if t.is_nominal_head and t._suffixes:
                 return t
-            if t.upos in ("VERB", "ADP", "CCONJ"):
+            if t.upos == "CCONJ":
+                # Sıfat koordinasyonunda CCONJ atla (ADJ CCONJ ADJ NOUN)
+                if j + 1 < len(tokens) and tokens[j + 1].upos in ("ADJ", "ADV"):
+                    continue
+                break
+            if t.upos in ("VERB", "ADP"):
                 # BİLDİRME ekli fiiller nominal baş olarak kabul
                 if t.is_nominal_head:
                     return t
@@ -1165,8 +1177,12 @@ class AdjectiveRule(DependencyRule):
     def _find_right_any_noun(
         tokens: list[DepToken], start: int,
     ) -> DepToken | None:
-        """Sağdaki ilk ismi bulur (ekli/eksiz); araya ADJ/DET/NUM girebilir.
-        
+        """Sağdaki ilk ismi bulur (ekli/eksiz); araya ADJ/DET/NUM/CCONJ/ADV girebilir.
+
+        "Nazik ve sıcak bir özür" → Nazik ──amod──▶ özür
+        CCONJ yalnızca sonrasında ADJ/ADV geliyorsa atlanır (sıfat koordinasyonu).
+        ADV yalnızca derece zarfları (en, çok, daha) için atlanır.
+
         Not: is_assigned kontrolü yapılmaz — bir isim hem head (obj/nsubj)
         hem de amod target olabilir (UD'de amod bir modifier ilişkisidir).
         """
@@ -1175,6 +1191,14 @@ class AdjectiveRule(DependencyRule):
             if t.upos in ("NOUN", "PROPN"):
                 return t
             if t.upos in ("ADJ", "DET", "NUM"):
+                continue
+            # CCONJ atlama: sıfat koordinasyonunda (ADJ CCONJ ADJ NOUN)
+            if t.upos == "CCONJ":
+                if j + 1 < len(tokens) and tokens[j + 1].upos in ("ADJ", "ADV"):
+                    continue
+                break
+            # ADV atlama: derece zarfları (en güzel, çok büyük)
+            if t.upos == "ADV":
                 continue
             break
         return None
