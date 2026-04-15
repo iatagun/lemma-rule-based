@@ -1672,6 +1672,12 @@ class ConverbRule(DependencyRule):
             # DİLEK_ŞART: koşul fiilleri → advcl (gelse, yapılsa, dokunulsa)
             if not is_converb and t.has_label("DİLEK_ŞART") and t.upos == "VERB":
                 is_converb = True
+            # SIFAT_FİİL + BULUNMA/AYRILMA → zaman/neden yan cümlesi
+            # "-DIğ+Im+da" = "when I...", "-DIk+ten" = "after..."
+            if (not is_converb and t.upos == "VERB"
+                    and t.has_any_label(PARTICIPLE_LABELS)
+                    and (t.has_label("BULUNMA") or t.has_label("AYRILMA"))):
+                is_converb = True
             if is_converb:
                 t.head = root_id
                 t.deprel = "advcl"
