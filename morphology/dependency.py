@@ -2464,14 +2464,8 @@ class CompoundNounRule(DependencyRule):
             right = tokens[i + 1]
             if right.upos not in ("NOUN", "PROPN"):
                 continue
-            if not right.has_label("İYELİK_3T"):
+            if not right.has_iyelik:
                 continue
-            # Hal eki kontrolü (İYELİK_3T/BELIRTME ambiguitesi)
-            if right.has_case:
-                non_belirtme = right.labels & (CASE_LABELS - {"BELIRTME"})
-                if non_belirtme:
-                    # YÖNELME/BULUNMA/AYRILMA gibi açık hal eki → bağımsız isim
-                    continue
             # Tamlayan zaten bağlıysa atla (belirtili tamlama)
             if any(
                 tok.deprel == "nmod:poss" and tok.head == right.id
