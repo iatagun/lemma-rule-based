@@ -2718,6 +2718,23 @@ class FallbackRule(DependencyRule):
                     t.deprel = "amod"
                     applied.append("FALLBACK→AMOD")
                     continue
+                # Pattern 2.5: ADJ eşgüdüm başı → conj çocuğundan ileriye NOUN ara
+                # "Açık ve güçlü çıkışa" → Açık conj-head, güçlü conj child
+                conj_kids = [
+                    tk for tk in tokens
+                    if tk.head == t.id and tk.deprel == "conj"
+                ]
+                if conj_kids:
+                    rightmost = max(conj_kids, key=lambda c: c.id)
+                    rm_idx = rightmost.id - 1
+                    for j in range(rm_idx + 1, min(rm_idx + 7, len(tokens))):
+                        if tokens[j].upos in ("NOUN", "PROPN"):
+                            t.head = tokens[j].id
+                            t.deprel = "amod"
+                            applied.append("FALLBACK→AMOD_CONJ_HEAD")
+                            break
+                    if t.is_assigned:
+                        continue
                 # Pattern 3: Cümle sonu ADJ → nominal root adayı
                 if i == len(tokens) - 1 or all(
                     tokens[j].upos in ("AUX", "PUNCT", "CCONJ")
@@ -2745,6 +2762,14 @@ class FallbackRule(DependencyRule):
 
             # NUM: sayı → sağda NOUN varsa nummod, yoksa VERB'e de dene
             if t.upos == "NUM":
+                # "yüzde" + sağda NUM → nummod (yüzdelik ifade)
+                if (turkish_lower(t.form) == "yüzde"
+                        and i + 1 < len(tokens)
+                        and tokens[i + 1].upos == "NUM"):
+                    t.head = tokens[i + 1].id
+                    t.deprel = "nummod"
+                    applied.append("FALLBACK→NUMMOD_YÜZDE")
+                    continue
                 target = self._find_right_noun(tokens, i)
                 if not target:
                     target = self._find_right_head_for_adj(tokens, i)
@@ -2762,6 +2787,19 @@ class FallbackRule(DependencyRule):
                     t.deprel = "conj"
                     applied.append("FALLBACK→CONJ_VERB")
                     continue
+                # "iken" → advcl (zarf-fiil: "öğrenci iken", "çocuk iken")
+                if turkish_lower(t.form) == "iken":
+                    local_pred = _find_local_predicate(tokens, t.id, root_id)
+                    t.head = local_pred
+                    t.deprel = "advcl"
+                    applied.append("FALLBACK→ADVCL_IKEN")
+                    continue
+                # EMİR kipli fiil → ccomp (gömülü emir: "gitsin dedim")
+                if t.has_label("EMİR"):
+                    t.head = root_id
+                    t.deprel = "ccomp"
+                    applied.append("FALLBACK→CCOMP_EMIR")
+                    continue
                 # İSİM_FİİL/İŞTEŞ (-mA/-Iş) + sağda NOUN → nmod:poss
                 # içme suyu, geçiş süreci, yaratma potansiyeli vb.
                 if t.has_any_label({"İSİM_FİİL", "İŞTEŞ"}) or (
@@ -2776,6 +2814,12 @@ class FallbackRule(DependencyRule):
                         t.deprel = "nmod:poss"
                         applied.append("FALLBACK→NMOD_POSS_VN")
                         continue
+                    # Sağda isim yok → isimleşmiş fiil argüman olarak
+                    local_pred = _find_local_predicate(tokens, t.id, root_id)
+                    t.head = local_pred
+                    t.deprel = "nsubj"
+                    applied.append("FALLBACK→NSUBJ_VN")
+                    continue
                 # Sıfat-fiil ama ParticipleRule'da sağda isim bulamadı
                 if t.has_any_label(PARTICIPLE_LABELS):
                     # Sağda isim varsa acl olarak bağla (daha geniş arama)
@@ -2937,10 +2981,15 @@ def _find_local_predicate(
     """
     best_id = root_id
     best_pos = len(tokens) + 1
+    _PRED_DEPRELS = frozenset({"root", "advcl", "acl", "ccomp"})
     for t in tokens:
         if t.id <= position:
             continue
-        if t.deprel in ("root", "advcl", "acl", "ccomp"):
+        is_pred = t.deprel in _PRED_DEPRELS
+        # conj VERB de yüklem adayı (eşgüdümlü çekimli fiiller)
+        if not is_pred and t.deprel == "conj" and t.upos == "VERB":
+            is_pred = True
+        if is_pred:
             idx = next((k for k, tok in enumerate(tokens) if tok.id == t.id), best_pos)
             if idx < best_pos:
                 best_pos = idx
