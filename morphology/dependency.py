@@ -2163,8 +2163,16 @@ class FallbackRule(DependencyRule):
                 applied.append("FALLBACK→DISCOURSE")
                 continue
 
-            # ADJ: sıfat → sağda NOUN varsa amod, yoksa VERB'e de dene
+            # ADJ: sıfat → bağlama göre amod / advcl / root
             if t.upos == "ADJ":
+                # Pattern 1: ADJ + olarak → advcl (kesin olarak, sıcak olarak)
+                if i + 1 < len(tokens) and turkish_lower(tokens[i + 1].form) == "olarak":
+                    local_pred = _find_local_predicate(tokens, t.id, root_id)
+                    t.head = local_pred
+                    t.deprel = "advcl"
+                    applied.append("FALLBACK→ADVCL_OLARAK")
+                    continue
+                # Pattern 2: Sağda NOUN varsa amod (CCONJ atlayarak da)
                 target = self._find_right_noun(tokens, i)
                 if not target:
                     target = self._find_right_head_for_adj(tokens, i)
@@ -2172,6 +2180,21 @@ class FallbackRule(DependencyRule):
                     t.head = target.id
                     t.deprel = "amod"
                     applied.append("FALLBACK→AMOD")
+                    continue
+                # Pattern 3: Cümle sonu ADJ → nominal root adayı
+                if i == len(tokens) - 1 or all(
+                    tokens[j].upos in ("AUX", "PUNCT", "CCONJ")
+                    for j in range(i + 1, len(tokens))
+                ):
+                    t.head = 0
+                    t.deprel = "root"
+                    # Mevcut root'u conj'a çevir
+                    for other in tokens:
+                        if other.id != t.id and other.deprel == "root":
+                            other.head = t.id
+                            other.deprel = "conj"
+                            break
+                    applied.append("FALLBACK→ADJ_ROOT")
                     continue
 
             # DET: belirleyici → sağdaki ilk içerik sözcüğüne det
@@ -2202,6 +2225,20 @@ class FallbackRule(DependencyRule):
                     t.deprel = "conj"
                     applied.append("FALLBACK→CONJ_VERB")
                     continue
+                # İSİM_FİİL/İŞTEŞ (-mA/-Iş) + sağda NOUN → nmod:poss
+                # içme suyu, geçiş süreci, yaratma potansiyeli vb.
+                if t.has_any_label({"İSİM_FİİL", "İŞTEŞ"}) or (
+                    t._suffixes and any(
+                        "İSİM_FİİL" in lb or "İŞTEŞ" in lb
+                        for _, lb in t._suffixes
+                    )
+                ):
+                    target = self._find_right_noun(tokens, i)
+                    if target:
+                        t.head = target.id
+                        t.deprel = "nmod:poss"
+                        applied.append("FALLBACK→NMOD_POSS_VN")
+                        continue
                 # Sıfat-fiil ama ParticipleRule'da sağda isim bulamadı
                 if t.has_any_label(PARTICIPLE_LABELS):
                     # Sağda isim varsa acl olarak bağla (daha geniş arama)
