@@ -1447,11 +1447,12 @@ class CoordinationRule(DependencyRule):
             if (not is_cconj and not is_sconj_cc) or t.is_assigned:
                 continue
             left = self._find_left_conjunct(tokens, i)
-            right = self._find_right_conjunct(tokens, i)
+            right = self._find_right_conjunct(tokens, i, left=left)
             if left and right:
                 t.head = right.id
                 t.deprel = "cc"
-                if not right.is_assigned:
+                # Explicit CCONJ → conj overrides non-root assignments
+                if not right.is_assigned or right.deprel not in ("root",):
                     right.head = left.id
                     right.deprel = "conj"
                 applied.append("BAĞLAÇ→CC+CONJ")
@@ -1465,6 +1466,13 @@ class CoordinationRule(DependencyRule):
 
         return applied
 
+    # Left conjunct: UPOS → which UPOS to seek on the right
+    _CONJUNCT_HEAD_UPOS: dict[str, frozenset[str]] = {
+        "NOUN": frozenset({"NOUN", "PROPN"}),
+        "PROPN": frozenset({"NOUN", "PROPN"}),
+        "VERB": frozenset({"VERB"}),
+    }
+
     @staticmethod
     def _find_left_conjunct(tokens: list[DepToken], conj_idx: int) -> DepToken | None:
         """Bağlacın solundaki ilk uygun ögeyi bul."""
@@ -1475,15 +1483,33 @@ class CoordinationRule(DependencyRule):
             return t
         return None
 
-    @staticmethod
-    def _find_right_conjunct(tokens: list[DepToken], conj_idx: int) -> DepToken | None:
-        """Bağlacın sağındaki ilk uygun ögeyi bul."""
-        for j in range(conj_idx + 1, len(tokens)):
+    @classmethod
+    def _find_right_conjunct(
+        cls,
+        tokens: list[DepToken],
+        conj_idx: int,
+        left: DepToken | None = None,
+    ) -> DepToken | None:
+        """Bağlacın sağındaki uygun ögeyi bul (UPOS-farkında).
+
+        Türkçe baş-sonda (head-final) dil olduğundan, CCONJ'dan sonra
+        önce niteleyiciler (ADJ, NUM, ADV), sonra başlık sözcüğü gelir.
+        Sol conjunct NOUN/PROPN veya VERB ise, sağda eşleşen UPOS aranır.
+        """
+        seek = cls._CONJUNCT_HEAD_UPOS.get(left.upos) if left else None
+        first_content: DepToken | None = None
+        window_end = min(conj_idx + 6, len(tokens))
+
+        for j in range(conj_idx + 1, window_end):
             t = tokens[j]
             if t.upos in ("CCONJ", "DET"):
                 continue
-            return t
-        return None
+            if first_content is None:
+                first_content = t
+            if seek and t.upos in seek:
+                return t
+
+        return first_content
 
     def _handle_correlatives(self, tokens: list[DepToken]) -> list[str]:
         """hem...hem, ne...ne, ya...ya kalıplarını işle."""
@@ -1497,14 +1523,14 @@ class CoordinationRule(DependencyRule):
                 for j in range(i + 2, len(tokens)):
                     if w_lower[j] == corr and not tokens[j].is_assigned:
                         # İlk corr → cc (sağdaki ögeye)
-                        right1 = tokens[i + 1] if i + 1 < len(tokens) else None
-                        right2 = tokens[j + 1] if j + 1 < len(tokens) else None
+                        right1 = self._find_right_conjunct(tokens, i)
+                        right2 = self._find_right_conjunct(tokens, j, left=right1)
                         if right1 and right2:
                             tokens[i].head = right1.id
                             tokens[i].deprel = "cc"
                             tokens[j].head = right2.id
                             tokens[j].deprel = "cc"
-                            if not right2.is_assigned:
+                            if not right2.is_assigned or right2.deprel not in ("root",):
                                 right2.head = right1.id
                                 right2.deprel = "conj"
                             applied.append("İLİŞKİLİ→CC+CONJ")
