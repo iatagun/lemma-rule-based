@@ -2181,9 +2181,11 @@ class FallbackRule(DependencyRule):
                     applied.append("FALLBACK→DET")
                     continue
 
-            # NUM: sayı → sağda NOUN varsa nummod
+            # NUM: sayı → sağda NOUN varsa nummod, yoksa VERB'e de dene
             if t.upos == "NUM":
                 target = self._find_right_noun(tokens, i)
+                if not target:
+                    target = self._find_right_head_for_adj(tokens, i)
                 if target:
                     t.head = target.id
                     t.deprel = "nummod"
