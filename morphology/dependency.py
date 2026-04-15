@@ -1344,6 +1344,18 @@ class CaseRoleRule(DependencyRule):
                     t.deprel = role
                     applied.append(f"HAL→{role.upper()}")
                     continue
+                # Ayrı BELIRTME eki var mı? (İYELİK + ayrı -nI/-nU eki)
+                # "şubelerini" → İYELİK_3Ç + BELIRTME (ayrı) → gerçek belirtme hali
+                # "göstergesi" → İYELİK_3T/BELIRTME (birleşik) → belirsiz
+                has_separate_acc = any(
+                    "BELIRTME" in lbl and "İYELİK" not in lbl
+                    for _, lbl in t._suffixes
+                )
+                if has_separate_acc:
+                    t.head = local_pred
+                    t.deprel = "obj"
+                    applied.append("İYELİK_BAŞI_BELIRTME→OBJ")
+                    continue
                 # BELIRTME dışında hal eki yok → yalın gibi davran
                 is_prodrop = local_pred in _prodrop_preds
                 if local_pred not in nsubj_per_pred and not is_prodrop:
