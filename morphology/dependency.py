@@ -1377,19 +1377,26 @@ class CaseRoleRule(DependencyRule):
             role = self._detect_case_role(t)
             if role:
                 if role == "obj" and t.upos == "VERB":
-                    # Yüklem özne-alan bir predicate ise → csubj
-                    head_tok = tokens[local_pred - 1] if local_pred <= len(tokens) else None
-                    head_form = turkish_lower(head_tok.form) if head_tok else ""
-                    if (head_form.startswith("gerek")
-                            or head_form in _CSUBJ_PREDICATES
-                            or _PASSIVE_REPORT_RE.match(head_form)):
+                    # İSİM_FİİL/İŞTEŞ formlarda VERB ama gerçekte isimleşmiş → obj
+                    _ISIMFIIL_LABELS = {"İSİM_FİİL", "İSİM_FİİL_-mA", "İSİM_FİİL_-Iş", "İŞTEŞ"}
+                    if t.has_any_label(_ISIMFIIL_LABELS):
                         t.head = local_pred
-                        t.deprel = "csubj"
-                        applied.append("FİİL_BELIRTME→CSUBJ")
+                        t.deprel = "obj"
+                        applied.append("İSİMFİİL_BELIRTME→OBJ")
                     else:
-                        t.head = local_pred
-                        t.deprel = "ccomp"
-                        applied.append("FİİL_BELIRTME→CCOMP")
+                        # Yüklem özne-alan bir predicate ise → csubj
+                        head_tok = tokens[local_pred - 1] if local_pred <= len(tokens) else None
+                        head_form = turkish_lower(head_tok.form) if head_tok else ""
+                        if (head_form.startswith("gerek")
+                                or head_form in _CSUBJ_PREDICATES
+                                or _PASSIVE_REPORT_RE.match(head_form)):
+                            t.head = local_pred
+                            t.deprel = "csubj"
+                            applied.append("FİİL_BELIRTME→CSUBJ")
+                        else:
+                            t.head = local_pred
+                            t.deprel = "ccomp"
+                            applied.append("FİİL_BELIRTME→CCOMP")
                 elif role == "obl" and turkish_lower(t.form).endswith(("maya", "meye")):
                     # MASTAR+YÖNELME: yazmaya başladı → ccomp (tümleç yan cümlesi)
                     t.head = local_pred
@@ -2842,10 +2849,12 @@ class FallbackRule(DependencyRule):
                         t.deprel = "acl"
                         applied.append("FALLBACK→ACL")
                         continue
-                    # Sağda isim yok → ccomp (tümleç cümlesi) veya nsubj adayı
-                    t.head = root_id
-                    t.deprel = "ccomp"
-                    applied.append("FALLBACK→CCOMP_PART")
+                    # Sağda isim yok → isimleşmiş sıfat-fiil (nsubj)
+                    # "bilmeyen geldi", "olan budur" vb.
+                    local_pred = _find_local_predicate(tokens, t.id, root_id)
+                    t.head = local_pred
+                    t.deprel = "nsubj"
+                    applied.append("FALLBACK→NSUBJ_PART")
                     continue
                 # -mIş formu: İŞTEŞ olarak etiketlenmiş ama aslında duyulan geçmiş
                 # kurulmuş, yazılmış, demiş, gelmiş vb.
@@ -2862,6 +2871,13 @@ class FallbackRule(DependencyRule):
                     applied.append("FALLBACK→CONJ_MIS")
                     continue
 
+                # Hiçbir etiket eşleşmedi → etiketsiz/tanınamayan çekimli fiil
+                # En olası: koordinasyon cümlecik (conj) veya advcl
+                t.head = root_id
+                t.deprel = "conj"
+                applied.append("FALLBACK→CONJ_VERB")
+                continue
+
             # NOUN/PROPN: TAMLAYAN ekli → nmod:poss veya nsubj (VERB başlı)
             if t.upos in ("NOUN", "PROPN"):
                 if t.has_label("TAMLAYAN"):
@@ -2875,6 +2891,12 @@ class FallbackRule(DependencyRule):
                             t.deprel = "nmod:poss"
                             applied.append("FALLBACK→NMOD_POSS")
                         continue
+                    # Sağda İYELİK'li isim bulunamadı → local_pred'e nmod:poss
+                    local_pred = _find_local_predicate(tokens, t.id, root_id)
+                    t.head = local_pred
+                    t.deprel = "nmod:poss"
+                    applied.append("FALLBACK→NMOD_POSS_FAR")
+                    continue
 
             # ADP: Solda isim yoksa → advmod (cümle başı Önce, Sonra vb.)
             if t.upos == "ADP":
