@@ -194,6 +194,13 @@ CONJUNCTIONS: frozenset[str] = frozenset({
     "yani", "örneğin", "hatta", "eğer",
 })
 
+# Morfolojik çözümleme ne derse desin daima CCONJ olan sözcükler.
+# "hatta"→hat+ta, "yani"→yan+i, "veya"→ve+ya gibi sahte çözümlemeleri override eder.
+_ALWAYS_CCONJ: frozenset[str] = frozenset({
+    "veya", "ama", "fakat", "ancak", "oysa",
+    "hâlbuki", "halbuki", "yani", "hatta",
+})
+
 POSTPOSITIONS: frozenset[str] = frozenset({
     "için", "gibi", "kadar", "göre", "karşı", "rağmen", "dair",
     "üzere", "doğru", "dolayı", "itibaren", "beri", "hakkında",
@@ -662,6 +669,8 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str],
 
     if w in DETERMINERS and not (a and a.suffixes):
         return "DET"
+    if w in _ALWAYS_CCONJ:
+        return "CCONJ"
     if w in CONJUNCTIONS and not (a and a.suffixes):
         return "CCONJ"
     if w in POSTPOSITIONS and not (a and a.suffixes):
@@ -1437,7 +1446,11 @@ class CoordinationRule(DependencyRule):
     def apply(self, tokens: list[DepToken]) -> list[str]:
         applied: list[str] = []
 
-        # Faz 1: Explicit bağlaçlar (ve, veya, ama, fakat)
+        # Faz 1: İlişkili bağlaçlar (hem...hem, ne...ne, ya...ya da)
+        # Phase 1'de çiftler doğru eşleşir; sonra Phase 2 tekli CCONJ'ları işler.
+        applied.extend(self._handle_correlatives(tokens))
+
+        # Faz 2: Explicit bağlaçlar (ve, veya, ama, fakat)
         for i, t in enumerate(tokens):
             is_cconj = t.upos == "CCONJ"
             is_sconj_cc = (
@@ -1446,19 +1459,30 @@ class CoordinationRule(DependencyRule):
             )
             if (not is_cconj and not is_sconj_cc) or t.is_assigned:
                 continue
+
+            # "ya da" kalıbı: "da"yı atla, fixed olarak bağla
+            search_from = i
+            da_idx: int | None = None
+            if (turkish_lower(t.form) == "ya"
+                    and i + 1 < len(tokens)
+                    and turkish_lower(tokens[i + 1].form) == "da"
+                    and not tokens[i + 1].is_assigned):
+                da_idx = i + 1
+                search_from = i + 1
+
             left = self._find_left_conjunct(tokens, i)
-            right = self._find_right_conjunct(tokens, i, left=left)
+            right = self._find_right_conjunct(tokens, search_from, left=left)
             if left and right:
                 t.head = right.id
                 t.deprel = "cc"
+                if da_idx is not None:
+                    tokens[da_idx].head = t.id
+                    tokens[da_idx].deprel = "fixed"
                 # Explicit CCONJ → conj overrides non-root assignments
                 if not right.is_assigned or right.deprel not in ("root",):
                     right.head = left.id
                     right.deprel = "conj"
                 applied.append("BAĞLAÇ→CC+CONJ")
-
-        # Faz 2: İlişkili bağlaçlar (hem...hem, ne...ne, ya...ya)
-        applied.extend(self._handle_correlatives(tokens))
 
         # Faz 3: Virgüllü koordinasyon (asindeton)
         # "Ali, Ayşe, Mehmet" → Ayşe→conj→Ali, Mehmet→conj→Ali
@@ -1512,7 +1536,7 @@ class CoordinationRule(DependencyRule):
         return first_content
 
     def _handle_correlatives(self, tokens: list[DepToken]) -> list[str]:
-        """hem...hem, ne...ne, ya...ya kalıplarını işle."""
+        """hem...hem, ne...ne, ya...ya (da) kalıplarını işle."""
         applied: list[str] = []
         w_lower = [turkish_lower(t.form) for t in tokens]
         i = 0
@@ -1522,14 +1546,25 @@ class CoordinationRule(DependencyRule):
                 # İkinci correlative'i bul
                 for j in range(i + 2, len(tokens)):
                     if w_lower[j] == corr and not tokens[j].is_assigned:
-                        # İlk corr → cc (sağdaki ögeye)
+                        # "ya...ya da" kalıbı: "da"yı atla, fixed olarak bağla
+                        da_idx = None
+                        search_start = j
+                        if corr == "ya" and j + 1 < len(tokens) and w_lower[j + 1] == "da":
+                            da_idx = j + 1
+                            search_start = j + 1
+
                         right1 = self._find_right_conjunct(tokens, i)
-                        right2 = self._find_right_conjunct(tokens, j, left=right1)
+                        right2 = self._find_right_conjunct(
+                            tokens, search_start, left=right1
+                        )
                         if right1 and right2:
                             tokens[i].head = right1.id
                             tokens[i].deprel = "cc"
                             tokens[j].head = right2.id
                             tokens[j].deprel = "cc"
+                            if da_idx is not None and not tokens[da_idx].is_assigned:
+                                tokens[da_idx].head = tokens[j].id
+                                tokens[da_idx].deprel = "fixed"
                             if not right2.is_assigned or right2.deprel not in ("root",):
                                 right2.head = right1.id
                                 right2.deprel = "conj"
