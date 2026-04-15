@@ -205,6 +205,7 @@ POSTPOSITIONS: frozenset[str] = frozenset({
     "için", "gibi", "kadar", "göre", "karşı", "rağmen", "dair",
     "üzere", "doğru", "dolayı", "itibaren", "beri", "hakkında",
     "ait", "ilişkin", "karşın", "boyunca", "önce", "sonra",
+    "olarak", "diye",
 })
 
 # Bilinen sıfatlar — sözlük/POS etiketi olmadığında UPOS çıkarımı için
@@ -1409,13 +1410,17 @@ class PostpositionRule(DependencyRule):
         applied: list[str] = []
         for i, t in enumerate(tokens):
             w = turkish_lower(t.form)
-            if w not in POSTPOSITIONS or t.is_assigned:
+            is_ile = w == "ile"
+            if w not in POSTPOSITIONS and not is_ile:
+                continue
+            if t.is_assigned:
                 continue
             if i > 0:
                 left = tokens[i - 1]
                 t.head = left.id
                 t.deprel = "case"
-                t.upos = "ADP"
+                if not is_ile:
+                    t.upos = "ADP"
                 applied.append("EDAT→CASE")
         return applied
 
@@ -2189,10 +2194,10 @@ class FallbackRule(DependencyRule):
     @staticmethod
     def _find_right_noun(tokens: list[DepToken], start: int) -> DepToken | None:
         """start'ın sağındaki en yakın NOUN/PROPN tokenini bul."""
-        for j in range(start + 1, min(start + 5, len(tokens))):
+        for j in range(start + 1, min(start + 6, len(tokens))):
             if tokens[j].upos in ("NOUN", "PROPN"):
                 return tokens[j]
-            if tokens[j].upos not in ("ADJ", "NUM", "DET", "ADV"):
+            if tokens[j].upos not in ("ADJ", "NUM", "DET", "ADV", "CCONJ", "PART"):
                 break
         return None
 
