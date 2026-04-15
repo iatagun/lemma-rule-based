@@ -215,7 +215,7 @@ COMMON_ADJECTIVES: frozenset[str] = frozenset({
     "uzun", "kısa", "genç", "yaşlı", "doğal", "yapay",
     "önemli", "farklı", "ağır", "hafif", "sıcak", "soğuk",
     "parlak", "koyu", "açık", "kapalı", "zengin", "fakir",
-    "mutlu", "mutsuz", "hızlı", "yavaş", "güçlü", "zayıf",
+    "mutlu", "mutsuz", "hızlı", "güçlü", "zayıf",
     "temiz", "kirli", "derin", "sığ", "geniş", "dar",
     "ilk", "son", "tek", "diğer",
     # Renk
@@ -268,7 +268,7 @@ COMMON_ADJECTIVES: frozenset[str] = frozenset({
     "sanal", "geçen", "şeffaf", "yoğunlaşmış", "sürdürülebilir",
     "somutlaşmış", "mevzii", "vicdani", "uluslararası",
     # v13 ekleme — BOUN amod frekans analizi
-    "fazla", "türk", "böyle", "öyle", "siyasi", "toplumsal",
+    "türk", "siyasi", "toplumsal",
     "müthiş", "anonim", "engin", "ölümcül", "yetersiz",
     "durgun", "doygun", "çekingen", "nadir", "zarif",
     "alışılmış", "tanıdık", "kararlı", "bağımsız",
@@ -279,7 +279,7 @@ COMMON_ADJECTIVES: frozenset[str] = frozenset({
     "nazik", "rasyonel", "emin", "estetik", "kurulu",
     "yaklaşık", "dengeli", "görüntülü", "zanlı", "güleryüzlü",
     "ölümlü", "şekerli", "huzurlu", "yetkili", "coşkulu",
-    "küresel", "katı", "yoğun", "sürekli", "acil",
+    "küresel", "katı", "yoğun", "acil",
     "kalıcı", "geçici", "günlük", "aylık", "haftalık",
     "yüzlük", "sınırlı", "bilinçli", "sağlıklı", "doğal",
     "ulvi", "zahiri", "batıni", "müstakil", "münferit",
@@ -2087,7 +2087,8 @@ class AdjAdvDisambiguationRule(DependencyRule):
                     target = root_id if root_id != 0 else right.id
                     t.head = target
                     t.deprel = "advmod"
-                    t.upos = "ADV"
+                    # UPOS'u ADJ olarak koru — BOUN, sıfat-zarf sözcükleri
+                    # fiil bağlamında bile ADJ olarak etiketler
                     applied.append("SIFAT_ZARF→ADVMOD")
 
         return applied
