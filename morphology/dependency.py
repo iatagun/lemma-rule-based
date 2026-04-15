@@ -2782,6 +2782,13 @@ class FallbackRule(DependencyRule):
 
             # NUM: sayı → sağda NOUN varsa nummod, yoksa VERB'e de dene
             if t.upos == "NUM":
+                # Hal ekli sayılar (1905'te, 1992'de) → obl
+                if re.search(r"[''][dDtT][eEaA][nN]?$", t.form):
+                    local_pred = _find_local_predicate(tokens, t.id, root_id)
+                    t.head = local_pred
+                    t.deprel = "obl"
+                    applied.append("FALLBACK→OBL_NUM_CASE")
+                    continue
                 # "yüzde" + sağda NUM → nummod (yüzdelik ifade)
                 if (turkish_lower(t.form) == "yüzde"
                         and i + 1 < len(tokens)
