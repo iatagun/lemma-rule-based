@@ -860,6 +860,19 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str],
     if not a or not a.suffixes:
         return "NOUN"
 
+    # ── Büyük harf + yalnızca çatı eki → PROPN koruması ────────
+    # İsrail→İs+rail→EDİLGEN, Kandil→Kand+il→EDİLGEN gibi özel isimler
+    # morfolojik çözümleyici tarafından yanlışlıkla çatı eki olarak ayrıştırılır.
+    # Cümle-içi büyük harfli sözcükte TEK fiilsel ek çatı eki ise → PROPN.
+    if not is_first and st.word and st.word[0].isupper():
+        _voice = {"EDİLGEN", "ETTİRGEN"}
+        all_voice = all(
+            sub in _voice
+            for _, lbl in a.suffixes for sub in lbl.split("/")
+        )
+        if all_voice:
+            return "PROPN"
+
     for _, label in a.suffixes:
         for sub in label.split("/"):
             if sub in VERB_FINAL_LABELS:
@@ -1236,8 +1249,14 @@ class PossessiveRule(DependencyRule):
                 candidate = tokens[j]
                 if candidate.has_iyelik:
                     t.head = candidate.id
-                    t.deprel = "nmod:poss"
-                    applied.append("TAMLAYAN→İYELİK")
+                    # VERB başlı iyelik → genitif özne (isimleşmiş fiil yapısı)
+                    # "Meclis'in aldığı" → Meclis'in = nsubj of aldığı
+                    if candidate.upos == "VERB":
+                        t.deprel = "nsubj"
+                        applied.append("TAMLAYAN→FİİL_NSUBJ")
+                    else:
+                        t.deprel = "nmod:poss"
+                        applied.append("TAMLAYAN→İYELİK")
                     break
                 if candidate.upos not in self._SKIP_UPOS:
                     break
