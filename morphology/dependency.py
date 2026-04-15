@@ -364,6 +364,9 @@ COMMON_NOUNS: frozenset[str] = frozenset({
     "potasyum", "duman", "kibir", "katılım", "leopar", "sonbahar",
     "kalorifer", "huzur", "lüfer", "karabiber", "kırmızıbiber",
     "sekreter", "önder", "sevecen", "karakteristik", "cezasız",
+    # Büyük harfli kurum/unvan isimleri — PROPN false-positive azaltmak
+    "devlet", "güney", "mayıs", "mart", "meclis", "genelkurmay",
+    "cumhurbaşkan", "savcı", "dışişleri", "bakan",
     # Yaygın kök isimler (çekimli formları VERB oluyor)
     "yan", "gün", "yıl", "su", "ateş", "kapı", "yer",
     "sıra", "otel", "anne", "baba", "kız",
@@ -722,6 +725,16 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str],
         ):
             return "NOUN"
 
+    # ── Büyük harf tabanlı PROPN tespiti (erken) ────────────────
+    # Apostrof + büyük harf → PROPN (Türkiye'nin, İstanbul'a, Atatürk'ün)
+    has_apostrophe = "'" in st.word or "\u2019" in st.word
+    if has_apostrophe and st.word and st.word[0].isupper():
+        return "PROPN"
+    # Cümle-içi büyük harf + ek yok → PROPN (Yugoslav, MGK, AB, Cook)
+    if not is_first and st.word and st.word[0].isupper():
+        if not a or not a.suffixes:
+            return "PROPN"
+
     if not a or not a.suffixes:
         return "NOUN"
 
@@ -781,14 +794,11 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str],
     if not has_case_or_poss and _DERIV_ADJ_RE.search(w):
         return "ADJ"
 
-    # ── Büyük harf tabanlı PROPN tespiti ──────────────────────────
-    # Strateji:
-    #   1. Apostrof var → büyük olasılıkla PROPN (Türkiye'nin, İstanbul'a)
-    #   2. Cümle-içi büyük harf + hal/iyelik eki yok → PROPN
-    has_apostrophe = "'" in st.word or "\u2019" in st.word
-    if has_apostrophe and st.word and st.word[0].isupper():
-        return "PROPN"
-    if not is_first and not has_case_or_poss and st.word and st.word[0].isupper():
+    # ── Büyük harf tabanlı PROPN tespiti (ekli formlar) ──────────
+    # Cümle-içi büyük harf: hal/iyelik ekli olsa bile PROPN
+    # (Türkiye+YÖNELME, Wonka+YÖNELME, Meclisi+İYELİK vb.)
+    # Apostrof kontrolü yukarıda yapıldı (erken çıkış).
+    if not is_first and st.word and st.word[0].isupper():
         return "PROPN"
 
     return "NOUN"
