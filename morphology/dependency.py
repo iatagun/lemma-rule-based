@@ -2101,10 +2101,10 @@ class CoordinationRule(DependencyRule):
         return applied
 
     # UPOS grupları: aynı grup içindeki tokenlar koordine olabilir
+    # VERB ve PROPN hariç: VERB comma-coord %29 precision (34 LAS TP vs 192 FP),
+    # PROPN %14 precision (4 TP vs 24 FP) — çok gürültülü
     _COORD_COMPAT: dict[str, frozenset[str]] = {
-        "NOUN": frozenset({"NOUN", "PROPN", "NUM"}),
-        "PROPN": frozenset({"NOUN", "PROPN"}),
-        "VERB": frozenset({"VERB"}),
+        "NOUN": frozenset({"NOUN", "NUM"}),
         "ADJ": frozenset({"ADJ"}),
         "ADV": frozenset({"ADV"}),
         "NUM": frozenset({"NOUN", "NUM"}),
