@@ -1546,8 +1546,16 @@ class CoordinationRule(DependencyRule):
                 if da_idx is not None:
                     tokens[da_idx].head = t.id
                     tokens[da_idx].deprel = "fixed"
-                # Explicit CCONJ → conj overrides non-root assignments
-                if not right.is_assigned or right.deprel not in ("root",):
+                # Explicit CCONJ → conj (BOUN: first conjunct = head)
+                if right.deprel == "root":
+                    # Second conjunct was root → promote first conjunct
+                    if not left.is_assigned:
+                        left.head = 0
+                        left.deprel = "root"
+                        right.head = left.id
+                        right.deprel = "conj"
+                    # else: left already assigned, can't move root safely
+                else:
                     right.head = left.id
                     right.deprel = "conj"
                 applied.append("BAĞLAÇ→CC+CONJ")
