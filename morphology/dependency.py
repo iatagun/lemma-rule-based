@@ -50,6 +50,7 @@ _CASE_LABEL_TO_UD: dict[str, str] = {
     "AYRILMA": "Abl",
     "TAMLAYAN": "Gen",
     "ARAÇ": "Ins",
+    "VASITA": "Ins",
 }
 
 _TENSE_LABEL_TO_UD: dict[str, str] = {
@@ -1793,6 +1794,7 @@ class ParticipleRule(DependencyRule):
         "BULUNMA": "obl",
         "AYRILMA": "obl",
         "ARAÇ": "obl",
+        "VASITA": "obl",
     }
 
     def apply(self, tokens: list[DepToken]) -> list[str]:
