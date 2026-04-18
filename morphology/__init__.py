@@ -37,6 +37,14 @@ from .harmony import (
 from .phonology import get_syllable_nuclei, is_loanword_candidate, syllabify
 from .morphotactics import MorphotacticFSM
 from .suffix import SuffixRegistry
+from .validator_pos import POSValidator, ValidationResult
+from .diagnostics import (
+    MorphologyDiagnostics,
+    explain_analysis,
+    trace_syllables,
+    check_loanword_status,
+    compare_with_stanza,
+)
 
 __all__ = [
     "create_default_analyzer",
@@ -59,11 +67,20 @@ __all__ = [
     "DependencyParser",
     "DepToken",
     "MorphotacticFSM",
+    # Validation & Diagnostics
+    "POSValidator",
+    "ValidationResult",
+    "MorphologyDiagnostics",
+    "explain_analysis",
+    "trace_syllables",
+    "check_loanword_status",
+    "compare_with_stanza",
 ]
 
 
 def create_default_analyzer(
     dictionary_path: str | Path | None = None,
+    pos_tagger=None,
 ) -> MorphologicalAnalyzer:
     """
     Varsayılan yapılandırmayla bir çözümleyici üretir.
@@ -73,6 +90,8 @@ def create_default_analyzer(
       2. RelaxedHarmony + Sözlük doğrulama (alıntı sözcükler)
       3. StrictHarmony + Sezgisel doğrulama (sözlükte olmayan sözcükler)
       4. RelaxedHarmony + Sezgisel doğrulama (son çare)
+
+    pos_tagger verilirse, upos=None durumunda otomatik POS tahmini yapar.
 
     Sözlük verilmezse eski davranış (2 katmanlı sezgisel) korunur.
     """
@@ -115,4 +134,5 @@ def create_default_analyzer(
         registry=registry,
         strategies=strategies,
         dictionary=dictionary,
+        pos_tagger=pos_tagger,
     )

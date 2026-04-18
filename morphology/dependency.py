@@ -882,10 +882,50 @@ class DepToken:
         feats = _extract_feats(a) if a else {}
         upos = _infer_upos(st, feats, is_first=is_first)
 
+        # Hybrid PROPN koruması: tek-ünlü YÖNELME artefaktını temizle.
+        # Türkçe'de 'a'/'e' ile biten özel isimler morfolojik çözümleyici
+        # tarafından YÖNELME eki olarak yanlış ayrıştırılır:
+        #   Mustafa → mustaf + a(YÖNELME)
+        #   Ayşe    → ayş   + e(YÖNELME)
+        #   Ankara  → Ankar + a(YÖNELME)
+        raw_suffixes = list(a.suffixes) if a else []
+        if upos == "PROPN" and len(raw_suffixes) == 1:
+            sfx_form, sfx_label = raw_suffixes[0]
+            if (len(sfx_form) == 1 and sfx_form in "aeıiuü"
+                    and "YÖNELME" in sfx_label):
+                raw_suffixes = []
+                feats.pop("Case", None)
+
+        # Lemma hesapla: analyzer çıktısından, POS'a göre farklı kurallar
+        if a is not None:
+            if upos == "PROPN":
+                # Özel isimler: orijinal biçim korunmalı (capitalization)
+                # Suffixleri temizledikten sonra bile orijinal form kullan
+                lemma = st.word
+            elif upos == "NOUN":
+                # İsimler: root (morfofonemik biçim) > stem
+                lemma = a.root or a.stem
+            elif upos == "VERB":
+                # Fiiller: lemma (mastar) > root+mak > stem
+                if a.lemma:
+                    lemma = a.lemma
+                elif a.root:
+                    # Türetilmiş fiiller: root + mak/mek
+                    for suffix in ("mak", "mek"):
+                        lemma = a.root + suffix
+                        break
+                else:
+                    lemma = a.stem
+            else:
+                # Diğer POS: stem
+                lemma = a.stem
+        else:
+            lemma = turkish_lower(st.word)
+        
         return cls(
             id=idx,
             form=st.word,
-            lemma=a.stem if a else turkish_lower(st.word),
+            lemma=lemma,
             upos=upos,
             xpos="_",
             feats=feats,
@@ -893,7 +933,7 @@ class DepToken:
             deprel="_",
             deps="_",
             misc="_",
-            _suffixes=list(a.suffixes) if a else [],
+            _suffixes=raw_suffixes,
             _analysis=a,
         )
 
@@ -963,8 +1003,13 @@ def _extract_feats(a: MorphemeAnalysis) -> dict[str, str]:
     """Morfolojik çözümlemeden UD özelliklerini çıkarır."""
     feats: dict[str, str] = {}
     for _, label in a.suffixes:
-        for sub in label.split("/"):
+        subs = label.split("/")
+        for sub in subs:
             if sub in _CASE_LABEL_TO_UD:
+                # İYELİK_*/BELIRTME kombinasyonunda BELIRTME iyelik belirsizliği
+                # göstergesidir, gerçek akuzatif değildir → Case=Acc ekleme.
+                if sub == "BELIRTME" and any("İYELİK" in s for s in subs):
+                    continue
                 feats["Case"] = _CASE_LABEL_TO_UD[sub]
             elif sub in _TENSE_LABEL_TO_UD:
                 feats["Tense"] = _TENSE_LABEL_TO_UD[sub]
@@ -1079,6 +1124,16 @@ def _infer_upos(st: SentenceToken, feats: dict[str, str],
     # Cümle-içi büyük harf + ek yok → PROPN (Yugoslav, MGK, AB, Cook)
     if not is_first and st.word and st.word[0].isupper():
         if not a or not a.suffixes:
+            return "PROPN"
+
+    # Cümle-başı büyük harf + tek-ünlü YÖNELME artefaktı → PROPN
+    # Mustafa→mustaf+a(YÖNELME), Fatma→fatm+a(YÖNELME) gibi özel isimler
+    # cümle başında olduklarında is_first=True, bu nedenle yukarıdaki
+    # "not is_first" koşulu devreye girmez. Bu özel durum için ek kontrol.
+    if st.word and st.word[0].isupper() and a and len(a.suffixes) == 1:
+        sfx_form, sfx_label = a.suffixes[0]
+        if (len(sfx_form) == 1 and sfx_form in "aeıiuü"
+                and "YÖNELME" in sfx_label):
             return "PROPN"
 
     # ── Türetim eki tabanlı ADJ tespiti (erken — ek çıktısı olmasa bile) ──
@@ -2587,6 +2642,10 @@ class CompoundNounRule(DependencyRule):
                 continue
             if t.has_case or t.has_label("TAMLAYAN"):
                 continue
+            # Büyük harfle başlayan token (özel isim adayı) tamlama kurmamalı.
+            # "Ali kitabı okudu" → Ali, kitabı'nın tamlananı DEĞİL.
+            if t.form and t.form[0].isupper():
+                continue
             if i + 1 >= len(tokens):
                 continue
             right = tokens[i + 1]
@@ -2638,15 +2697,22 @@ class AdjAdvDisambiguationRule(DependencyRule):
                 t.deprel = "amod"
                 applied.append("SIFAT_ZARF→AMOD")
             elif right.upos == "VERB":
-                # BOUN konvansiyonu: ADJ + VERB → amod (yüklemsel sıfat)
-                # "mutlu oldu", "güçlü düşündü" → ADJ, VERB bağlamında bile amod
-                # Analiz: 44 amod TP vs 11 advmod kaybı = +33 net deprel
+                # BOUN konvansiyonu: ADJ + VERB → genellikle amod (yüklemsel sıfat)
+                # "mutlu oldu", "güçlü düşündü" → amod
+                # İstisna: sol komşu ADV (çok, çoğu, pek, gayet vb.) ise
+                # ADV+ADJ+VERB → ADJ zarfsal kullanımda → advmod
+                # "çok hızlı koştu", "pek güzel söyledi" → advmod
+                has_adv_left = (i > 0 and tokens[i - 1].upos == "ADV")
                 t.head = right.id
-                t.deprel = "amod"
-                if det_skipped:
-                    applied.append("SIFAT_ZARF→AMOD_NOM")
+                if has_adv_left:
+                    t.deprel = "advmod"
+                    applied.append("SIFAT_ZARF→ADVMOD_ADV_NICEL")
                 else:
-                    applied.append("SIFAT_ZARF→AMOD_VF")
+                    t.deprel = "amod"
+                    if det_skipped:
+                        applied.append("SIFAT_ZARF→AMOD_NOM")
+                    else:
+                        applied.append("SIFAT_ZARF→AMOD_VF")
 
         return applied
 
@@ -3235,6 +3301,9 @@ class DependencyParser:
         # Son-işlem: her yüklem başına en fazla 1 obj tut
         self._limit_obj_per_pred(dep_tokens)
 
+        # Son-işlem: cümle başı özneyi root'a yönlendir
+        self._redirect_first_nsubj_to_root(dep_tokens)
+
         # Son-işlem: koordinasyon root düzeltmesi
         self._swap_root_for_coordination(dep_tokens)
 
@@ -3270,6 +3339,27 @@ class DependencyParser:
         for t in tokens:
             if t.deprel == "conj" and t.head == old_root_id and t.id != new_root_id:
                 t.head = new_root_id
+
+    @staticmethod
+    def _redirect_first_nsubj_to_root(tokens: list[DepToken]) -> None:
+        """Cümle başı (id=1) nsubj tokenı root yüklemine yönlendir.
+
+        Türkçe SOV yapısında cümle başı özne genellikle ana yükleme (root)
+        bağlıdır, ancak _find_local_predicate yakındaki yan cümle yüklemini
+        seçebilir. TAMLAYAN'sız ve uzak head'li (id>2) ilk tokenı root'a taşı.
+        """
+        if not tokens:
+            return
+        first = tokens[0]
+        if first.id != 1 or first.deprel != "nsubj":
+            return
+        if "TAMLAYAN" in first.labels:
+            return
+        if first.head <= 2:
+            return
+        root_tok = next((t for t in tokens if t.deprel == "root"), None)
+        if root_tok and first.head != root_tok.id:
+            first.head = root_tok.id
 
     @staticmethod
     def _limit_obj_per_pred(tokens: list[DepToken]) -> None:

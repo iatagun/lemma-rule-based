@@ -3,12 +3,15 @@
     "turkish-morphology": {
       "command": "python",
       "args": [
-        "-X", "utf8", "-m", "mcp_server.server"
+        "-X",
+        "utf8",
+        "-m",
+        "mcp_server.server"
       ],
       "env": {
         "PYTHONIOENCODING": "utf-8"
       },
-      "cwd": "${workspaceFolder}"
+      "cwd": "C:/Users/user/OneDrive/Masaüstü/lemma-rule-based"
     }
   }
 }

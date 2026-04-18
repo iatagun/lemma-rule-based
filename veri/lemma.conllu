@@ -1,0 +1,163 @@
+# sent_id = 1
+# text = Ali kitabı masaya bıraktı.
+1	Ali	ali	PROPN	_	_	_	_	_	_
+2	kitabı	kitab	NOUN	_	_	_	_	_	_
+3	masaya	ma	NOUN	_	Case=Dat	_	_	_	_
+4	bıraktı	bırakmak	VERB	_	Tense=Past	_	_	_	_
+
+# sent_id = 2
+# text = Çocuk okulda çok çalıştı.
+1	Çocuk	çocuk	NOUN	_	_	_	_	_	_
+2	okulda	okul	NOUN	_	Case=Loc	_	_	_	_
+3	çok	çok	ADV	_	_	_	_	_	_
+4	çalıştı	çalış	VERB	_	Tense=Past	_	_	_	_
+
+# sent_id = 3
+# text = Türkiye'nin başkenti Ankara'da toplantı yapıldı.
+1	Türkiye'nin	türkiye	PROPN	_	Case=Gen	_	_	_	_
+2	başkenti	başkent	NOUN	_	_	_	_	_	_
+3	Ankara'da	ankara	PROPN	_	Case=Loc	_	_	_	_
+4	toplantı	toplantı	NOUN	_	_	_	_	_	_
+5	yapıldı	yapıl	VERB	_	Tense=Past	_	_	_	_
+
+# sent_id = 4
+# text = Annesinin evine her hafta gidiyor.
+1	Annesinin	annes	NOUN	_	Case=Gen	_	_	_	_
+2	evine	ev	NOUN	_	Case=Dat	_	_	_	_
+3	her	her	DET	_	_	_	_	_	_
+4	hafta	hafta	NOUN	_	_	_	_	_	_
+5	gidiyor	gitmek	VERB	_	Tense=Pres	_	_	_	_
+
+# sent_id = 5
+# text = Çocuklar parkta oynarken anneleri onları uzaktan izliyordu.
+1	Çocuklar	çocuk	NOUN	_	Number=Plur	_	_	_	_
+2	parkta	park	NOUN	_	Case=Loc	_	_	_	_
+3	oynarken	oyn	VERB	_	Tense=Aor|VerbForm=Conv	_	_	_	_
+4	anneleri	anne	NOUN	_	_	_	_	_	_
+5	onları	onları	PRON	_	_	_	_	_	_
+6	uzaktan	uzak	ADJ	_	Case=Abl	_	_	_	_
+7	izliyordu	izlemek	VERB	_	Tense=Past	_	_	_	_
+
+# sent_id = 6
+# text = Bilgisayarın ekranına bakarak saatlerce çalışmak gözleri yoruyor.
+1	Bilgisayarın	bilgisayar	NOUN	_	Case=Gen	_	_	_	_
+2	ekranına	ekran	NOUN	_	Case=Dat	_	_	_	_
+3	bakarak	bakmak	VERB	_	_	_	_	_	_
+4	saatlerce	saatlerce	ADV	_	_	_	_	_	_
+5	çalışmak	çalış	VERB	_	_	_	_	_	_
+6	gözleri	göz	NOUN	_	_	_	_	_	_
+7	yoruyor	yormak	VERB	_	Tense=Pres	_	_	_	_
+
+# sent_id = 7
+# text = Kitaplar raftan alınarak masaya konuldu.
+1	Kitaplar	kitap	NOUN	_	Number=Plur	_	_	_	_
+2	raftan	raf	NOUN	_	Case=Abl	_	_	_	_
+3	alınarak	alın	VERB	_	VerbForm=Conv	_	_	_	_
+4	masaya	ma	NOUN	_	Case=Dat	_	_	_	_
+5	konuldu	konul	VERB	_	Tense=Past	_	_	_	_
+
+# sent_id = 8
+# text = Proje ekip tarafından başarıyla tamamlandı.
+1	Proje	proje	NOUN	_	_	_	_	_	_
+2	ekip	ekip	NOUN	_	_	_	_	_	_
+3	tarafından	taraf	NOUN	_	Case=Abl	_	_	_	_
+4	başarıyla	başarıy	NOUN	_	Case=Ins	_	_	_	_
+5	tamamlandı	tamamlan	VERB	_	Tense=Past	_	_	_	_
+
+# sent_id = 9
+# text = Kitaplarını çantasına koyup okula gitmeden önce kahvaltısını yaptı.
+1	Kitaplarını	kitap	NOUN	_	Case=Acc	_	_	_	_
+2	çantasına	çantas	NOUN	_	Case=Dat	_	_	_	_
+3	koyup	koy	VERB	_	VerbForm=Conv	_	_	_	_
+4	okula	okul	NOUN	_	Case=Dat	_	_	_	_
+5	gitmeden	gitmek	VERB	_	Case=Abl	_	_	_	_
+6	önce	önce	ADP	_	_	_	_	_	_
+7	kahvaltısını	kahvaltıs	NOUN	_	Case=Acc	_	_	_	_
+8	yaptı	yapmak	VERB	_	Tense=Past	_	_	_	_
+
+# sent_id = 10
+# text = Eski evlerinden taşınmak zorunda kalan aileler yeni semtlere yerleşti.
+1	Eski	eski	ADJ	_	_	_	_	_	_
+2	evlerinden	ev	NOUN	_	Case=Abl	_	_	_	_
+3	taşınmak	taşın	VERB	_	_	_	_	_	_
+4	zorunda	zor	ADJ	_	Case=Loc	_	_	_	_
+5	kalan	kalan	VERB	_	_	_	_	_	_
+6	aileler	aile	NOUN	_	Number=Plur	_	_	_	_
+7	yeni	yeni	ADJ	_	_	_	_	_	_
+8	semtlere	semt	NOUN	_	Case=Dat|Number=Plur	_	_	_	_
+9	yerleşti	yerleşmek	VERB	_	Tense=Past	_	_	_	_
+
+# sent_id = 11
+# text = Dün okuduğum kitabın yazarını tanıyorum.
+1	Dün	dün	NOUN	_	_	_	_	_	_
+2	okuduğum	okumak	VERB	_	VerbForm=Part	_	_	_	_
+3	kitabın	kitab	NOUN	_	Case=Gen	_	_	_	_
+4	yazarını	yazar	NOUN	_	Case=Acc	_	_	_	_
+5	tanıyorum	tanı	VERB	_	Tense=Pres	_	_	_	_
+
+# sent_id = 12
+# text = Toplantıya katılan herkes konuyu anladı.
+1	Toplantıya	toplantıy	NOUN	_	_	_	_	_	_
+2	katılan	katıl	VERB	_	VerbForm=Part	_	_	_	_
+3	herkes	herkes	NOUN	_	_	_	_	_	_
+4	konuyu	konuy	NOUN	_	_	_	_	_	_
+5	anladı	anlamak	VERB	_	Tense=Past	_	_	_	_
+
+# sent_id = 13
+# text = Bu haberi duymak istemiyorum.
+1	Bu	bu	DET	_	_	_	_	_	_
+2	haberi	haber	NOUN	_	_	_	_	_	_
+3	duymak	duy	VERB	_	_	_	_	_	_
+4	istemiyorum	istemek	VERB	_	Tense=Pres	_	_	_	_
+
+# sent_id = 14
+# text = Onların söylediklerine inanmıyorum.
+1	Onların	onların	PRON	_	_	_	_	_	_
+2	söylediklerine	söylemek	VERB	_	Case=Dat|VerbForm=Part	_	_	_	_
+3	inanmıyorum	inan	VERB	_	Number=Sing|Person=1|Tense=Pres	_	_	_	_
+
+# sent_id = 15
+# text = Yarın okula gidecek misin?
+1	Yarın	yarın	NOUN	_	_	_	_	_	_
+2	okula	okul	NOUN	_	Case=Dat	_	_	_	_
+3	gidecek	gitmek	VERB	_	Tense=Fut	_	_	_	_
+4	misin	mis	AUX	_	Case=Gen	_	_	_	_
+
+# sent_id = 16
+# text = Hangi kitabı okumak istiyorsunuz?
+1	Hangi	hangi	ADJ	_	_	_	_	_	_
+2	kitabı	kitab	NOUN	_	_	_	_	_	_
+3	okumak	okumak	VERB	_	_	_	_	_	_
+4	istiyorsunuz	istemek	VERB	_	Number=Plur|Person=2|Tense=Pres	_	_	_	_
+
+# sent_id = 17
+# text = Arkadaşına yardım etmek için erken kalktı.
+1	Arkadaşına	arkadaş	NOUN	_	Case=Dat	_	_	_	_
+2	yardım	yardım	NOUN	_	_	_	_	_	_
+3	etmek	etmek	VERB	_	_	_	_	_	_
+4	için	için	ADP	_	_	_	_	_	_
+5	erken	erken	ADV	_	_	_	_	_	_
+6	kalktı	kalkmak	VERB	_	Tense=Past	_	_	_	_
+
+# sent_id = 18
+# text = Dans etmeyi çok seviyorum.
+1	Dans	dans	NOUN	_	_	_	_	_	_
+2	etmeyi	etmey	VERB	_	_	_	_	_	_
+3	çok	çok	ADV	_	_	_	_	_	_
+4	seviyorum	sevmek	VERB	_	Tense=Pres	_	_	_	_
+
+# sent_id = 19
+# text = Dün akşam eve geç geldim.
+1	Dün	dün	NOUN	_	_	_	_	_	_
+2	akşam	akşam	NOUN	_	_	_	_	_	_
+3	eve	ev	NOUN	_	Case=Dat	_	_	_	_
+4	geç	geç	ADV	_	_	_	_	_	_
+5	geldim	gelmek	VERB	_	Number=Sing|Person=1|Tense=Past	_	_	_	_
+
+# sent_id = 20
+# text = Gelecek hafta İstanbul'a gidiyoruz.
+1	Gelecek	gel	ADJ	_	Tense=Fut	_	_	_	_
+2	hafta	hafta	NOUN	_	_	_	_	_	_
+3	İstanbul'a	istanbul	PROPN	_	_	_	_	_	_
+4	gidiyoruz	gitmek	VERB	_	Number=Plur|Person=1|Tense=Pres	_	_	_	_
+

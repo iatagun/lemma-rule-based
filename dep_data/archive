@@ -1,0 +1,31 @@
+import json
+from collections import Counter
+
+with open('dep_data/bert/train.json', 'r', encoding='utf-8') as f:
+    data = json.load(f)
+
+issue_counts = Counter()
+valid_deprels = {'root', 'nsubj', 'obj', 'obl', 'det', 'amod', 'advmod', 
+                 'case', 'conj', 'cc', 'punct', 'aux', 'cop', 'acl', 'advcl',
+                 'nmod', 'compound', 'dep', 'iobj', 'vocative', 'discourse',
+                 'nummod', 'appos', 'list', 'parataxis', 'mark', 'csubj', 'ccomp'}
+
+for sent in data:
+    for i, w in enumerate(sent['words']):
+        if w.lower() == 'bir' and sent['upos'][i] == 'ADJ':
+            issue_counts['bir->ADJ'] += 1
+    
+    for d in sent['deprels']:
+        if d not in valid_deprels:
+            issue_counts[f'deprel:{d}'] += 1
+
+print('Sorun dagilimi:')
+for issue, cnt in issue_counts.most_common(15):
+    print(f'  {issue}: {cnt}')
+
+total_issues = sum(issue_counts.values())
+total_tokens = sum(len(s['words']) for s in data)
+print()
+print(f'Toplam sorun: {total_issues}')
+print(f'Toplam token: {total_tokens}')
+print(f'Oran: {100*total_issues/total_tokens:.2f}%')

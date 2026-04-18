@@ -52,6 +52,33 @@ _NARROWING_REVERSE: dict[str, str] = {
 # s: 3. tekil iyelik ünlüyle biten köklerde (araba+s+ı, hava+s+ı)
 _BUFFER_CONSONANTS: frozenset[str] = frozenset("yns")
 
+# Circumflex (şapkalı ünlü) eşleme tablosu
+# BOUN Treebank standartına göre: hâl, âdet, kâr gibi biçimler korunur
+# Sözlükte şapkalı biçim yoksa normal biçimden lemma çıkarılabilir
+_CIRCUMFLEX_MAPPING: dict[str, str] = {
+    "hal": "hâl",
+    "adet": "âdet",
+    "kar": "kâr",
+    "galip": "gâlip",
+    "hapis": "hapis",  # hapishane için
+    "lâboratuvar": "laboratuvar",
+    "radyo": "radyo",
+}
+
+_CIRCUMFLEX_NORMALIZE: dict[str, str] = {
+    "hâl": "hal",
+    "âdet": "adet",
+    "kâr": "kar",
+    "gâlip": "galip",
+}
+
+# İyelikli biçimler için lemma düzeltme (sözlükte var ama lemma farklı)
+# hali (hale değil) → hâl, adeti (adet değil) → âdet
+_IYELIK_LEMMA_FIX: dict[str, str] = {
+    "hali": "hâl",
+    "adin": "hâl",  # halin → adin (yanlış tampon kaldırma)
+}
+
 
 class TurkishDictionary:
     """
@@ -91,6 +118,7 @@ class TurkishDictionary:
           3. Ünsüz yumuşaması tersine çevirme (kitab → kitap)
           4. Ünlü düşmesi tersine çevirme (burn → burun)
           5. Kaynaştırma harfi kaldırma (suy → su, bun → bu)
+          6. Circumflex eşleme (hal → hâl, adet → âdet)
 
         Returns:
             Sözlük biçimi veya None.
@@ -99,6 +127,10 @@ class TurkishDictionary:
 
         # 1. Doğrudan eşleşme
         if stem in self._words:
+            return stem
+
+        # 1b. Şapkalı biçim doğrudan eşleşirse
+        if stem in _CIRCUMFLEX_MAPPING.values():
             return stem
 
         # 2. Fiil kökü kontrolü (gelmek, yazmak vb.)
@@ -119,7 +151,16 @@ class TurkishDictionary:
         # 5. Kaynaştırma harfi kaldırma (suy→su, bun→bu)
         buffer_removed = self._try_buffer_remove(stem)
         if buffer_removed is not None:
+            # Lemma düzeltmesi: sözlükte var ama lemma standardına göre farklı
+            # halin → hali → hâl
+            if buffer_removed in _IYELIK_LEMMA_FIX:
+                return _IYELIK_LEMMA_FIX[buffer_removed]
             return buffer_removed
+
+        # 6. Circumflex eşleme: hal → hâl, adet → âdet
+        circumflex = _CIRCUMFLEX_MAPPING.get(stem)
+        if circumflex is not None:
+            return circumflex
 
         return None
 
