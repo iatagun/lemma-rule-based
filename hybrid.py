@@ -43,6 +43,33 @@ _POSS_DEPREL = {"nmod:poss"}
 _NOMINALIZED = ("acağı", "eceği", "acağını", "eceğini", "dığı", "diği", "tığı",
                 "dığını", "diğini", "ması", "mesi", "masını", "mesini", "ğı", "ği")
 
+# ── kanonik UD normalizasyonu (opsiyonel) ────────────────────────────────────
+# Türkçe treebank'lerin idiyosinkrazilerini kanonik/dil-bağımsız UD'ye çeker.
+# FEATS head'leri birbirinden bağımsız tahmin edildiği için (kip/biçime koşullu
+# maskeleme yok) çıkan tutarsızlıkları post-hoc temizler.
+_NOMINAL_UPOS_FEATS = {"ADV", "CCONJ", "SCONJ", "PART", "INTJ"}   # uyum/hâl taşımaz
+_PC_XPOS = {"PCNom", "PCDat", "PCAbl", "PCGen", "PCIns", "PCAcc"}  # ilgeç-hâl etiketi
+
+
+def canonicalize(upos: str, xpos: str, feats: str) -> tuple[str, str, str]:
+    d = {} if feats == "_" else dict(p.split("=", 1) for p in feats.split("|"))
+
+    if d.get("Mood") == "Imp":                     # emir kipi: zaman/görünüş taşımaz
+        d.pop("Aspect", None)
+        d.pop("Tense", None)
+    if d.get("VerbForm") in ("Vnoun", "Conv"):     # ad-fiil / zarf-fiil: kip+zaman+görünüş taşımaz
+        d.pop("Mood", None)
+        d.pop("Tense", None)
+        d.pop("Aspect", None)
+    if upos in _NOMINAL_UPOS_FEATS:                # zarf/bağlaç: uyum/hâl/iyelik taşımaz
+        for k in ("Number", "Person", "Case", "Number[psor]", "Person[psor]", "Definite"):
+            d.pop(k, None)                         # (PronType korunur: ne/nasıl → Int)
+        if xpos in _PC_XPOS:                       # UPOS≠ADP iken PC* etiketi anlamsız
+            xpos = "_"
+
+    fs = "|".join(f"{k}={v}" for k, v in sorted(d.items(), key=lambda kv: kv[0].lower())) or "_"
+    return upos, xpos, fs
+
 
 def _labels(cfg):
     """HF config ya da LabelSpace'ten (upos, xpos, feats_dict, deprels)."""
@@ -53,9 +80,10 @@ def _labels(cfg):
 
 
 class HybridTagger:
-    def __init__(self, local: bool = False, device=None):
+    def __init__(self, local: bool = False, device=None, canonical: bool = False):
         from transformers import AutoModel, AutoTokenizer
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.canonical = canonical
 
         if local:
             from train_joint import JointModel
@@ -145,6 +173,11 @@ class HybridTagger:
                         and surf.endswith(_NOMINALIZED):
                     upos, corrected = "NOUN", True
 
+            if self.canonical:
+                cu, cx, cf = canonicalize(upos, xpos, feats)
+                corrected = corrected or (cx, cf) != (xpos, feats)
+                upos, xpos, feats = cu, cx, cf
+
             rows.append({"form": words[k], "upos": upos, "xpos": xpos, "feats": feats,
                          "head": h, "deprel": deprel, "corrected": corrected,
                          "morph_upos": m_upos, "joint_upos": j_upos})
@@ -167,9 +200,11 @@ def main():
     ap.add_argument("--plain", action="store_true", help="girdi düz metin (cümle/satır)")
     ap.add_argument("--scheme", choices=["kenet", "boun", "imst"], default="kenet")
     ap.add_argument("--local", action="store_true", help="HF yerine yerel .pt checkpoint'leri")
+    ap.add_argument("--canonical", action="store_true",
+                    help="kanonik UD: emir/ad-fiil kiplerinde Tense/Aspect sustur, UPOS-XPOS tutarlılığı")
     args = ap.parse_args()
 
-    ht = HybridTagger(local=args.local)
+    ht = HybridTagger(local=args.local, canonical=args.canonical)
     blocks, n_corr = [], 0
     if args.plain:
         for ln, line in enumerate(Path(args.inp).read_text(encoding="utf-8").splitlines(), 1):
