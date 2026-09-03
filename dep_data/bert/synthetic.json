@@ -1,0 +1,926 @@
+[
+  {
+    "sent_id": "1",
+    "words": [
+      "Bu",
+      "kitap",
+      "çok",
+      "alınır"
+    ],
+    "upos": [
+      "DET",
+      "NOUN",
+      "ADV",
+      "VERB"
+    ],
+    "heads": [
+      "4",
+      "4",
+      "4",
+      "0"
+    ],
+    "deprels": [
+      "det",
+      "nsubj",
+      "advmod",
+      "root"
+    ],
+    "target": "alınır"
+  },
+  {
+    "sent_id": "2",
+    "words": [
+      "Toplantıda",
+      "karar",
+      "alındı"
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "obl",
+      "obj",
+      "root"
+    ],
+    "target": "alındı"
+  },
+  {
+    "sent_id": "3",
+    "words": [
+      "Her",
+      "gün",
+      "süt",
+      "içilir"
+    ],
+    "upos": [
+      "DET",
+      "NOUN",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "4",
+      "4",
+      "4",
+      "0"
+    ],
+    "deprels": [
+      "det",
+      "obl:tmod",
+      "obj",
+      "root"
+    ],
+    "target": "içilir"
+  },
+  {
+    "sent_id": "4",
+    "words": [
+      "Burada",
+      "çay",
+      "içilmez"
+    ],
+    "upos": [
+      "ADV",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "advmod",
+      "obj",
+      "root"
+    ],
+    "target": "içilmez"
+  },
+  {
+    "sent_id": "5",
+    "words": [
+      "Yemekten",
+      "sonra",
+      "uyunur"
+    ],
+    "upos": [
+      "NOUN",
+      "ADP",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "obl",
+      "case",
+      "root"
+    ],
+    "target": "uyunur"
+  },
+  {
+    "sent_id": "6",
+    "words": [
+      "Ali",
+      "odayı",
+      "çıkarmış"
+    ],
+    "upos": [
+      "PROPN",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "nsubj",
+      "obj",
+      "root"
+    ],
+    "target": "çıkarmış"
+  },
+  {
+    "sent_id": "7",
+    "words": [
+      "O",
+      "sınavı",
+      "geçirmiş"
+    ],
+    "upos": [
+      "PRON",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "nsubj",
+      "obj",
+      "root"
+    ],
+    "target": "geçirmiş"
+  },
+  {
+    "sent_id": "8",
+    "words": [
+      "Annem",
+      "elbiseyi",
+      "giydirdi"
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "nsubj",
+      "obj",
+      "root"
+    ],
+    "target": "giydirdi"
+  },
+  {
+    "sent_id": "9",
+    "words": [
+      "Çocuklar",
+      "koşturuyor"
+    ],
+    "upos": [
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "2",
+      "0"
+    ],
+    "deprels": [
+      "nsubj",
+      "root"
+    ],
+    "target": "koşturuyor"
+  },
+  {
+    "sent_id": "10",
+    "words": [
+      "Bu",
+      "işi",
+      "ona",
+      "çıkartmaya",
+      "çalıştı"
+    ],
+    "upos": [
+      "DET",
+      "NOUN",
+      "PRON",
+      "VERB",
+      "VERB"
+    ],
+    "heads": [
+      "5",
+      "5",
+      "5",
+      "5",
+      "0"
+    ],
+    "deprels": [
+      "det",
+      "obj",
+      "obl",
+      "xcomp",
+      "root"
+    ],
+    "target": "çıkartmaya"
+  },
+  {
+    "sent_id": "11",
+    "words": [
+      "Bizi",
+      "geçirttiler"
+    ],
+    "upos": [
+      "PRON",
+      "VERB"
+    ],
+    "heads": [
+      "2",
+      "0"
+    ],
+    "deprels": [
+      "obj",
+      "root"
+    ],
+    "target": "geçirttiler"
+  },
+  {
+    "sent_id": "12",
+    "words": [
+      "Aşçı",
+      "yemeği",
+      "pişirtti"
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "nsubj",
+      "obj",
+      "root"
+    ],
+    "target": "pişirtti"
+  },
+  {
+    "sent_id": "13",
+    "words": [
+      "Ali",
+      "evinden",
+      "çıktı"
+    ],
+    "upos": [
+      "PROPN",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "nsubj",
+      "obl",
+      "root"
+    ],
+    "target": "evinden"
+  },
+  {
+    "sent_id": "14",
+    "words": [
+      "Şimdi",
+      "elimde",
+      "para",
+      "yok"
+    ],
+    "upos": [
+      "ADV",
+      "NOUN",
+      "NOUN",
+      "ADJ"
+    ],
+    "heads": [
+      "4",
+      "4",
+      "4",
+      "0"
+    ],
+    "deprels": [
+      "advmod",
+      "obl",
+      "nsubj",
+      "root"
+    ],
+    "target": "elimde"
+  },
+  {
+    "sent_id": "15",
+    "words": [
+      "Dünyada",
+      "barış",
+      "olsun"
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "obl",
+      "nsubj",
+      "root"
+    ],
+    "target": "dünyada"
+  },
+  {
+    "sent_id": "16",
+    "words": [
+      "Okuldan",
+      "evine",
+      "gitti"
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "obl",
+      "obl",
+      "root"
+    ],
+    "target": "evine"
+  },
+  {
+    "sent_id": "17",
+    "words": [
+      "Köpeğimizi",
+      "bahçede",
+      "gezdirdik"
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "obj",
+      "obl",
+      "root"
+    ],
+    "target": "Köpeğimizi"
+  },
+  {
+    "sent_id": "18",
+    "words": [
+      "Bayram",
+      "gününde",
+      "herkes",
+      "eve",
+      "gitti"
+    ],
+    "upos": [
+      "PROPN",
+      "NOUN",
+      "PRON",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "5",
+      "5",
+      "5",
+      "5",
+      "0"
+    ],
+    "deprels": [
+      "nmod",
+      "obl:tmod",
+      "nsubj",
+      "obl",
+      "root"
+    ],
+    "target": "gününde"
+  },
+  {
+    "sent_id": "19",
+    "words": [
+      "Yılın",
+      "son",
+      "gününde",
+      "kar",
+      "yağdı"
+    ],
+    "upos": [
+      "NOUN",
+      "ADJ",
+      "NOUN",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "5",
+      "3",
+      "5",
+      "5",
+      "0"
+    ],
+    "deprels": [
+      "nmod:poss",
+      "amod",
+      "obl:tmod",
+      "nsubj",
+      "root"
+    ],
+    "target": "gününde"
+  },
+  {
+    "sent_id": "20",
+    "words": [
+      "O",
+      "gününde",
+      "hastaymış"
+    ],
+    "upos": [
+      "PRON",
+      "NOUN",
+      "ADJ"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "nsubj",
+      "obl:tmod",
+      "root"
+    ],
+    "target": "gününde"
+  },
+  {
+    "sent_id": "21",
+    "words": [
+      "Doğum",
+      "gününde",
+      "herkes",
+      "gelmiş"
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "PRON",
+      "VERB"
+    ],
+    "heads": [
+      "4",
+      "4",
+      "4",
+      "0"
+    ],
+    "deprels": [
+      "nmod",
+      "obl:tmod",
+      "nsubj",
+      "root"
+    ],
+    "target": "gününde"
+  },
+  {
+    "sent_id": "22",
+    "words": [
+      "Zamanı",
+      "gelince",
+      "gideriz"
+    ],
+    "upos": [
+      "NOUN",
+      "VERB",
+      "VERB"
+    ],
+    "heads": [
+      "2",
+      "0",
+      "2"
+    ],
+    "deprels": [
+      "obl",
+      "advcl",
+      "root"
+    ],
+    "target": "zamanı"
+  },
+  {
+    "sent_id": "23",
+    "words": [
+      "Yemek",
+      "zamanı",
+      "sofraya",
+      "otur"
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "4",
+      "4",
+      "4",
+      "0"
+    ],
+    "deprels": [
+      "nmod",
+      "obl:tmod",
+      "obl",
+      "root"
+    ],
+    "target": "zamanı"
+  },
+  {
+    "sent_id": "24",
+    "words": [
+      "Uyku",
+      "zamanı",
+      "gelmiş"
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "nmod",
+      "obl:tmod",
+      "root"
+    ],
+    "target": "zamanı"
+  },
+  {
+    "sent_id": "25",
+    "words": [
+      "O",
+      "bunu",
+      "gerçekleştirebiliyor"
+    ],
+    "upos": [
+      "PRON",
+      "PRON",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "nsubj",
+      "obj",
+      "root"
+    ],
+    "target": "gerçekleştirebiliyor"
+  },
+  {
+    "sent_id": "26",
+    "words": [
+      "Firma",
+      "ürünü",
+      "değerlendiriliyor"
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "nsubj",
+      "obj",
+      "root"
+    ],
+    "target": "değerlendiriliyor"
+  },
+  {
+    "sent_id": "27",
+    "words": [
+      "Göçmenler",
+      "şehre",
+      "yerleşmişler"
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "nsubj",
+      "obl",
+      "root"
+    ],
+    "target": "yerleşmişler"
+  },
+  {
+    "sent_id": "28",
+    "words": [
+      "Öğrenciler",
+      "sınıfa",
+      "yerleştirildi"
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "nsubj",
+      "obl",
+      "root"
+    ],
+    "target": "yerleştirildi"
+  },
+  {
+    "sent_id": "29",
+    "words": [
+      "İşte",
+      "burada",
+      "oturuyorum"
+    ],
+    "upos": [
+      "PART",
+      "ADV",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "discourse",
+      "advmod",
+      "root"
+    ],
+    "target": "işte"
+  },
+  {
+    "sent_id": "30",
+    "words": [
+      "Askeri",
+      "birlik",
+      "harekete",
+      "geçti"
+    ],
+    "upos": [
+      "ADJ",
+      "NOUN",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "4",
+      "4",
+      "4",
+      "0"
+    ],
+    "deprels": [
+      "amod",
+      "nsubj",
+      "obl",
+      "root"
+    ],
+    "target": "askeri"
+  },
+  {
+    "sent_id": "31",
+    "words": [
+      "Öncelikle",
+      "eve",
+      "gitmeliyim"
+    ],
+    "upos": [
+      "ADV",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "advmod",
+      "obl",
+      "root"
+    ],
+    "target": "Öncelikle"
+  },
+  {
+    "sent_id": "32",
+    "words": [
+      "Bu",
+      "konuda",
+      "farklı",
+      "düşünüyorum"
+    ],
+    "upos": [
+      "DET",
+      "NOUN",
+      "ADJ",
+      "VERB"
+    ],
+    "heads": [
+      "4",
+      "4",
+      "4",
+      "0"
+    ],
+    "deprels": [
+      "det",
+      "obl",
+      "xcomp",
+      "root"
+    ],
+    "target": "farklı"
+  },
+  {
+    "sent_id": "33",
+    "words": [
+      "Ali",
+      "ne",
+      "yapacağı",
+      "belli",
+      "değil"
+    ],
+    "upos": [
+      "PROPN",
+      "PRON",
+      "NOUN",
+      "ADJ",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "5",
+      "5",
+      "0"
+    ],
+    "deprels": [
+      "nmod",
+      "nmod",
+      "nsubj",
+      "root",
+      "cop"
+    ],
+    "target": "yapacağı"
+  },
+  {
+    "sent_id": "34",
+    "words": [
+      "Yarın",
+      "işe",
+      "gideceğim"
+    ],
+    "upos": [
+      "ADV",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0"
+    ],
+    "deprels": [
+      "advmod",
+      "obl",
+      "root"
+    ],
+    "target": "gideceğim"
+  },
+  {
+    "sent_id": "35",
+    "words": [
+      "O",
+      "dinini",
+      "özgürce",
+      "yaşıyor"
+    ],
+    "upos": [
+      "PRON",
+      "NOUN",
+      "ADV",
+      "VERB"
+    ],
+    "heads": [
+      "4",
+      "4",
+      "4",
+      "0"
+    ],
+    "deprels": [
+      "nsubj",
+      "obj",
+      "advmod",
+      "root"
+    ],
+    "target": "dinini"
+  },
+  {
+    "sent_id": "36",
+    "words": [
+      "Halkın",
+      "dinine",
+      "saygı",
+      "duyarız"
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "4",
+      "4",
+      "4",
+      "0"
+    ],
+    "deprels": [
+      "nmod:poss",
+      "obj",
+      "obl",
+      "root"
+    ],
+    "target": "dinine"
+  }
+]

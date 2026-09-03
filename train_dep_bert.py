@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""BERT + Biaffine Dependency Parser Training Script
+"""ELECTRA + Biaffine Dependency Parser Training Script
 
 Architecture: Dozat & Manning (2017) Deep Biaffine Attention
-Encoder: dbmdz/bert-base-turkish-cased
+Encoder: dbmdz/electra-base-turkish-cased (256-dim)
 Decoder: Biaffine arc scorer + Label classifier
 
 Usage:
@@ -30,14 +30,14 @@ from torch.nn.utils import clip_grad_norm_
 import numpy as np
 from tqdm import tqdm
 
-BERT_MODEL = "dbmdz/bert-base-turkish-cased"
+ENCODER_MODEL = "dbmdz/electra-base-turkish-cased"
 MAX_LEN = 64
-BATCH_SIZE = 4
+BATCH_SIZE = 8
 EPOCHS = 10
-LR = 2e-5
+LR = 1e-5
 WEIGHT_DECAY = 0.01
 WARMUP_RATIO = 0.1
-GRAD_ACCUM = 4
+GRAD_ACCUM = 2
 MAX_GRAD_NORM = 1.0
 
 ARC_DIM = 500
@@ -146,11 +146,11 @@ def collate_fn(batch: List[dict]) -> dict:
 
 
 class BiaffineParser(nn.Module):
-    def __init__(self, bert_model: str, num_labels: int, arc_dim: int = ARC_DIM, 
+    def __init__(self, encoder_model: str, num_labels: int, arc_dim: int = ARC_DIM, 
                  label_dim: int = LABEL_DIM, dropout: float = DROPOUT):
         super().__init__()
-        self.bert = AutoModel.from_pretrained(bert_model)
-        hidden = self.bert.config.hidden_size
+        self.encoder = AutoModel.from_pretrained(encoder_model)
+        hidden = self.encoder.config.hidden_size
 
         self.arc_mlp = nn.Sequential(
             nn.Linear(hidden, arc_dim),
@@ -180,9 +180,9 @@ class BiaffineParser(nn.Module):
         return torch.stack(word_hiddens) if word_hiddens else hidden[:num_words]
 
     def forward(self, input_ids, attention_mask, word_ids, num_words):
-        outputs = self.bert(input_ids=input_ids.unsqueeze(0), 
+        outputs = self.encoder(input_ids=input_ids.unsqueeze(0), 
                           attention_mask=attention_mask.unsqueeze(0))
-        hidden = outputs.last_hidden_state[0]  # (seq, 768)
+        hidden = outputs.last_hidden_state[0]  # (seq, 256) for ELECTRA
 
         word_hidden = self.get_word_representations(hidden, word_ids, num_words)
         num_words = word_hidden.size(0)
@@ -345,10 +345,27 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
 
-    tokenizer = AutoTokenizer.from_pretrained(BERT_MODEL)
+    tokenizer = AutoTokenizer.from_pretrained(ENCODER_MODEL)
 
-    train_dataset = DepDataset(str(DATA_DIR / "train.json"), tokenizer)
+    train_base = DepDataset(str(DATA_DIR / "train.json"), tokenizer)
     dev_dataset = DepDataset(str(DATA_DIR / "dev.json"), tokenizer)
+
+    # Augmented data from rule-based morph analyzer (correct analyses)
+    augment_path = DATA_DIR / "augment_train.json"
+    if augment_path.exists():
+        aug_dataset = DepDataset(str(augment_path), tokenizer)
+        train_dataset = torch.utils.data.ConcatDataset([train_base, aug_dataset])
+        print(f"Train base: {len(train_base)} + augment: {len(aug_dataset)} = {len(train_dataset)}")
+    else:
+        train_dataset = train_base
+        print(f"Train: {len(train_dataset)} (no augmented data)")
+
+    # Synthetic data for known error patterns
+    synthetic_path = DATA_DIR / "synthetic.json"
+    if synthetic_path.exists():
+        syn_dataset = DepDataset(str(synthetic_path), tokenizer)
+        train_dataset = torch.utils.data.ConcatDataset([train_dataset, syn_dataset])
+        print(f"Train + synthetic: {len(train_dataset)}")
 
     train_loader = DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=True, 
@@ -361,32 +378,20 @@ def main():
 
     print(f"Train: {len(train_dataset)}, Dev: {len(dev_dataset)}")
 
-    model = BiaffineParser(BERT_MODEL, NUM_LABELS).to(device)
+    model = BiaffineParser(ENCODER_MODEL, NUM_LABELS).to(device)
     start_epoch = 0
 
     if args.checkpoint:
         print(f"Loading checkpoint: {args.checkpoint}")
         checkpoint = torch.load(args.checkpoint, map_location=device)
         
-        # Handle both old (BERT + arc_head/rel_head) and new ({"model": ...}) formats
         if "model" in checkpoint:
             model.load_state_dict(checkpoint["model"])
             start_epoch = checkpoint.get("epoch", 0)
-        elif "bert.embeddings.word_embeddings.weight" in checkpoint:
-            # Old format: full BERT state dict
-            bert_state = {k: v for k, v in checkpoint.items() if k.startswith("bert.")}
-            model.bert.load_state_dict(bert_state, strict=False)
-            
-            if "arc_head.weight" in checkpoint:
-                model.arc_mlp[0].weight.data = checkpoint["arc_head.weight"][:500, :768].to(device)
-                model.arc_mlp[0].bias.data = checkpoint["arc_head.bias"][:500].to(device)
-                model.arc_biaffine.weight.data = torch.zeros(1, ARC_DIM, ARC_DIM, device=device)
-                model.arc_biaffine.bias.data = torch.zeros(1, device=device)
-            start_epoch = 0
-            print("Loaded old-format checkpoint")
+            print(f"Resumed from epoch {start_epoch}")
         else:
-            print("Unknown checkpoint format")
-            start_epoch = 0
+            model.load_state_dict(checkpoint)
+            print("Loaded ELECTRA checkpoint")
 
     if args.eval:
         metrics = evaluate(model, dev_loader, device)

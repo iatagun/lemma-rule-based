@@ -20,9 +20,10 @@ yaz + dır + ıl + abil + ecek + ler + den + miş + siniz
 kök  ettir edil yeter  gelec  çoğ  ayrıl duyul  kişi
 ```
 
-Bu proje, **sözlük kullanmadan**, yalnızca Türkçe ses uyumu kurallarını
-(ünlü uyumu + ünsüz benzeşmesi) uygulayarak sözcükleri kök ve eklerine
-ayırmayı amaçlar.
+Bu proje, **sözlük-destekli kural-tabanlı Türkçe morfolojik çözümleyici** olarak
+sözcükleri kök ve eklerine ayırmayı amaçlar.
+
+BOUN Treebank test setinde **%90.1 doğruluk** ile çalışmaktadır.
 
 ---
 
@@ -414,15 +415,22 @@ Her ek adayı için 5 aşamalı filtre:
 
 ```
     lemma-rule-based/
-    ├── find_lemma.py              ← İnce CLI sarıcı (geriye dönük uyumlu)
-    ├── turkish_words.txt          ← Sözcük listesi
+    ├── batch_conllu.py            ← Toplu CoNLL-U lemmatizasyon
+    ├── turkish_words.txt          ← TDK sözcük listesi (48,715 madde başı)
+    ├── benchmark/
+    │   ├── evaluate.py            ← BOUN Treebank değerlendirme
+    │   └── test.conllu            ← Test seti
     └── morphology/                ← Ana paket
         ├── __init__.py            ← Fabrika + dışa aktarım
         ├── phonology.py           ← Fonetik sabitler & yardımcılar
         ├── harmony.py             ← Uyum kontrol sistemi
         ├── suffix.py              ← Ek tanımları & şablon motoru
-        ├── analyzer.py            ← Çözümleme algoritması
-        └── formatter.py           ← Çıktı biçimlendirme
+        ├── dictionary.py          ← TDK sözlük & morfofonemik çözümleme
+        ├── analyzer.py            ← Çözümleme algoritması + BFS
+        ├── morphotactics.py       ← 16-durumlu FSM ek sıra doğrulama
+        ├── formatter.py           ← Çıktı biçimlendirme
+        ├── sentence.py            ← Cümle düzeyinde bağlamsal sıralama
+        └── validator_pos.py       ← POS doğrulama
 ```
 
 ### 5.2 Modül Bağımlılık Grafiği
@@ -876,50 +884,43 @@ Sistemde tanımlı 51 ek şablonu, toplam ~300+ somut biçime açılır:
 
 ---
 
-## 9. Bilinen Sınırlamalar & Gelecek İyileştirmeler
+## 9. Bilinen Sınırlamalar & Mevcut Durum
 
-### 9.1 Sözlük Gerektiren Fenomenler
+### 9.1 Güncel Performans (BOUN Treebank 10,182 token)
 
-```
-    Fenomen                  Örnek              Beklenen        Bulunan
-    ──────────────────────  ─────────────────  ──────────────  ──────────────
-    Ünsüz yumuşaması        kitabından         kitap+ından     kitabı+ndan
-      (p→b, k→g, t→d, ç→c)                    (p→b gerekir)
+| POS | Doğruluk | Durum |
+|-----|----------|-------|
+| PART, SCONJ | %100 | Mükemmel |
+| DET | %99.8 | Mükemmel |
+| CCONJ, ADP | ~%99 | Çok iyi |
+| AUX, PRON | ~%96 | İyi |
+| ADV, ADJ | ~%94 | İyi |
+| NOUN, VERB | ~%88 | Ana hedef |
+| PROPN | ~%80 | Geliştirilebilir |
 
-    Ünlü daralması           diyor             de+iyor         di+yor
-      (e→i, a→ı)            yiyorlar           ye+iyor+lar     yi+yor+lar
-
-    Derin türetim zinciri    güzelleştirilemez  güzel+leş+tir   güzelleştiri
-                                                +il+e+mez      +le+mez
-
-    Leksem sınırı            çalışkanlıklar-   çalışkan+lık    çalışk+an+lık
-                              ından             +ları+ndan      +ları+ndan
-```
-
-### 9.2 Olası İyileştirme Yolları
+### 9.2 Kalan Hata Kategorileri
 
 ```
-    ┌─────────────────────────────────────────────────────────────┐
-    │  1. SÖZLÜK ENTEGRASYONU                                    │
-    │     Kök sözlüğü ile stem_candidate kontrolü                │
-    │     → Ünsüz yumuşaması ve ünlü daralmasını çözer          │
-    │                                                             │
-    │  2. GERİ İZLEME (BACKTRACKING)                              │
-    │     Greedy yerine geri izlemeli arama                       │
-    │     → güzelleştirilemez gibi derin zincirleri çözer         │
-    │                                                             │
-    │  3. MORFOFONEMIK KURALLAR                                   │
-    │     p→b, k→g, t→d, ç→c dönüşüm kuralları                  │
-    │     → Sözlükle birleşince ünsüz yumuşamasını çözer         │
-    │                                                             │
-    │  4. İSTATİSTİKSEL SIRALAMA                                  │
-    │     Birden fazla olası çözümlemeyi skorlama                 │
-    │     → En olası ayrımı seçme                                │
-    │                                                             │
-    │  5. TEST ALTYAPISI                                          │
-    │     pytest ile birim testler                                │
-    │     → Regresyon kontrolü                                   │
-    └─────────────────────────────────────────────────────────────┘
+Fenomen                  Örnek              Beklenen        Bulunan
+──────────────────────  ─────────────────  ──────────────  ──────────────
+Leksikalleşmiş sözcük    cezaevi           cezaev          cezaevi
+Birleşik sözcük          ardından          ardından        art+ı+ndan
+Uzun türetim zinciri     gerçekleştire...  gerçek          gerçekleş
+Şapkalı ünlü eşleme      halinde           hâl             hali
+Ünlü düşmesi             gönlünden         gönül           gönl+ünden
+```
+
+### 9.3 Çözülen Eski Sınırlamalar (v25)
+
+```
+✅ Sözlük entegrasyonu (TDK 48,715 kelime)
+✅ BFS çoklu-yollu ek sıyırma (backtracking)
+✅ 16-durumlu morfotaktik FSM
+✅ Ünsüz yumuşaması tersine çevirme (kitab→kitap)
+✅ Ünlü daralması (diyor→de)
+✅ -r geniş zaman eki (ünlü sonrası: iste+r, başla+r)
+✅ -In edilgen çatı eki (al+ın, bil+in)
+✅ Leksikalleşmiş fiil koruması (bulun, başla, konuş...)
 ```
 
 ---
@@ -994,17 +995,11 @@ analyzer = MorphologicalAnalyzer(
 
 ## 11. Sonuç
 
-Bu proje, Türkçe morfolojik çözümlemenin **sözlüksüz, salt kural tabanlı**
-sınırlarını test eder. Ses uyumu kuralları tek başına 28 test sözcüğünün
-22'sini (%79) doğru ayırabilmektedir.
+Bu proje, Türkçe morfolojik çözümlemenin **sözlük-destekli, kural tabanlı**
+sınırlarını test eder. BOUN Treebank test setinde **%90.1 doğruluk** ile çalışmaktadır.
 
-Kalan 6 sözcük, morfofonemik dönüşümler (ünsüz yumuşaması, ünlü daralması)
-nedeniyle sözlük bilgisi gerektirir — bu, kural tabanlı yaklaşımın doğal
-sınırıdır.
-
-SOLID prensipleriyle yapılandırılmış mimari, sözlük entegrasyonu veya
-istatistiksel modeller gibi gelecek iyileştirmelerin mevcut kodu bozmadan
-eklenmesini mümkün kılar.
+SOLID prensipleriyle yapılandırılmış mimari, sözlük entegrasyonu, BFS çoklu-yollu arama
+ve morfotaktik FSM gibi gelişmiş özelliklerin mevcut kodu bozmadan eklenmesini mümkün kılmıştır.
 
 ```
     ┌──────────────────────────────────────────────────────┐

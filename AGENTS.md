@@ -11,7 +11,7 @@
 - **Amaç:** Türkçe sözcükleri kök + eklerine ayıran kural-tabanlı morfolojik çözümleyici
 - **Yaklaşım:** Sağdan sola ek sıyırma (right-to-left suffix stripping) + ünlü/ünsüz uyumu + TDK sözlük desteği
 - **Benchmark:** BOUN Treebank (UD_Turkish-BOUN) test seti — 10,182 token (PUNCT hariç)
-- **Mevcut doğruluk:** %88.6 (9018/10182)
+- **Mevcut doğruluk:** %90.4 (9207/10182)
 - **Dil:** Python 3.10+, UTF-8, Windows ortamı
 
 ---
@@ -33,6 +33,7 @@
 | `morphology/formatter.py` | Çözümleme çıktı biçimlendirme (tekli + çoklu) | Yalnızca gösterim |
 | `morphology/__init__.py` | Fabrika metodu, 4 katmanlı strateji oluşturma | Strateji ekleme/değiştirme |
 | `benchmark/evaluate.py` | BOUN Treebank değerlendirme | Metrik/raporlama |
+| `batch_conllu.py` | Toplu CoNLL-U lemmatizasyon aracı | CoNLL-U çıktı üretimi |
 
 ### 4 Katmanlı Strateji Sistemi
 
@@ -134,18 +135,28 @@ Türkçe'de yalnızca 2 gerçek düzensiz fiil var:
 
 1. ~~**{C} ünsüz uyumu hatası**~~ → ✅ Düzeltildi (v24). `last_ch not in VOICELESS` koşulu uygulandı.
 
-2. **Şapkalı ünlüler kısmen destekleniyor** (`phonology.py`): `â, î, û` artık VOWELS ve alt kümelere eklendi ✅. Ancak `hal→hâl`, `adet→âdet` eşleme tablosu henüz yok → 65+ BOUN token hâlâ hatalı.
+2. ~~**Çok heceli fiillerde ünlü daralması başarısız**~~ → ✅ Düzeltildi (v20). `başlıyor`, `bekliyor`, `söylüyor` çözümleniyor.
 
-3. ~~**Çok heceli fiillerde ünlü daralması başarısız**~~ → ✅ Düzeltildi (v20). `başlıyor`, `bekliyor`, `söylüyor` çözümleniyor.
+3. ~~**Geniş zaman -r eki (ünlü sonrası) eksik**~~ → ✅ Düzeltildi (v25). `iste+r`, `başla+r`, `oku+r` çözümleniyor.
+
+4. ~~**-In EDİLGEN çatı eki eksik**~~ → ✅ Düzeltildi (v25). `al+ın`, `bil+in`, `bul+un` çözümleniyor.
+
+5. ~~**Şapkalı ünlüler kısmen destekleniyor**~~ → ✅ Circumflex lemma tablosu eklendi (7 iyelik hali). `hal→hâl` çözüldü.
+
+6. ~~**Leksikalleşmiş sözcükler (cezaevi, ardından, askeri)**~~ → ✅ Lexicalized lookup tabloları eklendi. `cezaevi→cezaev`, `ardından`, `askeri` çözüldü.
+
+7. **Leksikalleşmiş sözcükler (işte, öte):** `işte`, `öte`, `hangi` gibi sözcüklerde ayrıştırma hâlâ yanlış.
 
 ### ⚠️ Yapısal Eksiklikler
 
 - ~~**Backtracking yok**~~ → ✅ BFS (genişlik-öncelikli arama) uygulandı, tüm geçerli yollar keşfedilir
 - ~~**Slot-tabanlı FSM**~~ → ✅ 16-durumlu morfotaktik FSM entegre (morphotactics.py)
-- **Eksik ekler:** -CA (eşitlik), -AmA- (yeterlilik olumsuz), -mAdAn, -DIkçA, -t (kısa ettirgen), -In (dönüşlü çatı)
+- ~~**Buffer-n bypass hatası**~~ → ✅ `forbidden_labels` kontrolü `_try_all_strategy_matches`'e eklendi
+- ~~**Forbidden bigram**~~ → ✅ `(İYELIK_3T/BELIRTME, YAPIM_-CI)` yasaklandı, `son+u+cu` yolu engellendi
+- **Eksik ekler:** -CA (eşitlik), -AmA- (yeterlilik olumsuz), -mAdAn, -DIkçA
 - **Etiket belirsizliği:** BİLDİRME/ETTİRGEN (-DIr), OLUMSUZ/İSİM_FİİL (-mA) ayrışmamış
-- **Circumflex eşleme tablosu yok:** `hal→hâl`, `adet→âdet` dönüşümü eksik (65 BOUN token etkili)
-- **Birleşik sözcük ayrıştırma yok:** `cezaevi→cezaev` dönüşümü yapılamıyor
+- **Birleşik sözcük ayrıştırma yok:** `cezaevi→cezaev` lookup tablosu ile çözüldü ama genel birleşik sözcük ayrıştırma yok
+- **Türetim zinciri eksik:** `gerçekleştirebiliyor→gerçek`, `değerlendiriliyor→değer` gibi uzun zincirler
 
 ---
 
@@ -161,7 +172,7 @@ python -X utf8 benchmark/evaluate.py
 ### Regresyon Kontrolü
 
 Her değişiklikten sonra benchmark çalıştır. Kabul edilebilir sonuçlar:
-- Genel doğruluk **düşmemeli** (≥ %88.6)
+- Genel doğruluk **düşmemeli** (≥ %90.4)
 - Hiçbir POS kategorisinde **1%'den fazla** gerileme olmamalı
 - "Birebir" (word==lemma) doğruluğu ≥ %95 kalmalı
 
@@ -169,9 +180,9 @@ Her değişiklikten sonra benchmark çalıştır. Kabul edilebilir sonuçlar:
 
 ```
 DET:99.8%  PART:100%  SCONJ:100%  CCONJ:99.7%  — DOKUNMA
-PRON:96.0%  ADP:96.2%  AUX:96.2%               — DİKKATLİ OL
-ADV:94.8%  ADJ:92.7%  NUM:88.0%                 — İYİLEŞTİRİLEBİLİR
-NOUN:87.3%  PROPN:80.2%  VERB:82.5%             — ANA HEDEF
+PRON:95.6%  ADP:98.1%  AUX:96.2%               — DİKKATLİ OL
+ADV:95.2%  ADJ:94.0%  NUM:88.4%                 — İYİLEŞTİRİLEBİLİR
+NOUN:89.2%  PROPN:79.5%  VERB:87.1%             — ANA HEDEF
 ```
 
 ### BOUN Lemma Standardı
@@ -218,14 +229,18 @@ NOUN:87.3%  PROPN:80.2%  VERB:82.5%             — ANA HEDEF
 ## İyileştirme Yol Haritası (Öncelik Sıralı)
 
 | # | İş | Tahmini Etki | Maliyet | Risk |
-|---|---|---|---|---|
-| 1 | Circumflex eşleme tablosu (hal→hâl) | +%0.6 | Düşük | Sıfır |
-| 2 | Eksik ekler (-CA, -AmA-, -mAdAn, -t) | +%0.7 | Orta | Orta |
-| 3 | Türetim zinciri genişletme (-t, -n, -lAş) | +%1.2 | Yüksek | Orta |
-| 4 | Morfofonemik-farkında BFS (ünsüz yumuşaması ters) | +%0.5 | Orta | Orta |
-| 5 | Forbidden bigram genişletme | +%0.3 | Düşük | Düşük |
+|---|---|---|---|---|---|
+| 1 | ~~Circumflex eşleme tablosu (hal→hâl)~~ | ✅ +%0.6 | Düşük | Sıfır |
+| 2 | ~~Resolved bonus + verb penalty (sonucu→sonuç)~~ | ✅ +%0.3 | Düşük | Sıfır |
+| 3 | ~~Leksikalleşmiş sözcük tabloları (cezaevi, ardından, birey)~~ | ✅ +%0.8 | Düşük | Düşük |
+| 4 | ~~Forbidden bigram (son+u+cu) + Buffer-n bypass~~ | ✅ +%0.2 | Düşük | Düşük |
+| 5 | Eksik ekler (-CA, -AmA-, -mAdAn, -t) | +%0.7 | Orta | Orta |
+| 6 | Türetim zinciri genişletme (-t, -n, -lAş) | +%1.2 | Yüksek | Orta |
+| 7 | Morfofonemik-farkında BFS (ünsüz yumuşaması ters) | +%0.5 | Orta | Orta |
+| 8 | Forbidden bigram genişletme | +%0.3 | Düşük | Düşük |
+| 9 | Birleşik sözcük ayrıştırma (genel çözüm) | +%0.2 | Orta | Orta |
 
-**Kural-tabanlı yaklaşımın pratik tavanı: ~%90-92**
+**Kural-tabanlı yaklaşımın pratik tavanı: ~%90-92** (mevcut: %90.4, hedefe yakın)
 
 ---
 

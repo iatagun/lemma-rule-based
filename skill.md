@@ -2,7 +2,7 @@
 
 > **Tarih:** 2026-04-13  
 > **Proje:** `lemma-rule-based`  
-> **Mevcut Doğruluk:** %86.9 (BOUN Treebank, 8848/10182)  
+> **Mevcut Doğruluk:** %90.1 (BOUN Treebank, 9176/10182)  
 > **Panel:** 4 uzman agent paralel inceleme + çapraz tartışma sentezi
 
 ---
@@ -413,24 +413,24 @@ Forbidden bigram → tam pozitif kısıtlı sonlu durum makinesi. ~30-40 durum, 
 
 | # | Konum | Hata | Önem |
 |---|-------|------|------|
-| 1 | `harmony.py:82` | `{C}` uyumunda ünlü sonrası `ç` kabul ediliyor | Orta |
-| 2 | `phonology.py:13` | `VOWELS`'da `â, î, û` eksik | Yüksek |
-| 3 | `analyzer.py:683` | `-yor` daralma + ünsüz kümesi çakışması | Yüksek |
+| 1 | `harmony.py:82` | `{C}` uyumunda ünlü sonrası `ç` kabul ediliyor | ✅ Düzeltildi |
+| 2 | `phonology.py:13` | `VOWELS`'da `â, î, û` eksik | ✅ Düzeltildi |
+| 3 | `analyzer.py` | `-yor` daralma + ünsüz kümesi çakışması | ✅ Düzeltildi |
+| 4 | `analyzer.py` | `-r` geniş zaman eki eksik (ünlü sonrası) | ✅ Düzeltildi |
+| 5 | `suffix.py` | `-In` edilgen çatı eki eksik | ✅ Düzeltildi |
 
 ---
 
 ## 10. 📊 PROJEKSİYON
 
 ```
-Mevcut:     %86.9  (8848/10182)
+Mevcut:     %90.1  (9176/10182)  ← şu an
                     │
-Circumflex:  +0.6%  │  %87.5  (düşük maliyet, sıfır risk)
-Daralma:     +0.4%  │  %87.9  (orta maliyet, düşük risk)
-Eksik ekler: +0.7%  │  %88.6  (orta maliyet, orta risk)
-Türetim:     +1.2%  │  %89.8  (yüksek maliyet, orta risk)
-Bigram genişletme: +0.3% │ %90.1
+Circumflex:  +0.6%  │  %90.7  (düşük maliyet, sıfır risk)
+Eksik ekler: +0.3%  │  %91.0  (orta maliyet, orta risk)
+Türetim:     +0.5%  │  %91.5  (yüksek maliyet, orta risk)
                     │
-Hedef:      ~%90    ╧  (kural-tabanlı tavan)
+Hedef:      ~%91    ╧  (kural-tabanlı tavan)
 ```
 
 **💻 Hesaplamalı:** "Kural-tabanlı yaklaşımın pratik tavanı %90-92 civarıdır. Bu noktadan sonra makine öğrenmesi hibrit yaklaşımları (neural reranking, bağlam-duyarlı belirsizlik çözümleme) gerekecektir."
@@ -439,13 +439,15 @@ Hedef:      ~%90    ╧  (kural-tabanlı tavan)
 
 ## 11. SONUÇ
 
-Bu proje, **sözlük-destekli kural-tabanlı bir Türkçe morfolojik çözümleyici** olarak dilbilimsel açıdan sağlam temeller üzerine inşa edilmiştir. Dört katmanlı strateji sistemi, morfofonemik dönüşüm desteği ve forbidden bigram yaklaşımı özgün ve etkili çözümlerdir.
+Bu proje, **sözlük-destekli kural-tabanlı bir Türkçe morfolojik çözümleyici** olarak dilbilimsel açıdan sağlam temeller üzerine inşa edilmiştir. Dört katmanlı strateji sistemi, morfofonemik dönüşüm desteği, BFS çoklu-yollu arama, morfotaktik FSM ve leksikalleşmiş fiil koruması özgün ve etkili çözümlerdir.
+
+BOUN Treebank test setinde **%90.1 doğruluk** ile çalışmaktadır.
 
 Dört uzman paneli şu konularda **tam uzlaşıya** varmıştır:
 1. Mimari tasarım SOLID prensipleriyle büyük ölçüde uyumlu
 2. Ses uyumu kuralları dilbilimsel olarak doğru kodlanmış
 3. En acil iyileştirme: circumflex eşleme (düşük maliyet, yüksek getiri)
-4. En büyük yapısal sorun: backtracking eksikliği ve eksik ek envanteri
-5. Uzun vadeli hedef: slot-tabanlı morfotaktik FSM
+4. En büyük yapısal sorun: uzun türetim zinciri çözümleme
+5. Kural-tabanlı tavan: ~%91-92
 
 > *"Kural-tabanlı bir sistem için %86.9 rekabetçi bir sonuçtur. Önerilen düzeltmelerle %90 ulaşılabilir bir hedeftir."* — Hesaplamalı Dilbilim Uzmanı

@@ -1,0 +1,1541 @@
+[
+  {
+    "words": [
+      "Allah",
+      "Allah",
+      "!"
+    ],
+    "upos": [
+      "PROPN",
+      "PROPN",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "0",
+      "2"
+    ],
+    "deprels": [
+      "compound",
+      "root",
+      "punct"
+    ],
+    "accuracy": 1.0
+  },
+  {
+    "words": [
+      "Bu",
+      "işin",
+      "altından",
+      "kolay",
+      "kolay",
+      "kalkamaz",
+      "."
+    ],
+    "upos": [
+      "DET",
+      "NOUN",
+      "NOUN",
+      "ADJ",
+      "ADJ",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "3",
+      "6",
+      "5",
+      "6",
+      "0",
+      "6"
+    ],
+    "deprels": [
+      "det",
+      "nmod",
+      "obl",
+      "compound",
+      "advmod",
+      "root",
+      "punct"
+    ],
+    "accuracy": 0.833
+  },
+  {
+    "words": [
+      "Bir",
+      "sıkımlık",
+      "canın",
+      "var",
+      "."
+    ],
+    "upos": [
+      "NUM",
+      "ADJ",
+      "NOUN",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "3",
+      "4",
+      "0",
+      "4"
+    ],
+    "deprels": [
+      "nummod",
+      "amod",
+      "nsubj",
+      "root",
+      "punct"
+    ],
+    "accuracy": 1.0
+  },
+  {
+    "words": [
+      "Boyu",
+      "bosu",
+      "yerinde",
+      ",",
+      "yakışıklı",
+      "adam",
+      "."
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "NOUN",
+      "PUNCT",
+      "ADJ",
+      "NOUN",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "3",
+      "6",
+      "3",
+      "6",
+      "0",
+      "6"
+    ],
+    "deprels": [
+      "compound",
+      "nsubj",
+      "amod",
+      "punct",
+      "amod",
+      "root",
+      "punct"
+    ],
+    "accuracy": 0.8
+  },
+  {
+    "words": [
+      "Sen",
+      "gerçek",
+      "hayattan",
+      "bucak",
+      "bucak",
+      "kaçıyorsun",
+      "."
+    ],
+    "upos": [
+      "PRON",
+      "ADJ",
+      "NOUN",
+      "NOUN",
+      "NOUN",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "6",
+      "3",
+      "6",
+      "5",
+      "6",
+      "0",
+      "6"
+    ],
+    "deprels": [
+      "nsubj",
+      "amod",
+      "obl",
+      "compound",
+      "obl",
+      "root",
+      "punct"
+    ],
+    "accuracy": 0.833
+  },
+  {
+    "words": [
+      "Canı",
+      "cana",
+      "ölç",
+      "."
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "3",
+      "0",
+      "3"
+    ],
+    "deprels": [
+      "compound",
+      "compound",
+      "root",
+      "punct"
+    ],
+    "accuracy": 1.0
+  },
+  {
+    "words": [
+      "En",
+      "son",
+      "Bektaş",
+      "Ağa",
+      "çöktü",
+      "diz",
+      "üstü",
+      "."
+    ],
+    "upos": [
+      "ADV",
+      "ADJ",
+      "PROPN",
+      "NOUN",
+      "VERB",
+      "NOUN",
+      "NOUN",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "5",
+      "5",
+      "3",
+      "0",
+      "7",
+      "5",
+      "5"
+    ],
+    "deprels": [
+      "advmod",
+      "advmod",
+      "nsubj",
+      "flat",
+      "root",
+      "compound",
+      "obl",
+      "punct"
+    ],
+    "accuracy": 1.0
+  },
+  {
+    "words": [
+      "Yepyeni",
+      "güzel",
+      "bir",
+      "çeşmeden",
+      "doya",
+      "doya",
+      "su",
+      "içtik",
+      "."
+    ],
+    "upos": [
+      "ADJ",
+      "ADJ",
+      "DET",
+      "NOUN",
+      "VERB",
+      "VERB",
+      "NOUN",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "4",
+      "4",
+      "4",
+      "8",
+      "6",
+      "8",
+      "8",
+      "0",
+      "8"
+    ],
+    "deprels": [
+      "amod",
+      "amod",
+      "det",
+      "obl",
+      "compound",
+      "advcl",
+      "obj",
+      "root",
+      "punct"
+    ],
+    "accuracy": 0.875
+  },
+  {
+    "words": [
+      "Validen",
+      "sert",
+      "bir",
+      "emir",
+      "aldım",
+      "."
+    ],
+    "upos": [
+      "NOUN",
+      "ADJ",
+      "DET",
+      "NOUN",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "5",
+      "4",
+      "4",
+      "5",
+      "0",
+      "5"
+    ],
+    "deprels": [
+      "obl",
+      "amod",
+      "det",
+      "obj",
+      "root",
+      "punct"
+    ],
+    "accuracy": 0.8
+  },
+  {
+    "words": [
+      "Şuna",
+      "bak",
+      ",",
+      "hem",
+      "karıdan",
+      "dayak",
+      "yer",
+      "hem",
+      "de",
+      "erkeklik",
+      "taslar",
+      "."
+    ],
+    "upos": [
+      "PRON",
+      "VERB",
+      "PUNCT",
+      "CCONJ",
+      "NOUN",
+      "NOUN",
+      "NOUN",
+      "CCONJ",
+      "CCONJ",
+      "NOUN",
+      "ADJ",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "7",
+      "2",
+      "7",
+      "7",
+      "7",
+      "0",
+      "11",
+      "11",
+      "11",
+      "7",
+      "11"
+    ],
+    "deprels": [
+      "obl",
+      "parataxis",
+      "punct",
+      "cc",
+      "obl",
+      "compound",
+      "root",
+      "cc",
+      "cc",
+      "compound",
+      "conj",
+      "punct"
+    ],
+    "accuracy": 0.8
+  },
+  {
+    "words": [
+      "Ne",
+      "sen",
+      "gideceksin",
+      "ne",
+      "de",
+      "ben",
+      "."
+    ],
+    "upos": [
+      "CCONJ",
+      "PRON",
+      "VERB",
+      "CCONJ",
+      "CCONJ",
+      "NOUN",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "3",
+      "0",
+      "6",
+      "6",
+      "2",
+      "6"
+    ],
+    "deprels": [
+      "cc",
+      "nsubj",
+      "root",
+      "cc",
+      "cc",
+      "conj",
+      "punct"
+    ],
+    "accuracy": 0.833
+  },
+  {
+    "words": [
+      "Tezek",
+      "dumanında",
+      "göz",
+      "gözü",
+      "görmez",
+      "."
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "NOUN",
+      "NOUN",
+      "ADJ",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "5",
+      "4",
+      "5",
+      "0",
+      "5"
+    ],
+    "deprels": [
+      "nmod",
+      "obl",
+      "compound",
+      "compound",
+      "root",
+      "punct"
+    ],
+    "accuracy": 0.8
+  },
+  {
+    "words": [
+      "Havadan",
+      "sudan",
+      "konuştuk",
+      "bir",
+      "süre",
+      "."
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "VERB",
+      "ADJ",
+      "NOUN",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "3",
+      "0",
+      "5",
+      "3",
+      "3"
+    ],
+    "deprels": [
+      "compound",
+      "obl",
+      "root",
+      "amod",
+      "obl",
+      "punct"
+    ],
+    "accuracy": 0.8
+  },
+  {
+    "words": [
+      "Atatürk'ün",
+      "hayatı",
+      "."
+    ],
+    "upos": [
+      "PROPN",
+      "NOUN",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "0",
+      "2"
+    ],
+    "deprels": [
+      "nmod",
+      "root",
+      "punct"
+    ],
+    "accuracy": 1.0
+  },
+  {
+    "words": [
+      "Tanrı'ya",
+      "inanmak",
+      "."
+    ],
+    "upos": [
+      "PROPN",
+      "NOUN",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "0",
+      "2"
+    ],
+    "deprels": [
+      "obl",
+      "root",
+      "punct"
+    ],
+    "accuracy": 1.0
+  },
+  {
+    "words": [
+      "Bu",
+      "şehri",
+      "imar",
+      "etmek",
+      "yalnız",
+      "sokak",
+      "açmak",
+      ",",
+      "alan",
+      "yapmak",
+      "değildir",
+      "."
+    ],
+    "upos": [
+      "DET",
+      "NOUN",
+      "NOUN",
+      "NOUN",
+      "ADV",
+      "NOUN",
+      "NOUN",
+      "PUNCT",
+      "NOUN",
+      "NOUN",
+      "AUX",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "4",
+      "4",
+      "7",
+      "7",
+      "7",
+      "0",
+      "7",
+      "10",
+      "7",
+      "7",
+      "7"
+    ],
+    "deprels": [
+      "det",
+      "obj",
+      "compound",
+      "csubj",
+      "advmod",
+      "obj",
+      "root",
+      "punct",
+      "obj",
+      "conj",
+      "aux",
+      "punct"
+    ],
+    "accuracy": 0.8
+  },
+  {
+    "words": [
+      "Piyangodan",
+      "yüz",
+      "bin",
+      "lira",
+      "isabet",
+      "etti",
+      "."
+    ],
+    "upos": [
+      "NOUN",
+      "NUM",
+      "NUM",
+      "NOUN",
+      "NOUN",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "6",
+      "3",
+      "4",
+      "6",
+      "6",
+      "0",
+      "6"
+    ],
+    "deprels": [
+      "obl",
+      "compound",
+      "nummod",
+      "nsubj",
+      "compound",
+      "root",
+      "punct"
+    ],
+    "accuracy": 0.833
+  },
+  {
+    "words": [
+      "Hint",
+      "postasını",
+      "getirmek",
+      "iş",
+      "mi",
+      "?"
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "NOUN",
+      "NOUN",
+      "AUX",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "3",
+      "4",
+      "0",
+      "4",
+      "4"
+    ],
+    "deprels": [
+      "nmod",
+      "obj",
+      "xcomp",
+      "root",
+      "aux",
+      "punct"
+    ],
+    "accuracy": 0.8
+  },
+  {
+    "words": [
+      "Basıyorlar",
+      "kalayı",
+      "bize",
+      ",",
+      "değil",
+      "mi",
+      "?"
+    ],
+    "upos": [
+      "VERB",
+      "NOUN",
+      "PRON",
+      "PUNCT",
+      "AUX",
+      "AUX",
+      "PUNCT"
+    ],
+    "heads": [
+      "0",
+      "1",
+      "1",
+      "1",
+      "1",
+      "1",
+      "1"
+    ],
+    "deprels": [
+      "root",
+      "obj",
+      "obl",
+      "punct",
+      "aux",
+      "aux",
+      "punct"
+    ],
+    "accuracy": 0.8
+  },
+  {
+    "words": [
+      "Bir",
+      "gün",
+      "kalbini",
+      "İclal'a",
+      "açtı",
+      "."
+    ],
+    "upos": [
+      "DET",
+      "NOUN",
+      "NOUN",
+      "PROPN",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "5",
+      "5",
+      "5",
+      "0",
+      "5"
+    ],
+    "deprels": [
+      "det",
+      "obl",
+      "obj",
+      "obl",
+      "root",
+      "punct"
+    ],
+    "accuracy": 0.8
+  },
+  {
+    "words": [
+      "Kofti",
+      "ne",
+      "kanundan",
+      "kaçar",
+      "ne",
+      "nizamdan",
+      ";",
+      "kanunu",
+      "da",
+      "nizamı",
+      "da",
+      "kendisine",
+      "uydurur",
+      "."
+    ],
+    "upos": [
+      "NOUN",
+      "CCONJ",
+      "NOUN",
+      "VERB",
+      "CCONJ",
+      "NOUN",
+      "PUNCT",
+      "NOUN",
+      "CCONJ",
+      "NOUN",
+      "CCONJ",
+      "PRON",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "4",
+      "3",
+      "4",
+      "13",
+      "6",
+      "3",
+      "8",
+      "13",
+      "8",
+      "8",
+      "10",
+      "13",
+      "0",
+      "13"
+    ],
+    "deprels": [
+      "nsubj",
+      "cc",
+      "obl",
+      "parataxis",
+      "cc",
+      "conj",
+      "punct",
+      "obj",
+      "advmod",
+      "conj",
+      "advmod",
+      "obl",
+      "root",
+      "punct"
+    ],
+    "accuracy": 0.833
+  },
+  {
+    "words": [
+      "Ben",
+      "de",
+      "aç",
+      "duracak",
+      "değilim",
+      "ya",
+      "!"
+    ],
+    "upos": [
+      "PRON",
+      "CCONJ",
+      "ADJ",
+      "ADJ",
+      "AUX",
+      "INTJ",
+      "PUNCT"
+    ],
+    "heads": [
+      "4",
+      "1",
+      "4",
+      "0",
+      "4",
+      "4",
+      "4"
+    ],
+    "deprels": [
+      "nsubj",
+      "advmod",
+      "advmod",
+      "root",
+      "aux",
+      "discourse",
+      "punct"
+    ],
+    "accuracy": 1.0
+  },
+  {
+    "words": [
+      "Birader",
+      "hafif",
+      "bir",
+      "yükümüz",
+      "var",
+      ",",
+      "Aksaray'a",
+      "götürürsen",
+      "seni",
+      "memnun",
+      "ederiz",
+      "."
+    ],
+    "upos": [
+      "NOUN",
+      "ADJ",
+      "DET",
+      "VERB",
+      "ADJ",
+      "PUNCT",
+      "PROPN",
+      "VERB",
+      "PRON",
+      "ADJ",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "5",
+      "4",
+      "4",
+      "5",
+      "11",
+      "5",
+      "8",
+      "11",
+      "11",
+      "11",
+      "0",
+      "11"
+    ],
+    "deprels": [
+      "vocative",
+      "amod",
+      "det",
+      "nsubj",
+      "parataxis",
+      "punct",
+      "obl",
+      "advcl",
+      "obj",
+      "compound",
+      "root",
+      "punct"
+    ],
+    "accuracy": 0.8
+  },
+  {
+    "words": [
+      "Bir",
+      "değil",
+      ",",
+      "birkaç",
+      "misafiri",
+      "dahi",
+      "ağırlayabiliriz",
+      "."
+    ],
+    "upos": [
+      "DET",
+      "AUX",
+      "PUNCT",
+      "DET",
+      "NOUN",
+      "CCONJ",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "5",
+      "1",
+      "1",
+      "5",
+      "7",
+      "5",
+      "0",
+      "7"
+    ],
+    "deprels": [
+      "det",
+      "aux",
+      "punct",
+      "det",
+      "obj",
+      "case",
+      "root",
+      "punct"
+    ],
+    "accuracy": 0.833
+  },
+  {
+    "words": [
+      "Umduk",
+      ",",
+      "bekledik",
+      ",",
+      "düşündük",
+      "."
+    ],
+    "upos": [
+      "VERB",
+      "PUNCT",
+      "VERB",
+      "PUNCT",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "3",
+      "1",
+      "5",
+      "3",
+      "0",
+      "5"
+    ],
+    "deprels": [
+      "parataxis",
+      "punct",
+      "parataxis",
+      "punct",
+      "root",
+      "punct"
+    ],
+    "accuracy": 1.0
+  },
+  {
+    "words": [
+      "Müsterih",
+      "ol",
+      ",",
+      "artık",
+      "hiç",
+      "korkmayacak",
+      ",",
+      "mesut",
+      "olacaksın",
+      "."
+    ],
+    "upos": [
+      "ADJ",
+      "VERB",
+      "PUNCT",
+      "ADV",
+      "ADV",
+      "VERB",
+      "PUNCT",
+      "ADJ",
+      "NOUN",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "6",
+      "2",
+      "6",
+      "6",
+      "0",
+      "6",
+      "9",
+      "6",
+      "9"
+    ],
+    "deprels": [
+      "advmod",
+      "parataxis",
+      "punct",
+      "advmod",
+      "advmod",
+      "root",
+      "punct",
+      "amod",
+      "conj",
+      "punct"
+    ],
+    "accuracy": 0.857
+  },
+  {
+    "words": [
+      "Ne",
+      "olacak",
+      "efendim",
+      "!"
+    ],
+    "upos": [
+      "ADV",
+      "VERB",
+      "NOUN",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "0",
+      "2",
+      "3"
+    ],
+    "deprels": [
+      "nsubj",
+      "root",
+      "vocative",
+      "punct"
+    ],
+    "accuracy": 1.0
+  },
+  {
+    "words": [
+      "Matmazelin",
+      "saçı",
+      "başı",
+      "birbirine",
+      "karışmıştı",
+      "."
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "NOUN",
+      "PRON",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "5",
+      "2",
+      "5",
+      "0",
+      "5"
+    ],
+    "deprels": [
+      "nmod",
+      "nsubj",
+      "conj",
+      "obl",
+      "root",
+      "punct"
+    ],
+    "accuracy": 0.8
+  },
+  {
+    "words": [
+      "Ne",
+      "hoş",
+      ",",
+      "ey",
+      "güzel",
+      "Tanrı'm",
+      ",",
+      "ne",
+      "hoş",
+      "/",
+      "Maviliklerde",
+      "sefer",
+      "etmek"
+    ],
+    "upos": [
+      "ADV",
+      "ADJ",
+      "PUNCT",
+      "INTJ",
+      "ADJ",
+      "PROPN",
+      "PUNCT",
+      "ADV",
+      "ADJ",
+      "PUNCT",
+      "NOUN",
+      "NOUN",
+      "NOUN"
+    ],
+    "heads": [
+      "2",
+      "9",
+      "2",
+      "6",
+      "6",
+      "9",
+      "6",
+      "9",
+      "0",
+      "9",
+      "13",
+      "13",
+      "9"
+    ],
+    "deprels": [
+      "amod",
+      "parataxis",
+      "punct",
+      "discourse",
+      "amod",
+      "vocative",
+      "punct",
+      "amod",
+      "root",
+      "punct",
+      "obl",
+      "compound",
+      "csubj"
+    ],
+    "accuracy": 0.8
+  },
+  {
+    "words": [
+      "Ülkede",
+      "serbest",
+      "ekonomi",
+      "yok",
+      "mu",
+      "yani",
+      "?"
+    ],
+    "upos": [
+      "NOUN",
+      "ADJ",
+      "NOUN",
+      "NOUN",
+      "AUX",
+      "CCONJ",
+      "PUNCT"
+    ],
+    "heads": [
+      "4",
+      "3",
+      "4",
+      "0",
+      "4",
+      "4",
+      "6"
+    ],
+    "deprels": [
+      "obl",
+      "amod",
+      "nsubj",
+      "root",
+      "aux",
+      "discourse",
+      "punct"
+    ],
+    "accuracy": 0.833
+  },
+  {
+    "words": [
+      "Üstümüze",
+      "ağır",
+      "bir",
+      "mesuliyet",
+      "aldık",
+      "."
+    ],
+    "upos": [
+      "NOUN",
+      "ADJ",
+      "DET",
+      "NOUN",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "5",
+      "4",
+      "4",
+      "5",
+      "0",
+      "5"
+    ],
+    "deprels": [
+      "iobj",
+      "amod",
+      "det",
+      "obj",
+      "root",
+      "punct"
+    ],
+    "accuracy": 0.8
+  },
+  {
+    "words": [
+      "Fakat",
+      "o",
+      "hiç",
+      "oralarda",
+      "değildi",
+      "."
+    ],
+    "upos": [
+      "CCONJ",
+      "PRON",
+      "ADV",
+      "NOUN",
+      "AUX",
+      "PUNCT"
+    ],
+    "heads": [
+      "4",
+      "4",
+      "4",
+      "0",
+      "4",
+      "4"
+    ],
+    "deprels": [
+      "cc",
+      "nsubj",
+      "advmod",
+      "root",
+      "aux",
+      "punct"
+    ],
+    "accuracy": 0.8
+  },
+  {
+    "words": [
+      "Üstüne",
+      "basa",
+      "basa",
+      "olmaz",
+      ",",
+      "dedi",
+      "."
+    ],
+    "upos": [
+      "NOUN",
+      "VERB",
+      "VERB",
+      "VERB",
+      "PUNCT",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "6",
+      "6",
+      "4",
+      "0",
+      "6"
+    ],
+    "deprels": [
+      "obl",
+      "compound",
+      "advcl",
+      "ccomp",
+      "punct",
+      "root",
+      "punct"
+    ],
+    "accuracy": 1.0
+  },
+  {
+    "words": [
+      "Yavrum",
+      "!"
+    ],
+    "upos": [
+      "NOUN",
+      "PUNCT"
+    ],
+    "heads": [
+      "0",
+      "1"
+    ],
+    "deprels": [
+      "root",
+      "punct"
+    ],
+    "accuracy": 1.0
+  },
+  {
+    "words": [
+      "Sinemada",
+      "zar",
+      "zor",
+      "bir",
+      "yer",
+      "bulduk",
+      "."
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "ADJ",
+      "NUM",
+      "NOUN",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "6",
+      "3",
+      "6",
+      "5",
+      "6",
+      "0",
+      "6"
+    ],
+    "deprels": [
+      "obl",
+      "compound",
+      "advmod",
+      "nummod",
+      "obj",
+      "root",
+      "punct"
+    ],
+    "accuracy": 0.833
+  },
+  {
+    "words": [
+      "Askerler",
+      "yürüyüşe",
+      "geçti",
+      "."
+    ],
+    "upos": [
+      "NOUN",
+      "NOUN",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "3",
+      "3",
+      "0",
+      "3"
+    ],
+    "deprels": [
+      "nsubj",
+      "obl",
+      "root",
+      "punct"
+    ],
+    "accuracy": 1.0
+  },
+  {
+    "words": [
+      "Tezyinî",
+      "sanatlar",
+      "."
+    ],
+    "upos": [
+      "ADJ",
+      "NOUN",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "0",
+      "2"
+    ],
+    "deprels": [
+      "amod",
+      "root",
+      "punct"
+    ],
+    "accuracy": 1.0
+  },
+  {
+    "words": [
+      "Dün",
+      "komik",
+      "bir",
+      "şey",
+      "oldu"
+    ],
+    "upos": [
+      "NOUN",
+      "ADJ",
+      "DET",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "5",
+      "4",
+      "4",
+      "5",
+      "0"
+    ],
+    "deprels": [
+      "nmod",
+      "amod",
+      "det",
+      "nsubj",
+      "root"
+    ],
+    "accuracy": 0.8
+  },
+  {
+    "words": [
+      "Tarihe",
+      "geçti",
+      "."
+    ],
+    "upos": [
+      "NOUN",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "2",
+      "0",
+      "2"
+    ],
+    "deprels": [
+      "obl",
+      "root",
+      "punct"
+    ],
+    "accuracy": 1.0
+  },
+  {
+    "words": [
+      "Bu",
+      "iş",
+      "olmaz",
+      "bana",
+      "kalsa"
+    ],
+    "upos": [
+      "DET",
+      "NOUN",
+      "VERB",
+      "NOUN",
+      "VERB"
+    ],
+    "heads": [
+      "2",
+      "3",
+      "0",
+      "5",
+      "3"
+    ],
+    "deprels": [
+      "det",
+      "nsubj",
+      "root",
+      "obl",
+      "advcl"
+    ],
+    "accuracy": 0.8
+  },
+  {
+    "words": [
+      "Buraya",
+      "bu",
+      "muhabbet",
+      "soğuk",
+      "kaçtı",
+      "."
+    ],
+    "upos": [
+      "NOUN",
+      "DET",
+      "NOUN",
+      "ADJ",
+      "VERB",
+      "PUNCT"
+    ],
+    "heads": [
+      "5",
+      "3",
+      "5",
+      "5",
+      "0",
+      "5"
+    ],
+    "deprels": [
+      "obl",
+      "det",
+      "nsubj",
+      "advmod",
+      "root",
+      "punct"
+    ],
+    "accuracy": 1.0
+  }
+]

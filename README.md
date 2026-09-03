@@ -1,6 +1,6 @@
 # Türkçe Kural Tabanlı Morfolojik Çözümleyici ve Bağımlılık Ayrıştırıcı
 
-Ünlü uyumu kurallarına dayalı morfolojik çözümleyici, cümle analizi ve kural tabanlı sözdizimsel bağımlılık ayrıştırıcı.
+%90.4 doğrulukta kural tabanlı morfolojik çözümleyici + ELECTRA+Biaffine nötr bağımlılık ayrıştırıcı.
 
 ```
 Sözcük : bölüşülmüştür
@@ -37,6 +37,8 @@ Sistem bu sezgiyi algoritmaya çevirir:
 5. Cümle düzeyinde morfolojik belirsizliği çöz (13 yeniden sıralama kuralı)
 6. Morfolojik etiketleri kullanarak sözdizimsel bağımlılık ağacı oluştur (21 kural)
 
+Doğruluk paylaştırma (accuracy distillation) için doğru kural-tabanlı çözümlemeler + sentetik düzeltme verisiyle **ELECTRA+Biaffine** nötr bağımlılık ayrıştırıcısı eğitilmektedir.
+
 ## Özellikler
 
 ### Morfolojik Çözümleme
@@ -56,7 +58,7 @@ Sistem bu sezgiyi algoritmaya çevirir:
 - **13 yeniden sıralama kuralı** ile morfolojik belirsizlik çözümü
 - **Bağlam duyarlı** çözümleme: önceki/sonraki sözcüğe göre en uygun ayrıştırma
 
-### Sözdizimsel Bağımlılık Ayrıştırma (Dependency Parsing)
+### Kural-Tabanlı Sözdizimsel Bağımlılık Ayrıştırma
 - **21 SOLID kural** ile Universal Dependencies (UD) uyumlu bağımlılık ağacı
 - **UPOS çıkarımı**: morfolojik etiketlerden otomatik POS tespiti
 - **Hal eki tabanlı görev atama**: BELIRTME→obj, YÖNELME/BULUNMA/AYRILMA→obl
@@ -67,6 +69,13 @@ Sistem bu sezgiyi algoritmaya çevirir:
 - **Son-işlem**: obj limiter (yüklem başına max 1 obj) + root-swap (UD ilk-eşgüdüm kuralı)
 - **CoNLL-U çıktı**: standart format desteği
 - **ASCII ağaç görselleştirme**
+
+### ELECTRA+Biaffine Nötr Bağımlılık Ayrıştırma
+- **Encoder:** `dbmdz/electra-base-turkish-cased` (256-dim)
+- **Mimari:** Dozat & Manning (2017) Deep Biaffine
+- **MLP:** Arc=500, Label=100
+- **Eğitim verisi:** Kenet CoNLL-U (13,842 cümle) + doğru kural-tabanlı çözümlemeler + sentetik düzeltme
+- **Hedef:** ~%88-92 UAS
 
 ## Kurulum
 
@@ -365,9 +374,19 @@ lemma-rule-based/
 │   ├── test.conllu            # Test kümesi (979 cümle, 10.182 token)
 │   └── dev.conllu             # Geliştirme kümesi
 ├── tests/                     # Birim testleri
+├── train_dep_bert.py          # ELECTRA+Biaffine eğitim scripti
+├── prepare_morph_data.py      # Kural-tabanlı çözüm → doğruluk paylaştırma
+├── generate_synthetic.py      # Sentetik düzeltme verisi üretimi
+├── dep_data/
+│   └── bert/
+│       ├── train.json         # Kenet eğitim (13,842 cümle)
+│       ├── dev.json           # Kenet doğrulama (2,553 cümle)
+│       └── test.json          # Kenet test (2,562 cümle)
 ├── ARCHITECTURE.md            # Detaylı mimari dokümantasyonu
 ├── AGENTS.md                  # Copilot talimat dosyası
-└── skill.md                   # 4 uzman dilbilimci panel raporu
+├── skill.md                   # 4 uzman dilbilimci panel raporu
+├── .skills/
+│   └── 07_bert_dep_parsing.md # ELECTRA+Biaffine dokümantasyonu
 ```
 
 ### Modül Sorumlulukları
@@ -426,16 +445,16 @@ lemma-rule-based/
 
 | Metrik | Sonuç |
 |--------|-------|
-| **Genel doğruluk** | **%89.8** (8857/10182) |
+| **Genel doğruluk** | **%90.4** (9207/10182) |
 | DET | %99.8 |
-| PRON | %96.6 |
-| ADP | %96.2 |
+| PRON | %95.6 |
+| ADP | %98.1 |
 | AUX | %96.2 |
-| ADV | %94.6 |
-| ADJ | %91.5 |
-| NOUN | %86.2 |
-| PROPN | %80.5 |
-| VERB | %77.4 |
+| ADV | %95.2 |
+| ADJ | %94.0 |
+| NOUN | %89.2 |
+| PROPN | %79.5 |
+| VERB | %87.1 |
 
 ### Sözdizimsel Bağımlılık (Dependency Parsing) — v15.1
 
@@ -465,11 +484,13 @@ lemma-rule-based/
 
 **Sürüm ilerlemesi:**
 
-| Metrik | v1 | v7 | v10 | v14 | **v15.1** |
-|--------|----|----|-----|-----|-----------|
-| UAS | %34.7 | %42.3 | %45.3 | %46.5 | **%47.0** |
-| LAS | %22.1 | %31.2 | %35.0 | %36.2 | **%37.1** |
-| UPOS | %75.1 | %80.9 | %81.6 | %82.2 | **%82.2** |
+| Metrik | v1 | v7 | v10 | v14 | v15.1 |
+|--------|----|----|-----|-----|-------|
+| UAS | %34.7 | %42.3 | %45.3 | %46.5 | %47.0 |
+| LAS | %22.1 | %31.2 | %35.0 | %36.2 | %37.1 |
+| UPOS | %75.1 | %80.9 | %81.6 | %82.2 | %82.2 |
+
+> **Not:** Kural-tabanlı dependency parser %47 UAS ile sınırlıdır. ELECTRA+Biaffine nötr model ile hem morfoloji (doğruluk paylaştırma) hem dependency parsing için çok daha yüksek doğruluk hedeflenmektedir.
 
 ```bash
 # Benchmark çalıştırma
@@ -586,11 +607,11 @@ Sert ünsüzlerden (ç, f, h, k, p, s, ş, t) sonra d→t, c→ç dönüşümü 
 ## Bilinen Sınırlamalar
 
 ### Morfoloji
-- **Leksikalleşmiş türetimler**: `çalışmak` (çal+ış değil, bağımsız sözcük) — istisna listesiyle yönetilir ama kapsamlı değildir
-- **Dönüşlü fiiller**: `bulunmak`, `düşünmek` gibi -ın/-in/-un/-ün türetimleri henüz desteklenmez (yüksek yanlış-pozitif riski)
-- **Sirkumfleks**: â, î, û harfleri ünlü gruplarında tanımlı değil
+- **Leksikalleşmiş türetimler**: `çalışmak` (çal+ış değil, bağımsız sözcük) — lookup tablolarıyla yönetilir ama kapsamlı değil
+- **Bağlam bağımlılığı**: `alınır→al` (edilgen) vs `alınır→alın` (isim) gibi belirsizlikler cümle bağlamı gerektirir
 - **Bazı eksik ekler**: -CA (eşitlik), -AmA- (yetersizlik), -mAdAn (zarf-fiil), -DIkçA
-- **Bağlam bağımlılığı**: Aynı sözcüğün farklı bağlamlarda farklı çözümlemeleri olabilir (çoklu çözümleme ile kısmen desteklenir)
+- **Türetim zinciri**: `gerçekleştirebiliyor→gerçek` gibi uzun türetim zincirleri desteklenmez
+- **Sözcüksel belirsizlik**: `işte`, `öte`, `hangi` gibi sözcükler hâlâ hatalı ayrıştırılır
 
 ### Bağımlılık Ayrıştırma
 - **İYELİK_3T/BELIRTME belirsizliği**: Türkçede 3. tekil iyelik eki (-ı/-i) ile belirtme hali eki (-ı/-i) biçimsel olarak aynıdır → nsubj↔obj karışması çözülemez
@@ -599,6 +620,7 @@ Sert ünsüzlerden (ç, f, h, k, p, s, ş, t) sonra d→t, c→ç dönüşümü 
 - **İç içe tamlama zinciri**: "Türkiye'nin en büyük şehrinin nüfusu" — zincir uzadıkça doğruluk düşer
 - **Compound tespiti**: Birleşik isim ayırma henüz %0 doğrulukta (216 altın token)
 - **Morfoloji hata yayılımı**: Yanlış morfolojik çözümleme → yanlış UPOS → yanlış bağımlılık
+- **Tavan sınırı**: Kural-tabanlı yaklaşımda %47 UAS'ta sınırlı — ELECTRA+Biaffine nötr model ile ~%90 UAS hedefleniyor
 
 ## İlham
 

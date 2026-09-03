@@ -163,10 +163,13 @@ DEFAULT_SUFFIX_DEFINITIONS: list[SuffixDefinition] = [
     _D("s{A}", "DİLEK_ŞART"),
     _D("m{A}", "OLUMSUZ/İSİM_FİİL"),
     _D("{I}l", "EDİLGEN", min_stem_length=3),
+    _D("{I}n", "EDİLGEN", min_stem_length=3),
     _D("{I}ş", "İŞTEŞ", min_stem_length=3),
     _D("{A}n", "SIFAT_FİİL", min_stem_length=3),
     _D("{I}r", "GENİŞ_ZAMAN", min_stem_length=3),
     _D("{A}r", "GENİŞ_ZAMAN", min_stem_length=3),
+    # Ünlüyle biten köklerde geniş zaman: iste+r, başla+r, oku+r
+    _D("r", "GENİŞ_ZAMAN", min_stem_length=4),
     _D("{I}z", "KİŞİ_1Ç", min_stem_length=3),
     _D("{I}p", "ZARF_FİİL_-Ip"),
     _D("ken", "ZARF_FİİL_-ken", harmony_exempt=True),

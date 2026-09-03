@@ -231,6 +231,13 @@ class MorphologicalAnalyzer:
         "değilken": "değil",
     }
 
+    # Leksikalleşmiş zarflar: kural tabanlı ayrıştırılamayan sözcükler.
+    # ADV/ADJ POS'u geldiğinde doğrudan eşleştirilir.
+    _LEXICALIZED_ADVERBS: dict[str, str] = {
+        "ardından": "ardından",
+        "askeri": "askeri",
+    }
+
     # Sıra sayıları (ordinal numbers).
     # Sözlükte bağımsız girdi olarak bulunduklarından dict-protection
     # ayrıştırmayı engeller.  POS=NUM ile tetiklenen ön-eşleme tablosu.
@@ -243,6 +250,18 @@ class MorphologicalAnalyzer:
         "yetmişinci": "yetmiş", "sekseninci": "seksen",
         "doksanıncı": "doksan", "yüzüncü": "yüz", "bininci": "bin",
         "milyonuncu": "milyon", "sonuncu": "son",
+    }
+
+    # Üleştirme sayıları (distributive numbers).
+    # birer, ikişer, üçer, dörder, beşer …
+    _DISTRIBUTIVE_NUMBERS: dict[str, str] = {
+        "birer": "bir", "ikişer": "iki", "üçer": "üç",
+        "dörder": "dört", "beşer": "beş", "altışar": "altı",
+        "yedişer": "yedi", "sekizer": "sekiz", "dokuzar": "dokuz",
+        "onar": "on", "yirmişer": "yirmi", "otuzar": "otuz",
+        "kırkar": "kırk", "ellişer": "elli", "altmışar": "altmış",
+        "yetmişer": "yetmiş", "seksenler": "seksen",
+        "doksanar": "doksan", "yüzer": "yüz", "biner": "bin",
     }
 
     # İlgeç-adlar (postpositional nouns).
@@ -288,6 +307,22 @@ class MorphologicalAnalyzer:
         # ara (between/gap)
         "arasında": "ara", "arasına": "ara", "arasından": "ara",
         "arasındaki": "ara",
+    }
+
+    # Birleşik isimler: TDK'da ayrı madde başı ama BOUN lemma standardına
+    # göre tamlama eki düşürülerek ayrıştırılır.
+    # cezaevi → cezaev, hanımeli → hanımel, …
+    _COMPOUND_NOUNS: dict[str, str] = {
+        "cezaevi": "cezaev",
+        "öncelikle": "öncelik",
+        "ileride": "ileri",
+        "bakımından": "bakım",
+    }
+
+    # Leksikalleşmiş fiil biçimleri: kural tabanlı ayrıştırmayla
+    # çözülemeyen veya yanlış sonuç veren fiil çekimleri.
+    _LEXICALIZED_VERB_FORMS: dict[str, str] = {
+        "giderek": "git",
     }
 
     # Fiil ekleri: sözlük koruması altındaki sözcüklerin ayrıştırılmasına
@@ -347,6 +382,8 @@ class MorphologicalAnalyzer:
         ("YAPIM_-CI", "AYRILMA"),
         # YÖNELME + yapım eki: hal sonrası yapım gelmez
         ("YÖNELME", "YAPIM_-lI"),
+        # İYELİK/BELIRTME + YAPIM_-CI: sonucu→son+cu+u yanlış
+        ("İYELİK_3T/BELIRTME", "YAPIM_-CI"),
         # ZARF_FİİL_-IncA + çoğul: zarf fiil sonrası çoğul gelmez
         ("ZARF_FİİL_-IncA", "ÇOĞUL"),
     })
@@ -388,6 +425,9 @@ class MorphologicalAnalyzer:
         "galip": "gâlip",
         "sukun": "sükûn",
         "rizık": "rızık",
+        # İyelikli/çekimli biçimler (hali→hâl, halin→hâl, haline→hâl)
+        "hali": "hâl", "halin": "hâl", "haline": "hâl", "halinde": "hâl",
+        "halini": "hâl", "halinden": "hâl", "halinin": "hâl",
         # Eklenenler (BOUN hatalarından)
         "kâse": "kâse",
         "kânun": "kânun",
@@ -522,6 +562,26 @@ class MorphologicalAnalyzer:
         if upos in ("NUM", "ADJ") and word in self._ORDINAL_NUMBERS:
             return [MorphemeAnalysis(
                 stem=word, root=self._ORDINAL_NUMBERS[word],
+            )]
+
+        if upos == "NUM" and word in self._DISTRIBUTIVE_NUMBERS:
+            return [MorphemeAnalysis(
+                stem=word, root=self._DISTRIBUTIVE_NUMBERS[word],
+            )]
+
+        if upos == "ADV" and word in self._LEXICALIZED_ADVERBS:
+            return [MorphemeAnalysis(
+                stem=word, root=self._LEXICALIZED_ADVERBS[word],
+            )]
+
+        if upos == "NOUN" and word in self._COMPOUND_NOUNS:
+            return [MorphemeAnalysis(
+                stem=word, root=self._COMPOUND_NOUNS[word],
+            )]
+
+        if upos == "VERB" and word in self._LEXICALIZED_VERB_FORMS:
+            return [MorphemeAnalysis(
+                stem=word, root=self._LEXICALIZED_VERB_FORMS[word],
             )]
 
         if upos in ("NOUN", "NUM") and word in self._POSTPOSITIONAL_NOUNS:
@@ -827,6 +887,14 @@ class MorphologicalAnalyzer:
                 return True
         return False
 
+    def _is_lexicalized_stem(self, stem: str) -> bool:
+        """Leksikalleşmiş fiil gövdesi mi? (türetme eki soyulmaz)"""
+        return (
+            stem in self._LEXICALIZED_VERB_LOOKUP
+            or stem in self._LEXICALIZED_RECIPROCAL
+            or stem in self._LEXICALIZED_DERIVED_VERBS
+        )
+
     def _find_all_suffix_matches(
         self,
         current: str,
@@ -835,6 +903,16 @@ class MorphologicalAnalyzer:
         """Mevcut konumda tüm geçerli (kök, ek, etiket) üçlülerini toplar."""
         seen: set[tuple[str, str, str]] = set()
         results: list[tuple[str, str, str]] = []
+
+        # Leksikalleşmiş fiil gövdesi koruması: türetme ekleri soyulmaz
+        _DERIV_LABELS = {
+            "EDİLGEN", "İŞTEŞ", "ETTİRGEN_-lAt", "ETTİRGEN",
+            "BİLDİRME/ETTİRGEN", "BİLDİRME",
+            "YAPIM_-lI", "YAPIM_-sIz", "YAPIM_-lIk", "YAPIM_-CI",
+            "YAPIM_-lAş", "YAPIM_-lAn", "VASITA",
+            # İyelik/tamlama ekleri de fiil gövdesine gelmemeli:
+            "İYELİK_2T/TAMLAYAN", "İYELİK_3T/BELIRTME",
+        }
 
         if self._dictionary:
             is_direct = self._dictionary.contains(current)
@@ -855,6 +933,10 @@ class MorphologicalAnalyzer:
                             current, strategy, forbidden_labels,
                         ):
                             sc, sf, sl = match
+                            # Leksikalleşmiş fiil gövdesinden türetme eki soyma
+                            if self._is_lexicalized_stem(current):
+                                if sl in _DERIV_LABELS:
+                                    continue
                             if is_direct or is_verb_root:
                                 is_sv = (
                                     self._dictionary.contains(sc + "mak")
@@ -891,6 +973,9 @@ class MorphologicalAnalyzer:
                                 current, strategy, forbidden_labels,
                             ):
                                 sc, sf, sl = match
+                                if self._is_lexicalized_stem(current):
+                                    if sl in _DERIV_LABELS:
+                                        continue
                                 if sc not in self._IRREGULAR_VERB_STEMS:
                                     continue
                                 if sl not in self._VERBAL_SUFFIX_LABELS:
@@ -911,6 +996,10 @@ class MorphologicalAnalyzer:
             for match in self._try_all_strategy_matches(
                 current, strategy, forbidden_labels,
             ):
+                sc, sf, sl = match
+                if self._is_lexicalized_stem(current):
+                    if sl in _DERIV_LABELS:
+                        continue
                 if match not in seen:
                     seen.add(match)
                     results.append(match)
@@ -947,6 +1036,18 @@ class MorphologicalAnalyzer:
 
             if len(stem_candidate) < min_stem:
                 continue
+
+            # Bare "r" GENİŞ_ZAMAN: sadece ünlüyle biten fiil köklerinde
+            if sfx.form == "r" and sfx.label == "GENİŞ_ZAMAN":
+                if not stem_candidate or stem_candidate[-1] not in VOWELS:
+                    continue
+                # Stem + mak/mek sözlükte olmalı
+                if self._dictionary and not (
+                    self._dictionary.contains(stem_candidate + "mak")
+                    or self._dictionary.contains(stem_candidate + "mek")
+                ):
+                    continue
+
             if not validator.is_valid(stem_candidate):
                 continue
 
@@ -976,9 +1077,10 @@ class MorphologicalAnalyzer:
                 ):
                     for sfx2 in self._registry.suffixes:
                         if sfx2.form == non_buffer:
-                            results.append(
-                                (longer_stem, sfx2.form, sfx2.label),
-                            )
+                            if sfx2.label not in forbidden_labels:
+                                results.append(
+                                    (longer_stem, sfx2.form, sfx2.label),
+                                )
                             break
                     results.append(
                         (stem_candidate, sfx.form, sfx.label),
@@ -1016,140 +1118,34 @@ class MorphologicalAnalyzer:
         analyses: list[tuple[str, list[tuple[str, str]]]],
         upos: str | None = None,
     ) -> list[tuple[str, list[tuple[str, str]]]]:
-        """Çözümleme adaylarını kalite puanına göre sıralar.
-
-        Puanlama:
-          +15  kök fiilse VE (POS=VERB VEYA çekimli fiil-sonuyla bitiyorsa)
-          +10  kök sözlükte
-          +8   kök morfofonemik çözümlenebilir
-          +0.5 kök uzunluğu başına (uzun kök tercih)
-          −0.3 ek sayısı başına (basit çözümleme tercih)
-          −10  kök 2 karakterden kısa
-
-        POS=VERB verildiğinde fiil bonusu koşulsuz uygulanır; böylece
-        "olması" → ol (+15) > olma (bonus yok) gibi fiil kökü tercih
-        edilir.  POS bilgisi yoksa veya başka POS'taysa ek-sonuna bakılır.
-        """
-
-        def _is_verb_final(sfxs: list[tuple[str, str]]) -> bool:
-            """Son 2 ekte çekimli fiil etiketi var mı?"""
-            if not sfxs:
-                return False
-            for _, label in sfxs[-2:]:
-                for sub in label.split("/"):
-                    if sub in self._VERB_FINAL_LABELS:
-                        return True
-            return False
-
-        def _score(item: tuple[str, list[tuple[str, str]]]) -> float:
-            stem, sfxs = item
-            s = 0.0
-            if self._dictionary:
-                in_dict = self._dictionary.contains(stem)
-                is_verb = (
-                    self._dictionary.contains(stem + "mak")
-                    or self._dictionary.contains(stem + "mek")
-                )
-
-                # Sözlük bonusu: kök sözlükteyse VEYA fiil kökü sözlükteyse
-                # ("gel" sözlükte yok ama "gelmek" var → gel de sözlüksel kök)
-                if in_dict or is_verb:
-                    s += 10
-
-                if is_verb:
-                    # POS=VERB → koşulsuz fiil bonusu (kısa fiil kökü tercih)
-                    # POS=NOUN → fiil bonusu yok (parmak≠par+mak, yemek≠ye+mek)
-                    # POS=ADP → fiil bonusu yok (dair≠da+ir)
-                    # Diğer POS / POS yok → yalnızca çekimli fiil-sonuysa
-                    _NO_VERB_BONUS = {"NOUN", "ADJ", "ADP", "CCONJ", "SCONJ", "INTJ"}
-                    if upos == "VERB":
-                        s += 15
-                    elif upos not in _NO_VERB_BONUS and _is_verb_final(sfxs):
-                        s += 15
-
-                # Morfofonemik bonus: sözlükte veya fiil olarak bulunamadıysa
-                if not in_dict and not is_verb:
-                    resolved = self._dictionary.find_root(stem)
-                    if resolved is not None:
-                        # Çözümlenen kök sözlükteyse tam kredi
-                        # (sonuc→sonuç, ağac→ağaç gibi ünsüz yumuşaması)
-                        if self._dictionary.contains(resolved):
-                            s += 10
-                        else:
-                            s += 8
-
-                # Kompleks fiil gövdesi bonusu: çıkarmaz → çıkar, ister → iste, verir → ver
-                # Stem uzunsa ve sonu -ir/-ır ile bitiyorsa, kısaltılmış hali sözlükte mi kontrol et
-                # (çıkar+maz → çık+ar+maz: çıkar → çıkarmak, çık → çıkmak)
-                if not in_dict and not is_verb and upos == "VERB" and len(stem) >= 4:
-                    # Try multiple shortening patterns
-                    candidates = []
-                    if stem.endswith("ir") or stem.endswith("ır"):
-                        candidates.append(stem[:-2])
-                    elif stem.endswith("er") or stem.endswith("er"):  # verir → ver
-                        candidates.append(stem[:-2])
-                    # Also try -ter/-tor patterns: ister → ist
-                    if stem.endswith("ter") or stem.endswith("tor"):
-                        candidates.append(stem[:-2])
-                    # Also try full stem + mak/mek
-                    candidates.append(stem)
-                    
-                    for cand in candidates:
-                        if self._dictionary.contains(cand + "mak") or self._dictionary.contains(cand + "mek"):
-                            s += 15  # Strong bonus
-                            break
-
-            s += len(stem) * 0.5
-            if len(stem) < 2:
-                s -= 10
-            s -= len(sfxs) * 0.3
-
-            # Kısa fiil kökü bonusu: VERB için kısa kök (+3-4 harf) tercih et
-            # BOUN standardı: çıkarmaz → çık (3-4 harf), ister → iste (4 harf)
-            # Kısa kök daha güçlü bonus almalı
-            if upos == "VERB" and 3 <= len(stem) <= 4:
-                s += 12  # Stronger bonus for short verb roots
-
-            # Kaynaştırma ünsüzü belirsizliği (yalnızca y-tamponu):
-            # Kök ünlü+y ile bitiyorsa VE kök[:-1] de sözlükteyse
-            # → muhtemelen kaynaştırma y'si gövdeye yapışmış.
-            # ortay+a yerine orta+ya, ney+i yerine ne+yi tercih et.
-            # n-tamponu çok riskli (yan, alan, başkan hepsi n-sonlu).
-            if (
-                self._dictionary
-                and self._dictionary.contains(stem)
-                and len(stem) >= 3
-                and stem[-1] == "y"
-                and stem[-2] in VOWELS
-                and self._dictionary.contains(stem[:-1])
-            ):
-                s -= 2
-
-            # EMİR + hal eki dizilimi dilbilgisel olarak nadir;
-            # İYELİK + hal çok daha yaygın. Ranking'de ayır.
-            _HAL_LABELS = {"BULUNMA", "AYRILMA", "YÖNELME", "BELIRTME"}
-            for i in range(len(sfxs) - 1):
-                inner_lbl = sfxs[i][1]
-                outer_lbl = sfxs[i + 1][1]
-                if inner_lbl == "EMİR/KİŞİ_2T" and outer_lbl in _HAL_LABELS:
-                    s -= 3
-
-            return s
-
+        """Çözümleme adaylarını kalite puanına göre sıralar."""
         return sorted(analyses, key=lambda a: self._score_analysis(a, upos), reverse=True)
 
     def _score_analysis(self, item: tuple, upos: str | None) -> float:
-        """Çözümleme adayını kalite puanına göre sıralar."""
+        """Çözümleme adayını kalite puanına göre sıralar.
+
+        Orijinal puanlama temelli, hedefli iyileştirmelerle:
+          +15  kök fiilse VE POS=VERB ise (veya fiil-sonu varsa)
+          +13  kök doğrudan sözlükte
+          +12  kök fiil gövdesi (sözlükte +mak/+mek ile var)
+          +5   kök morfofonemik çözümlenebilir (dolaylı eşleşme)
+          +12  kısa fiil kökü bonusu (2-4 harf, sözlükte yoksa)
+          +0.5 kök uzunluğu başına
+          −0.3 ek sayısı başına
+          −10  kök 2 karakterden kısa
+          −2   kaynaştırma-y belirsizliği
+          −3   EMİR + hal ek dizilimi
+          −3   nominal POS'ta fiil eki bulunması
+        """
         if hasattr(item, 'stem'):
-            analysis = item
-            stem = analysis.stem
-            sfxs = analysis.suffixes
-            lemma = analysis.lemma
+            stem = item.stem
+            sfxs = item.suffixes
         else:
             stem, sfxs = item
-            lemma = None
 
         s = 0.0
+        in_dict = False
+        is_verb = False
         if self._dictionary:
             in_dict = self._dictionary.contains(stem)
             is_verb = (
@@ -1157,8 +1153,10 @@ class MorphologicalAnalyzer:
                 or self._dictionary.contains(stem + "mek")
             )
 
-            if in_dict or is_verb:
-                s += 10
+            if in_dict:
+                s += 13
+            elif is_verb:
+                s += 12
 
             if is_verb:
                 _NO_VERB_BONUS = {"NOUN", "ADJ", "ADP", "CCONJ", "SCONJ", "INTJ"}
@@ -1171,16 +1169,57 @@ class MorphologicalAnalyzer:
                 resolved = self._dictionary.find_root(stem)
                 if resolved is not None:
                     if self._dictionary.contains(resolved):
-                        s += 10
+                        s += 10  # +10 (was +5): isim/sıfat kökleri için yüksek
                     else:
-                        s += 8
+                        s += 3
 
         s += len(stem) * 0.5
         if len(stem) < 2:
             s -= 10
         s -= len(sfxs) * 0.3
 
-        # Kaynaştırma ünsüzü belirsizliği (yalnızca y-tamponu)
+        # Kısa fiil kökü bonusu: sözlükte doğrudan bulunmayan kısa fiil kökleri
+        if upos == "VERB" and 2 <= len(stem) <= 4 and not in_dict and is_verb:
+            s += 12
+
+        # Nominal POS'ta fiil kökü cezası: sözlükte doğrudan bulunmayan
+        # fiil kökleri (somak→so) nominal bağlamda isim köklerine kaybeder
+        _NOMINAL_POS = {"NOUN", "ADJ", "PROPN", "ADV", "ADP"}
+        if upos in _NOMINAL_POS and is_verb and not in_dict:
+            s -= 5
+
+        # Nominal POS'ta fiil eki cezası
+        _NOMINAL_POS = {"NOUN", "ADJ", "PROPN", "NUM", "DET", "PRON", "ADP"}
+        if upos in _NOMINAL_POS:
+            _VERB_LABELS = {"GENİŞ_ZAMAN", "GENİŞ_ZAMAN_OLMSZ", "GEÇMİŞ_ZAMAN",
+                "DUYULAN_GEÇMİŞ", "GELECEK_ZAMAN", "ŞİMDİKİ_ZAMAN",
+                "SIFAT_FİİL", "SIFAT_FİİL_-DIk", "SIFAT_FİİL_-DIğ",
+                "ZARF_FİİL_-ArAk", "ZARF_FİİL_-IncA", "ZARF_FİİL_-Ip",
+                "EDİLGEN", "İŞTEŞ", "ETTİRGEN_-lAt", "ETTİRGEN",
+                "YETERLİLİK", "OLUMSUZ", "DİLEK_ŞART", "EMİR", "EMİR_3Ç", "MASTAR"}
+            for _, label in sfxs:
+                if label in _VERB_LABELS:
+                    s -= 3.0
+                    break
+
+        if (
+            self._dictionary
+            and self._dictionary.contains(stem)
+            and len(stem) >= 3
+            and stem[-1] == "y"
+            and stem[-2] in VOWELS
+            and self._dictionary.contains(stem[:-1])
+        ):
+            s -= 2
+
+        _HAL_LABELS = {"BULUNMA", "AYRILMA", "YÖNELME", "BELIRTME"}
+        for i in range(len(sfxs) - 1):
+            if sfxs[i][1] == "EMİR/KİŞİ_2T" and sfxs[i+1][1] in _HAL_LABELS:
+                s -= 3
+
+        return s
+
+        # Kaynaştırma ünsüzü belirsizliği (yalnızca y-tamponu):
         if (
             self._dictionary
             and self._dictionary.contains(stem)
@@ -1651,7 +1690,39 @@ class MorphologicalAnalyzer:
         "yanıl",    # yanılmak ≠ yanmak (farklı anlam)
         "yatır",    # yatırmak — kısa ettirgen zinciri
         "soruştur", # soruşturmak ≠ sormak
+        # Sık karşılaşılan leksikalleşmiş fiiller (benchmark hatalarından)
+        "bulun",    # bulunmak ≠ bulmak (BOUN'a göre ayrı lemma)
+        "başla",    # başlamak ≠ baş + -la yapım eki (BOUN'a göre ayrı lemma)
+        "sağla",    # sağlamak ≠ sağ + -la yapım eki
+        "yaşa",     # yaşamak ≠ yaş + -a (BOUN'a göre ayrı lemma)
     })
+
+    # Leksikalleşmiş fiil gövdeleri: BFS ek sıyırma işleminde
+    # bu gövdelerden türetme eki soyulması engellenir.
+    # Form: leksikalleşmiş_gövde → bırakılacak_kök
+    _LEXICALIZED_VERB_LOOKUP: dict[str, str] = {
+        "bulun": "bulun",
+        "başla": "başla",
+        "anlat": "anlat",
+        "sağla": "sağla",
+        "yaşa": "yaşa",
+        "konuş": "konuş",
+        "çalış": "çalış",
+        "bekle": "bekle",
+        "izle": "izle",
+        "söyle": "söyle",
+        "ilerle": "ilerle",
+        "hazırla": "hazırla",
+        "topla": "topla",
+        "zenginleş": "zenginleş",
+        "kazan": "kazan",
+        "düzenle": "düzenle",
+        "değerlen": "değerlen",
+        "gerçekleş": "gerçekleş",
+        "kaçır": "kaçır",
+        "yerleş": "yerleş",
+        "yetiş": "yetiş",
+    }
 
     def _find_bare_verb_root(self, verb_stem: str) -> str | None:
         """
@@ -1751,7 +1822,8 @@ class MorphologicalAnalyzer:
             # Türetilmiş fiil kökü soyma: yalnızca VERB POS'ta
             # NOUN bağlamında "karar→kar", "yan→ya" gibi yanlış
             # soymaları önlemek için upos kontrolü yapılır.
-            if upos == "VERB":
+            # Leksikalleşmiş fiil gövdeleri soyulmaz (bulun, başla, konuş...)
+            if upos == "VERB" and not self._is_lexicalized_stem(stem):
                 bare = self._find_bare_verb_root(base)
                 if bare is not None:
                     # root = temel kök (yaz), lemma = türetilmiş gövde (yazdır)

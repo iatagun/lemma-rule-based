@@ -1,21 +1,23 @@
-# BERT + Biaffine Bağımlılık Çözümleyici
+# ELECTRA + Biaffine Bağımlılık Çözümleyici
 
-> **Tarih:** 2026-04-18  
-> **Proje:** `lemma-rule-based` / `dep_bert/`  
+> **Tarih:** 2026-07-02  
+> **Proje:** `lemma-rule-based` / `dep_electra/`  
 > **Hedef:** Turkish dependency parsing (sözdizim ağacı çıkarma)  
-> **Mimari:** Dozat & Manning (2017) Deep Biaffine + BERT encoder  
+> **Mimari:** Dozat & Manning (2017) Deep Biaffine + ELECTRA encoder  
+> **Encoder:** `dbmdz/electra-base-turkish-cased` (256-dim)  
 > **Benchmark:** UD_Turkish-Kenet, BOUN Treebank  
-> **Eğitim durumu:** Devam ediyor (~1 saat/epoch)
+> **Eğitim durumu:** Plan aşaması
 
 ---
 
 ## Durum
 
 ```
-✓ Eğitim scripti çalışıyor: train_dep_bert.py
-✓ Veri hazır: dep_data/bert/{train,dev,test}.json (13,842 / 2,553 / 2,562)
-⚠ Eski model uyumsuz: best_parser.pt (farklı mimari)
-○ Henüz model kaydedilmedi
+✓ Kural-tabanlı morfolojik çözümleyici: %90.4 (9207/10182 BOUN test)
+✓ Veri hazır: dep_data/bert/{train,dev,test}.json (13,842 / 2,553 / 2,562) — Kenet
+⚠ Veri augmentasyonu planlanıyor: doğru kural-tabanlı çözümlemeler + sentetik veri
+○ Eğitim scripti: train_dep_bert.py → ELECTRA'ya uyarlanacak
+○ Yeni encoder: dbmdz/electra-base-turkish-cased (256-dim → MLP boyutları güncellenecek)
 ```
 
 ## 1. Mimari — Dozat & Manning (2017) Deep Biaffine
@@ -25,12 +27,12 @@
 ```
 Input: [w1, w2, ..., wn]  (n token)
          ↓
-    BERT Encoder
+  ELECTRA Encoder
          ↓
-   h_i = BERT(word_i)  (768 boyut)
+   h_i = ELECTRA(word_i)  (256 boyut)
          ↓
-         ├─→ MLP_head(h_i)  → s_i  (head representation, 500-boyut)
-         └─→ MLP_dep(h_i)  → d_i  (dependent representation, 500-boyut)
+         ├─→ MLP_head(h_i)  → s_i  (head representation, 256→500)
+         └─→ MLP_dep(h_i)  → d_i  (dependent representation, 256→500)
          ↓
    Biaffine(s_i, d_j) → score(i→j)  (arc score)
          ↓
@@ -69,7 +71,7 @@ label_score(i → j) = [s_i; d_j]^T · U · r_k + b_k
 ### 1.4 Neden Biaffine?
 
 - **Bilinear attention**'dan daha güçlü: full rank matrix W vs rank-1 approximation
-- **MLP öncesi dimensionality reduction**: 768 → 500, overfitting'i azaltır
+- **MLP öncesi dimensionality expansion**: 256 → 500, ELECTRA'nın daha düşük boyutunu yükseltir (BERT'te 768→500 indirgeme tersine)
 - **2 ayrı representation**: head ve dep farklı projelerden geçer
 - State-of-the-art: PTB'de %95.7 UAS, %94.1 LAS
 
@@ -100,12 +102,12 @@ loss = arc_loss + label_loss
 | Param | Değer | Açıklama |
 |-------|-------|----------|
 | MAX_LEN | 64 | Maksimum cümle uzunluğu |
-| BATCH_SIZE | 4-8 | GPU belleğe göre |
+| BATCH_SIZE | 8-16 | ELECTRA daha hafif, daha büyük batch |
 | EPOCHS | 10-20 | Early stopping ile |
-| LR | 2e-5 | BERT fine-tuning için optimal |
+| LR | 1e-5 (veya 5e-6) | ELECTRA için BERT'ten daha düşük |
 | WEIGHT_DECAY | 0.01 | L2 regularization |
 | WARMUP_RATIO | 0.1 | %10 warmup steps |
-| GRAD_ACCUM | 4 | 4 batch = 1 step |
+| GRAD_ACCUM | 2 | ELECTRA daha hızlı, daha az accum |
 | MAX_GRAD_NORM | 1.0 | Gradient clipping |
 
 ### 2.3 Chu-Liu/Edmonds MST Decoding
@@ -202,7 +204,7 @@ def tokenize_and_align(words, tokenizer):
 
 ### 3.4 Word Alignment
 
-Her BERT token'ı, orijinal word'e map edilir:
+Her ELECTRA/BERT token'ı, orijinal word'e map edilir:
 
 ```python
 def get_word_alignments(word_ids, num_words):
@@ -221,6 +223,53 @@ def align_heads(heads, word_ids):
         aligned.append(heads[word_idx])  # Aynı head
     return aligned
 ```
+
+### 3.5 Veri Augmentasyonu — Kural-Tabanlı Çözümlemeler
+
+Kural-tabanlı morfolojik çözümleyici %90.4 doğruluktadır. Doğru çözümlediği sözcükler dependency parser eğitimi için güvenilir veri kaynağıdır.
+
+**Pipeline:**
+
+```
+1. CoNLL-U'dan her token'ı al
+2. Kural-tabanlı çözümleyici ile analiz et (analyze(word, upos))
+3. Gold lemma ile karşılaştır
+4. Eşleşiyorsa → doğru çözümleme → training data'ya ekle
+5. Gold POS, head, dep_rel'i olduğu gibi kullan (değişmez)
+```
+
+```python
+def extract_correct_analyses(conllu_path, morph_analyzer):
+    """Kural-tabanlı çözümleyicinin doğru bildiği token'ları filtrele"""
+    from conllu import parse
+    correct = []
+    with open(conllu_path, "r", encoding="utf-8") as f:
+        for sent in parse(f.read()):
+            for token in sent:
+                if token["upostag"] == "PUNCT":
+                    continue
+                analysis = morph_analyzer.analyze(token["form"], token["upostag"])
+                if analysis and analysis.lemma == token["lemma"]:
+                    correct.append(token)
+    return correct
+```
+
+### 3.6 Sentetik Veri Üretimi
+
+Kural-tabanlı çözümleyicinin yapısal sınırlamaları nedeniyle kaçırdığı desenler için sentetik cümleler üretilir.
+
+**Hedef desenler:**
+
+| Desen | Örnek | Gold Lemma | Hata Sebebi |
+|-------|-------|-----------|-------------|
+| İyelikli isim | evinden | ev | Uzun gövde tercihi (evinden→evi) |
+| Zaman zarflığı | gününde | gün | Uzun gövde tercihi (gününde→günün) |
+| Zaman belirteci | zamanı | zaman | Uzun isim tercihi (zamanı→zaman) |
+| Edilgen çatı | alınır | al | Fiil gövdesi koruması (alın→al) |
+| Ettirgen çatı | çıkarmış | çıkar | Kök uzunluğu kısıtı (çıkar→çık) |
+| Bulunma hali | dünyada | dünya | Sesli harf düşmesi |
+
+Sentetik verilerde gold POS, head ve dep_rel manuel olarak atanır (basit SVO yapıları yeterli).
 
 ---
 
@@ -273,11 +322,12 @@ from torch.utils.data import Dataset, DataLoader
 import json
 from typing import List, Dict
 
-BERT_MODEL = "dbmdz/bert-base-turkish-cased"
+# ELECTRA (daha hızlı, daha küçük, 256-dim)
+ENCODER_MODEL = "dbmdz/electra-base-turkish-cased"
 MAX_LEN = 64
-BATCH_SIZE = 4
+BATCH_SIZE = 8
 EPOCHS = 10
-LR = 2e-5
+LR = 1e-5
 ARC_DIM = 500
 LABEL_DIM = 100
 NUM_LABELS = 34  # Turkish relations
