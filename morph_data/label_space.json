@@ -1,0 +1,273 @@
+{
+  "encoder_model": "dbmdz/electra-base-turkish-cased-discriminator",
+  "treebanks": [
+    "kenet",
+    "boun",
+    "imst"
+  ],
+  "upos": [
+    "ADJ",
+    "ADP",
+    "ADV",
+    "AUX",
+    "CCONJ",
+    "DET",
+    "INTJ",
+    "NOUN",
+    "NUM",
+    "PART",
+    "PRON",
+    "PROPN",
+    "PUNCT",
+    "SCONJ",
+    "SYM",
+    "VERB",
+    "X"
+  ],
+  "xpos": [
+    "_",
+    "ANum",
+    "Abbr",
+    "Abr",
+    "Adj",
+    "Adverb",
+    "Agt",
+    "AsIf",
+    "Attr",
+    "Aux",
+    "CPar",
+    "Comma",
+    "Conj",
+    "Conv",
+    "Demons",
+    "Det",
+    "Dup",
+    "Emph",
+    "Excl",
+    "Exist",
+    "ExistPtcp",
+    "Indef",
+    "Inst",
+    "Interj",
+    "List",
+    "Ly",
+    "NAdj",
+    "NNum",
+    "NOUN",
+    "Neg",
+    "Ness",
+    "Noun",
+    "OPar",
+    "Overt",
+    "PCAbl",
+    "PCAcc",
+    "PCDat",
+    "PCGen",
+    "PCIns",
+    "PCNom",
+    "Partic",
+    "Pers",
+    "Place",
+    "Postp",
+    "Prop",
+    "Ptcp",
+    "Punc",
+    "Quant",
+    "Ques",
+    "Recip",
+    "Reflex",
+    "Rel",
+    "Separ",
+    "Since",
+    "Stop",
+    "TDots",
+    "Topic",
+    "Typo",
+    "Verb",
+    "Vnoun",
+    "With",
+    "Without",
+    "Year",
+    "Zero"
+  ],
+  "feats": {
+    "Abbr": [
+      "_",
+      "Yes"
+    ],
+    "Aspect": [
+      "_",
+      "Hab",
+      "Imp",
+      "Perf",
+      "Prog",
+      "Prosp"
+    ],
+    "Case": [
+      "_",
+      "Abl",
+      "Acc",
+      "Dat",
+      "Equ",
+      "Gen",
+      "Ins",
+      "Loc",
+      "Nom"
+    ],
+    "Definite": [
+      "_",
+      "Def",
+      "Ind"
+    ],
+    "Degree": [
+      "_",
+      "Cmp",
+      "Sup"
+    ],
+    "Evident": [
+      "_",
+      "Fh",
+      "Nfh"
+    ],
+    "ExtPos": [
+      "_",
+      "CCONJ"
+    ],
+    "Mood": [
+      "_",
+      "Cnd",
+      "CndGen",
+      "CndGenPot",
+      "Des",
+      "Gen",
+      "GenPot",
+      "Imp",
+      "Ind",
+      "Nec",
+      "Opt",
+      "Pot"
+    ],
+    "NumType": [
+      "_",
+      "Card",
+      "Dist",
+      "Ord"
+    ],
+    "Number": [
+      "_",
+      "Plur",
+      "Sing"
+    ],
+    "Number[psor]": [
+      "_",
+      "Plur",
+      "Sing"
+    ],
+    "Person": [
+      "_",
+      "1",
+      "2",
+      "3"
+    ],
+    "Person[psor]": [
+      "_",
+      "1",
+      "2",
+      "3"
+    ],
+    "Polarity": [
+      "_",
+      "Neg",
+      "Pos"
+    ],
+    "Polite": [
+      "_",
+      "Form",
+      "Infm"
+    ],
+    "PronType": [
+      "_",
+      "Art",
+      "Dem",
+      "Ind",
+      "Int",
+      "Loc",
+      "Neg",
+      "Prs",
+      "Rcp"
+    ],
+    "Reflex": [
+      "_",
+      "Yes"
+    ],
+    "Tense": [
+      "_",
+      "Fut",
+      "Past",
+      "Pqp",
+      "Pres"
+    ],
+    "VerbForm": [
+      "_",
+      "Conv",
+      "Fin",
+      "Part",
+      "Vnoun"
+    ],
+    "Voice": [
+      "_",
+      "Cau",
+      "CauPass",
+      "Pass",
+      "Rcp",
+      "Rfl"
+    ]
+  },
+  "deprels": [
+    "dep",
+    "acl",
+    "advcl",
+    "advmod",
+    "advmod:emph",
+    "amod",
+    "appos",
+    "aux",
+    "aux:q",
+    "case",
+    "cc",
+    "cc:preconj",
+    "ccomp",
+    "compound",
+    "compound:lvc",
+    "compound:redup",
+    "conj",
+    "cop",
+    "csubj",
+    "dep:der",
+    "det",
+    "discourse",
+    "discourse:q",
+    "dislocated",
+    "fixed",
+    "flat",
+    "iobj",
+    "list",
+    "mark",
+    "nmod",
+    "nmod:part",
+    "nmod:poss",
+    "nmod:tmod",
+    "nsubj",
+    "nsubj:outer",
+    "nummod",
+    "obj",
+    "obl",
+    "obl:tmod",
+    "orphan",
+    "parataxis",
+    "punct",
+    "root",
+    "vocative",
+    "xcomp"
+  ]
+}

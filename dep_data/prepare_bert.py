@@ -3,16 +3,31 @@ import conllu
 import os
 from collections import defaultdict
 
+def _feats_str(tok):
+    f = tok.get('feats')
+    if not f:
+        return '_'
+    return '|'.join(f"{k}={v}" for k, v in sorted(f.items(), key=lambda kv: kv[0].lower())) or '_'
+
+
 def conllu_to_bert_format(sent_tokens):
-    """Convert conllu to BERT format: word[SEP]pos[SEP] head deprel"""
+    """Convert conllu to BERT format: word[SEP]pos[SEP] head deprel
+
+    upos/xpos/feats: DizgeBERT-Morph entegrasyonu (M5) için taşınır; DizgeBERT-Dep
+    henüz kullanmıyor.
+    """
     words = [tok['form'] for tok in sent_tokens]
     upos = [tok['upos'] for tok in sent_tokens]
+    xpos = [tok.get('xpos') or '_' for tok in sent_tokens]
+    feats = [_feats_str(tok) for tok in sent_tokens]
     heads = [str(tok['head']) for tok in sent_tokens]
     deprels = [tok.get('deprel', 'dep') for tok in sent_tokens]
-    
+
     return {
         'words': words,
         'upos': upos,
+        'xpos': xpos,
+        'feats': feats,
         'heads': heads,
         'deprels': deprels,
     }

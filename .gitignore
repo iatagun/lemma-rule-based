@@ -31,6 +31,15 @@ htmlcov/
 # Tools
 .qodo/
 
+# Model checkpoints / training artifacts
+*.pt
+# morph_data/: yalnız label_space.json commit'lenir (küçük, modele gömülür, reprodüksiyon için);
+# gerisi (JSON split'ler, .pt, HF export yedekleri, indirilen treebank'ler) izlenmez.
+morph_data/*
+!morph_data/label_space.json
+dizgebert_morph_hf/
+dizgebert_joint_hf/
+
 # OS
 Thumbs.db
 Desktop.ini

@@ -1,0 +1,12 @@
+# Core runtime for the rule-based analyzer: none (pure stdlib).
+# The dependencies below are for the neural models (DizgeBERT-Dep, DizgeBERT-Morph),
+# their data pipelines, and benchmarking.
+
+torch>=2.8
+transformers>=4.57
+conllu
+numpy
+tqdm
+scikit-learn
+huggingface_hub>=0.36
+safetensors
