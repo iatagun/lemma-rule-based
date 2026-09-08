@@ -23,7 +23,7 @@ pytestmark = pytest.mark.skipif(
     reason="label_space.json yok (önce prepare_idiom_data.py --build-label-space)",
 )
 
-from train_idiom_bert import IdiomLabelSpace  # noqa: E402
+from training.train_idiom_bert import IdiomLabelSpace  # noqa: E402
 
 
 @pytest.fixture(scope="module")

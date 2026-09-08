@@ -8,12 +8,17 @@ Türkçe deyim (VID) ve eşdizim/yardımcı-fiil (LVC.full) span'lerini token-d�
 etiketiyle işaretler (serbest birleşim = O). Kelime temsili = ilk subword ⊕ son subword,
 DizgeBERT-Morph ile aynı yöntem. Tek head — çok-treebank yok (kaynak tek: PARSEME-TR).
 
+İki aşama (config.stage2=True): `predict_spans()` bitişik VID adaylarını gömülü idyomatiklik
+sınıflandırıcısından geçirip literal kullanımları eler (`stage2=False` ile kapatılır).
+
 Kullanım:
     from transformers import AutoModel, AutoTokenizer
     m = AutoModel.from_pretrained("iatagun/DizgeBERT-Idiom", trust_remote_code=True)
     tok = AutoTokenizer.from_pretrained("iatagun/DizgeBERT-Idiom")
-    print(m.predict(["Sonunda", "gözden", "düştü", "."], tokenizer=tok))
-    # [('Sonunda', 'O'), ('gözden', 'B-VID'), ('düştü', 'I-VID'), ('.', 'O')]
+    m.predict_spans(["Projede", "yol", "aldık", "."], tok)
+    # [{'text': 'yol aldık', 'start': 1, 'end': 3, 'category': 'VID', 'gappy': False}]
+    m.predict(["Sonunda", "gözden", "düştü", "."], tok)  # ham BIO (katman1, katman2)
+    # [('Sonunda','O','o'), ('gözden','B-VID','o'), ('düştü','I-VID','o'), ('.','O','o')]
 """
 from __future__ import annotations
 
@@ -132,6 +137,44 @@ def decode_bio_spans(tags: list[str]) -> list[tuple[int, int, str]]:
     return spans
 
 
+def spans_from_bigappy(decoded: list[tuple], words: list[str],
+                       keep_literal: bool = False) -> list[dict]:
+    """`decode_bigappy_spans()` çıktısı → span sözlükleri. Bu dönüşümün TEK kopyası
+    (predict_spans, benchmark/eval_idiom, predict_idiom hepsi bunu çağırır — üç kopya
+    `-LIT` işlemesinde çoktan sapmıştı, bkz. kod incelemesi).
+
+    Bitişik span: `{"text","start","end","category","gappy": False}`.
+    Gap'li span:  `{"text": "a ... b", "start","end","start2","end2","category","gappy": True}`.
+    `-LIT` (deyim-biçimin literal kullanımı) varsayılan atlanır; `keep_literal=True` ise
+    `{"category": <asıl>, "literal": True, ...}` olarak eklenir.
+    """
+    out: list[dict] = []
+    for span in decoded:
+        if len(span) == 3:
+            s, e, cat = span
+            if cat.endswith("-LIT"):
+                if keep_literal:
+                    out.append({"text": " ".join(words[s:e]), "start": s, "end": e,
+                                "category": cat[:-4], "literal": True, "gappy": False})
+                continue
+            out.append({"text": " ".join(words[s:e]), "start": s, "end": e,
+                        "category": cat, "gappy": False})
+        else:
+            s1, e1, s2, e2, cat = span
+            out.append({"text": " ".join(words[s1:e1]) + " ... " + " ".join(words[s2:e2]),
+                        "start": s1, "end": e1, "start2": s2, "end2": e2,
+                        "category": cat, "gappy": True})
+    return out
+
+
+def span_p_literal(hs: "torch.Tensor", sf: int, sl: int, head: "nn.Module") -> float:
+    """[L,H] hidden state + span ilk/son subword indeksi + Linear(2H,2) head → p(literal).
+    Aşama-2 skorlamasının TEK kopyası (modeling._stage2 ve benchmark/eval_idiom.wrap_stage2
+    aynı hesabı yapıyordu — biri `align_words`'ü bile kullanmıyordu)."""
+    vec = torch.cat([hs[sf], hs[sl]], dim=-1)
+    return torch.softmax(head(vec), dim=-1)[0].item()
+
+
 def decode_bigappy_spans(tags1: list[str], tags2: list[str]) -> list[tuple]:
     """İki katmanı (bkz. bigappy-unicrossy) birleştirip span listesi üretir.
 
@@ -207,59 +250,39 @@ class DizgeBertIdiomForTokenClassification(PreTrainedModel):
         return list(zip([words[w] for w in kept], tags1, tags2))
 
     @torch.no_grad()
-    def _stage2_keep(self, words: list[str], s: int, e: int, tokenizer, thresh: float) -> bool:
-        """Aday span (words[s:e]) idyomatik mi? → tut/ele. `wrap_stage2` ile aynı kural:
-        yalnız GÜVENLİ literal (p_literal > thresh) elenir; belirsizde span korunur."""
-        enc, kept, fp, lp = align_words(tokenizer, words, self.config.max_len, self.device)
-        if s >= len(kept) or (e - 1) >= len(kept):
-            return True  # span kırpmaya takıldı — koru
-        hs = self.stage2_encoder(input_ids=enc["input_ids"],
-                                 attention_mask=enc["attention_mask"]).last_hidden_state[0]
-        vec = torch.cat([hs[fp[0, s]], hs[lp[0, e - 1]]], dim=-1)
-        p_literal = torch.softmax(self.stage2_head(vec), dim=-1)[0].item()
-        return p_literal <= thresh
-
-    @torch.no_grad()
     def predict_spans(self, words: list[str], tokenizer=None, stage2: bool | None = None,
                       stage2_thresh: float | None = None, keep_literal: bool = False) -> list[dict]:
-        """`predict()` + iki-katman çözümleme → span listesi.
+        """`predict()` + iki-katman çözümleme → span sözlükleri (`spans_from_bigappy`).
 
-        Sıradan (bitişik) span: `{"text","start","end","category","gappy": False}`.
-        Gap'li (süreksiz) span, ör. "sahip ... olarak": `{"text": "sahip ... olarak",
-        "start","end" (1. parça), "start2","end2" (2. parça), "category", "gappy": True}`.
-
-        `stage2` (varsayılan: config.stage2): açıksa bitişik **VID** adayları idyomatiklik
-        sınıflandırıcısından geçirilir, güvenli literal kullanımlar elenir (LVC ve gap'li
-        span'ler dokunulmaz). Ağırlıklar pakete gömülü değilse sessizce atlanır.
-
-        `-LIT` kategorisi (deyim-biçimin literal kullanımı — model etiket uzayında açık
-        tahmin ederse) varsayılan olarak **döndürülmez** (gerçek deyim span'i değil).
-        `keep_literal=True` ise `{"category": "VID", "literal": True, ...}` olarak eklenir.
+        `stage2` (varsayılan: `config.stage2`): açıksa bitişik **VID** adayları idyomatiklik
+        sınıflandırıcısından geçirilir; `p(literal) > stage2_thresh` (varsayılan 0.5 —
+        yani "literal daha olası") olan span ELENİR. LVC, gap'li span ve `-LIT` dokunulmaz.
+        Aşama-2 ağırlıkları pakete gömülü değilse sessizce atlanır. Sınıflandırıcı gövdesi
+        cümle başına **bir kez** çalıştırılır (span başına değil).
         """
-        use_s2 = self.config.stage2 if stage2 is None else stage2
-        use_s2 = use_s2 and hasattr(self, "stage2_head")
+        use_s2 = (self.config.stage2 if stage2 is None else stage2) and hasattr(self, "stage2_head")
         thr = self.config.stage2_thresh if stage2_thresh is None else stage2_thresh
         tokenizer = tokenizer or AutoTokenizer.from_pretrained(self.config._name_or_path)
 
         triples = self.predict(words, tokenizer)
         tags1 = [t1 for _w, t1, _t2 in triples]
         tags2 = [t2 for _w, _t1, t2 in triples]
-        out = []
-        for span in decode_bigappy_spans(tags1, tags2):
-            if len(span) == 3:
-                s, e, cat = span
-                if cat.endswith("-LIT"):
-                    if keep_literal:
-                        out.append({"text": " ".join(words[s:e]), "start": s, "end": e,
-                                    "category": cat[:-4], "literal": True, "gappy": False})
-                    continue
-                if use_s2 and cat == "VID" and not self._stage2_keep(words, s, e, tokenizer, thr):
-                    continue
-                out.append({"text": " ".join(words[s:e]), "start": s, "end": e,
-                            "category": cat, "gappy": False})
-            else:
-                s1, e1, s2, e2, cat = span
-                text = " ".join(words[s1:e1]) + " ... " + " ".join(words[s2:e2])
-                out.append({"text": text, "start": s1, "end": e1, "start2": s2, "end2": e2,
-                            "category": cat, "gappy": True})
-        return out
+        spans = spans_from_bigappy(decode_bigappy_spans(tags1, tags2), words, keep_literal)
+        if not use_s2:
+            return spans
+
+        to_check = [sp for sp in spans if sp["category"] == "VID"
+                    and not sp.get("gappy") and not sp.get("literal")]
+        if not to_check:
+            return spans
+        enc, kept, fp, lp = align_words(tokenizer, words, self.config.max_len, self.device)
+        hs = self.stage2_encoder(input_ids=enc["input_ids"],
+                                 attention_mask=enc["attention_mask"]).last_hidden_state[0]
+        drop = set()
+        for sp in to_check:
+            s, e = sp["start"], sp["end"]
+            if s >= len(kept) or (e - 1) >= len(kept):
+                continue  # span kırpmaya takıldı → koru
+            if span_p_literal(hs, fp[0, s], lp[0, e - 1], self.stage2_head) > thr:
+                drop.add(id(sp))
+        return [sp for sp in spans if id(sp) not in drop]

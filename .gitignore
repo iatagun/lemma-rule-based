@@ -17,7 +17,6 @@ env/
 .vscode/launch.json
 .vscode/tasks.json
 .vscode/*.code-workspace
-!.vscode/mcp.json
 .idea/
 *.swp
 *.swo
@@ -33,8 +32,9 @@ htmlcov/
 
 # Model checkpoints / training artifacts
 *.pt
-# morph_data/: yalnız label_space.json commit'lenir (küçük, modele gömülür, reprodüksiyon için);
-# gerisi (JSON split'ler, .pt, HF export yedekleri, indirilen treebank'ler) izlenmez.
+# {morph,idiom,idiom_arc}_data/: yalnız label_space.json commit'lenir (küçük, modele gömülür,
+# reprodüksiyon için); gerisi (JSON split'ler, .pt, HF export yedekleri, indirilen/fetch'lenen
+# treebank'ler) izlenmez. Not: vendored UD treebank data/treebanks/ altında, izlenir.
 morph_data/*
 !morph_data/label_space.json
 dizgebert_morph_hf/

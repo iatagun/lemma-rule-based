@@ -11,10 +11,9 @@ Kategoriler: isim↔fiil eş-yazımları, aorist↔türemiş isim, özel-isim↔
 DET↔PRON (sözdizimsel), edat, delillilik, üleştirme/sıra sayı.
 
 Kullanım:
-    python benchmark/eval_ambiguity.py --model hybrid --scheme kenet
+    python benchmark/eval_ambiguity.py --model joint  --scheme boun --local
     python benchmark/eval_ambiguity.py --model morph  --scheme imst
-    python benchmark/eval_ambiguity.py --model joint   --scheme boun --local
-    python benchmark/eval_ambiguity.py --compare        # morph vs joint vs hybrid
+    python benchmark/eval_ambiguity.py --compare        # morph vs joint
 """
 from __future__ import annotations
 
@@ -158,16 +157,11 @@ def _check(pred_upos: str, pred_feats: str, expected: str):
 # ═══════════════════════════════════════════════════════════════════════
 #  Model yükleyiciler
 # ═══════════════════════════════════════════════════════════════════════
-def make_predictor(model: str, scheme: str, local: bool, canonical: bool = False):
+def make_predictor(model: str, scheme: str, local: bool):
     """→ fn(words) -> list[(upos, xpos, feats)]"""
-    if model == "hybrid":
-        from hybrid import HybridTagger
-        ht = HybridTagger(local=local, canonical=canonical)
-        return lambda ws: [(r["upos"], r["xpos"], r["feats"]) for r in ht.predict(ws, scheme)]
-
     if local:
         import torch
-        from train_morph_bert import LabelSpace, MorphTagger, TB_TO_ID
+        from training.train_morph_bert import LabelSpace, MorphTagger, TB_TO_ID
         if model == "morph":
             ck = torch.load(_PROJECT / "morph_data/best_morph_tagger.pt", map_location="cpu")
             ls = LabelSpace(ck["label_space"])
@@ -176,7 +170,7 @@ def make_predictor(model: str, scheme: str, local: bool, canonical: bool = False
             m = MorphTagger(ls, ls.encoder_model).eval()
             m.load_state_dict(ck["model"])
         else:
-            from train_joint import JointModel
+            from training.train_joint import JointModel
             ck = torch.load(_PROJECT / "morph_data/best_joint_v2.pt", map_location="cpu")
             ls = LabelSpace(ck["label_space"])
             from transformers import AutoTokenizer
@@ -227,8 +221,8 @@ def _tokenize(sent):
     return out
 
 
-def run(model, scheme, local, canonical=False, cases=CASES):
-    predict = make_predictor(model, scheme, local, canonical)
+def run(model, scheme, local, cases=CASES):
+    predict = make_predictor(model, scheme, local)
     rows, n_ok, n_fail = [], 0, 0
     for cat, tgt, sent, exp in cases:
         ws = _tokenize(sent)
@@ -257,28 +251,26 @@ def _print(rows, n_ok, n_fail, title):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--model", choices=["morph", "joint", "hybrid"], default="hybrid")
+    ap.add_argument("--model", choices=["morph", "joint"], default="joint")
     ap.add_argument("--scheme", choices=["kenet", "boun", "imst"], default="kenet")
     ap.add_argument("--local", action="store_true", help="HF yerine yerel .pt")
-    ap.add_argument("--compare", action="store_true", help="morph + joint + hybrid yan yana")
-    ap.add_argument("--canonical", action="store_true", help="hybrid icin kanonik UD normalizasyonu")
+    ap.add_argument("--compare", action="store_true", help="morph + joint yan yana")
     args = ap.parse_args()
 
     if args.compare:
         results = {}
-        for mdl in ("morph", "joint", "hybrid"):
-            rows, ok, fail = run(mdl, args.scheme, args.local, args.canonical)
+        for mdl in ("morph", "joint"):
+            rows, ok, fail = run(mdl, args.scheme, args.local)
             results[mdl] = {(c, t): s for c, t, s, _g, _e in rows}
             print(f"{mdl:7s} skor: {ok}/{ok+fail}")
         print(f"\n=== FARKLAR (scheme={args.scheme}) ===")
-        keys = list(results["morph"])
-        for k in keys:
-            sts = [results[m].get(k, "?") for m in ("morph", "joint", "hybrid")]
+        for k in results["morph"]:
+            sts = [results[m].get(k, "?") for m in ("morph", "joint")]
             if len(set(s for s in sts if s in ("ok", "fail"))) > 1:
-                print(f"  {k[1]:12s} ({k[0]})  morph={sts[0]}  joint={sts[1]}  hybrid={sts[2]}")
+                print(f"  {k[1]:12s} ({k[0]})  morph={sts[0]}  joint={sts[1]}")
         return
 
-    rows, ok, fail = run(args.model, args.scheme, args.local, args.canonical)
+    rows, ok, fail = run(args.model, args.scheme, args.local)
     _print(rows, ok, fail, f"{args.model}  scheme={args.scheme}  {'(yerel)' if args.local else '(HF)'}")
 
 

@@ -52,9 +52,9 @@ def load_and_convert(conllu_path):
 files = [
     ('benchmark/test.conllu', 'test'),
     ('benchmark/dev.conllu', 'dev'),
-    ('ngram_pos/UD_Turkish-Kenet-master/tr_kenet-ud-train.conllu', 'train'),
-    ('ngram_pos/UD_Turkish-Kenet-master/tr_kenet-ud-test.conllu', 'test'),
-    ('ngram_pos/UD_Turkish-Kenet-master/tr_kenet-ud-dev.conllu', 'dev'),
+    ('data/treebanks/UD_Turkish-Kenet/tr_kenet-ud-train.conllu', 'train'),
+    ('data/treebanks/UD_Turkish-Kenet/tr_kenet-ud-test.conllu', 'test'),
+    ('data/treebanks/UD_Turkish-Kenet/tr_kenet-ud-dev.conllu', 'dev'),
 ]
 
 print("=== BERT Dependency Parsing Veri Hazırlığı ===\n")

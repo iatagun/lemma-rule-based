@@ -1,49 +1,61 @@
 ---
-name: lemma-rule-based
-description: Turkish morphological analyzer + BERT dependency parsing
+name: dizgebert-stack
+description: Turkish NLP fine-tuning stack — DizgeBERT ELECTRA models (Morph / Joint / Dep / Idiom)
 allowed-tools: Bash, Read, Edit, Write
 user-invokable: true
 ---
 
-# lemma-rule-based Project Skills
+# DizgeBERT fine-tuning stack
 
-Bu proje iki ana modülden oluşur:
+Türkçe için ELECTRA (`dbmdz/electra-base-turkish-cased`) ince-ayar modelleri, veri
+pipeline'ları, HF paketleme ve benchmark. (Eski kural-tabanlı morfoloji/dep katmanı
+kaldırıldı — git geçmişinde.)
 
-## Skills
+## Modeller
 
-### morphology
-Türkçe kural-tabanlı morfolojik çözümleme
-- Lemma/ek çıkarma
-- ~90% doğruluk (BOUN benchmark)
+| Model | Görev | HF repo |
+|---|---|---|
+| **DizgeBERT-Morph** | UPOS + XPOS + FEATS morfolojik etiketleme | `iatagun/DizgeBERT-Morph` |
+| **DizgeBERT-Joint** | Morph + bağımlılık (HEAD/DEPREL) birlikte | `iatagun/DizgeBERT-Joint` |
+| **DizgeBERT-Dep** | Bağımlılık ayrıştırma (ELECTRA + Biaffine) | `iatagun/DizgeBERT-Dep` |
+| **DizgeBERT-Idiom** | Deyim (VID) / eşdizim (LVC) span + idyomatiklik (2-aşama) | `iatagun/DizgeBERT-Idiom` |
 
-```bash
-python -X utf8 benchmark/evaluate.py
+## Dizin haritası
+
+```
+training/     train_{morph,joint,dep,idiom}_bert.py, train_idiomaticity_clf.py
+data/         fetch_*.py, prepare_*.py, filter_*.py, generate_synthetic_morph.py
+              data/treebanks/UD_Turkish-Kenet/  (vendored UD data)
+inference/    predict_{morph,idiom}.py, push_{morph,idiom}_hf.py
+benchmark/    eval_{idiom,morph,ambiguity}.py
+dizgebert_{morph,joint,idiom}/   HF trust_remote_code paketleri (config + modeling + MODEL_CARD)
+{morph,idiom,idiom_arc}_data/    gitignore'lu veri (yalnız label_space.json izlenir)
 ```
 
-### dep_parsing  
-BERT + Biaffine dependency parsing
-- UD Turkish sözdizim ağacı
-- Eğitim devam ediyor
+Scriptler repo kökünden çalıştırılır: `python training/train_idiom_bert.py ...`
+
+## Komutlar
 
 ```bash
-python -X utf8 train_dep_bert.py --epochs 10
+# Idiom
+python training/train_idiom_bert.py --class-weights --tdk-examples --epochs 10
+python benchmark/eval_idiom.py --local --checkpoint idiom_data/best_idiom_tagger.pt --mode all
+
+# Morph / Joint
+python training/train_morph_bert.py --epochs 10
+python benchmark/eval_morph.py                          # BOUN test, neural
+
+# Testler
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest tests/ -q
 ```
 
-### karpathy
-Karpathy-inspired coding guidelines
-- Think before coding
-- Simplicity first
-- Surgical changes
-- Goal-driven execution
+## Alt-skill'ler
 
-## Detaylı Bilgi
-
-Tam dokümantasyon: `.skills/` klasörü
-
-## Proje Durumu
-
-| Modül | Durum |
-|-------|-------|
-| morphology | ✅ Aktif |
-| dep_parsing | 🔄 Eğitim |
-| archive | 25 dosya temizlendi |
+- **finetune-iteration** — deney disiplini: kıyas dosyalarını dondurma, apples-to-apples,
+  checkpoint hijyeni, hangi benchmark neyi ölçer, küçük-sınıflandırıcı overfit oyun kitabı,
+  ortam/harness tuzakları. Yeni varyant/encoder/hiperparametre denerken esas al.
+- **hf-model-publish** — modeli HF'ye `trust_remote_code` paketi olarak yayınlama + companion
+  Space güncelleme (export → round-trip → push → Space restart → smoke test).
+- **idiom** — DizgeBERT-Idiom durumu, deney günlüğü, GLU karar çerçevesi, iki-aşama (stage-2).
+- **dep_parsing** — ELECTRA + Biaffine bağımlılık ayrıştırma.
+- **karpathy** — kodlama disiplini (think before coding, simplicity, surgical changes).

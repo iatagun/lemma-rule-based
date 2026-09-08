@@ -1,6 +1,5 @@
-# Core runtime for the rule-based analyzer: none (pure stdlib).
-# The dependencies below are for the neural models (DizgeBERT-Dep, DizgeBERT-Morph),
-# their data pipelines, and benchmarking.
+# DizgeBERT fine-tuning stack — ELECTRA modelleri (Morph / Joint / Dep / Idiom),
+# veri pipeline'ları, HF paketleme, benchmark.
 
 torch>=2.8
 transformers>=4.57
@@ -10,3 +9,4 @@ tqdm
 scikit-learn
 huggingface_hub>=0.36
 safetensors
+snowballstemmer          # TDK deyim örneklerinde gövde-eşleştirme (data/prepare_tdk_*.py)
