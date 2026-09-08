@@ -20,15 +20,17 @@ verildiğinde her kelimeye BIO etiketi atar: **B/I-VID** (deyim — figüratif, 
 *gözden düşmek*, *eli açık*), **B/I-LVC** (eşdizim/yardımcı-fiil birleşimi — *light-verb
 construction*: *karar vermek*), **O** (serbest birleşim / deyim değil).
 
-**İki aşamalı boru hattı (v2):** Aşama 1 aday span'leri bulur (yukarıdaki BIO modeli); **Aşama 2**
+**İki aşamalı boru hattı (v3):** Aşama 1 aday span'leri bulur (yukarıdaki BIO modeli); **Aşama 2**
 ayrı bir idyomatiklik sınıflandırıcısıdır — her bitişik **VID** adayını *(cümle, span)* olarak alıp
 {idyomatik / literal} kararı verir ve **güvenli literal kullanımları eler** ("otobüs yol aldı" gibi).
 Aşama 2 varsayılan olarak `predict_spans()` içinde açıktır; `stage2=False` ile kapatılır. Tek-BIO
 modeli yüzey biçim eşleşince bağlamdan bağımsız işaretliyordu — Aşama 2 bunu düzeltmeyi hedefler.
 
-**v2 — Aşama 2 deneyseldir.** Bağlam ayrımını ölçülebilir biçilde iyileştirir (dış kaynakta
-yanlış-pozitif %25→%19, doğru-ayırt %37→%41) ama küçük elle-etiketli veriyle eğitildi (overfit);
-literal kullanımların ~%20'si hâlâ geçiyor. precision (~%60-71) ve sınırlamalar bölümüne bakın.
+**v3 — Aşama 2 deneyseldir.** Bağlam ayrımını ölçülebilir biçimde iyileştirir (dış kaynakta
+yanlış-pozitif %25→%16, doğru-ayırt %37→%42) ama küçük elle-etiketli veriyle eğitildi;
+literal kullanımların ~%18'i hâlâ geçiyor. precision (~%60-71) ve sınırlamalar bölümüne bakın.
+(v3: Aşama 2 gövdesinin alt katmanları donduruldu → overfit azaldı, `stage2_thresh` eşiği
+artık anlamlı çalışıyor.)
 
 - **Gövde:** [`dbmdz/electra-base-turkish-cased-discriminator`](https://huggingface.co/dbmdz/electra-base-turkish-cased-discriminator)
   (DizgeBERT-Morph/Joint/Dep ile aynı → ortak subword sözlüğü)
@@ -85,18 +87,18 @@ external`) üzerinde:
 
 | ölçüm | Aşama 1 (stage2=False) | **+ Aşama 2 (varsayılan)** |
 |---|---|---|
-| idyomatik cümlede span işaretledi (duyarlılık) | %59.1 | %55.1 |
-| literal cümlede **yanlış** span işaretledi | %25.3 | **%18.7** |
-| ikisini de doğru ayırt etti | %37.4 | **%40.9** |
+| idyomatik cümlede span işaretledi (duyarlılık) | %59.1 | %55.6 |
+| literal cümlede **yanlış** span işaretledi | %25.3 | **%16.2** |
+| ikisini de doğru ayırt etti | %37.4 | **%41.9** |
 
-Aşama 2, literal cümledeki yanlış-pozitifleri ~1/4 azaltır ve doğru-ayırt oranını yükseltir —
+Aşama 2, literal cümledeki yanlış-pozitifleri ~1/3 azaltır ve doğru-ayırt oranını yükseltir —
 bedeli birkaç puan duyarlılık (bazı gerçek idyomatik kullanımlar da elenir). Aynı yönde:
-GLU tanı seti 16/35 → 19/35. PARSEME test'te Aşama 2 F1'i **69.60 → 67.60** düşürür — ama bu
+GLU tanı seti 16/35 → 21/35. PARSEME test'te Aşama 2 F1'i **69.60 → 67.60** düşürür — ama bu
 yapaydır: o benchmark'ta **tüm** span'ler idyomatik kullanımdır (literal yok), dolayısıyla her
 eleme bir false-negative'dir. Gerçek metinde (idyomatik + literal karışık) kazanç nettir.
 
 Model idyomatik/literal ayrımını **kısmen** çözüyor — dürüst, bilinen bir sınırlama. Aşama 2
-küçük veriyle eğitildiğinden literal kullanımların ~%20'si hâlâ geçiyor.
+küçük veriyle eğitildiğinden literal kullanımların ~%18'i hâlâ geçiyor.
 
 **Çözümleme: Viterbi, argmax değil.** Ham token-düzeyi argmax yapısal olarak geçersiz diziler
 üretebilir (`O` sonrası yetim `I-VID`, ya da `B-VID` sonrası kategori-karışık `I-LVC`). Çıkışa
@@ -148,9 +150,9 @@ print(m.predict_spans(ws, tokenizer=tok))
 
 ## Kısıtlar
 
-- **Aşama 2 deneysel, küçük veriyle eğitildi** (975 örnek, elle etiketli) — belirgin overfit.
-  Literal kullanımların ~%20'sini yakalayamıyor; bazı gerçek idyomatik kullanımları da yanlışlıkla
-  eliyor (dış kaynak duyarlılık %59→%55). `stage2=False` ile tamamen devre dışı bırakılabilir.
+- **Aşama 2 deneysel, küçük veriyle eğitildi** (975 örnek, elle etiketli). Literal kullanımların
+  ~%18'ini yakalayamıyor; bazı gerçek idyomatik kullanımları da yanlışlıkla eliyor (dış kaynak
+  duyarlılık %59→%56). `stage2=False` ile tamamen devre dışı, `stage2_thresh` ile eşik ayarlanır.
 - **Precision ~%60-71** (yukarıya bakın) — üretim kullanımında çıktıyı doğrulamadan güvenmeyin.
 - **Gap'li (süreksiz) span'ler kısmen çözülüyor, tam değil.** İki-katmanlı şema ~%38-47'sini
   kurtarıyor (yukarıya bakın); geri kalanı hâlâ kaçıyor. Ayrıca şema yalnız **tam 2 parçalı**
@@ -175,8 +177,10 @@ print(m.predict_spans(ws, tokenizer=tok))
 
 **Aşama 2 (idyomatiklik sınıflandırıcısı):** ayrı ELECTRA gövdesi + span ilk⊕son pooling →
 `Linear(2H, 2)`. 975 elle-etiketli örnek (Leipzig derleminden madenlenip GLU rubriğiyle
-sınıflandırıldı), sınıf ağırlığı literal'e; 118 görülmemiş deyimlik held-out ile seçim
-(best: acc ~%83, literal-eleme ~%78). Aşama 1'den tamamen bağımsız eğitildi.
+sınıflandırıldı), sınıf ağırlığı literal'e; **alt 8 transformer katmanı donduruldu** (975
+örnekte tam fine-tune ağır overfit ediyordu → softmax doygun, eşik ayarı ölü). 118 görülmemiş
+deyimlik held-out ile dengeli-doğruluk seçimi (best: acc ~%86, idyom-recall %90, literal-eleme
+%82). Aşama 1'den tamamen bağımsız eğitildi.
 
 ## Atıf
 

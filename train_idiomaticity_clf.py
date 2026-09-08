@@ -147,14 +147,25 @@ def collate(pad_id: int):
 
 
 class IdiomaticityClf(nn.Module):
-    """ELECTRA + span ilk⊕son subword → Linear(2H, 2). DizgeBERT-Idiom ile aynı gövde/pooling."""
+    """ELECTRA + span ilk⊕son subword → Linear(2H, 2). DizgeBERT-Idiom ile aynı gövde/pooling.
 
-    def __init__(self, encoder=ENCODER):
+    `freeze` > 0: embeddings + alttan `freeze` transformer katmanı dondurulur (975 örnekte
+    tam fine-tune ağır overfit ediyordu — loss→0.0007, softmax doygun, eşik ayarı ölü).
+    Dondurma trainable parametreyi düşürür → overfit azalır, eşik taraması geri gelir."""
+
+    def __init__(self, encoder=ENCODER, dropout: float = DROPOUT, freeze: int = 0):
         super().__init__()
         self.encoder = AutoModel.from_pretrained(encoder)
         h = self.encoder.config.hidden_size
-        self.dropout = nn.Dropout(DROPOUT)
+        self.dropout = nn.Dropout(dropout)
         self.head = nn.Linear(2 * h, 2)
+        if freeze > 0:
+            for p in self.encoder.embeddings.parameters():
+                p.requires_grad_(False)
+            layers = self.encoder.encoder.layer
+            for lyr in layers[:min(freeze, len(layers))]:
+                for p in lyr.parameters():
+                    p.requires_grad_(False)
 
     def forward(self, input_ids, attention_mask, sf, sl):
         hs = self.encoder(input_ids=input_ids, attention_mask=attention_mask).last_hidden_state
@@ -191,7 +202,14 @@ def main() -> None:
     ap.add_argument("--checkpoint", default=None)
     ap.add_argument("--epochs", type=int, default=EPOCHS)
     ap.add_argument("--encoder", default=ENCODER)
+    ap.add_argument("--freeze", type=int, default=0,
+                    help="embeddings + alttan N transformer katmanını dondur (overfit↓)")
+    ap.add_argument("--dropout", type=float, default=DROPOUT)
+    ap.add_argument("--lr", type=float, default=LR)
+    ap.add_argument("--weight-decay", type=float, default=0.01)
+    ap.add_argument("--out", default=str(CKPT), help="checkpoint çıktı yolu")
     args = ap.parse_args()
+    out_ckpt = Path(args.out)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
@@ -205,7 +223,10 @@ def main() -> None:
     test_ds = ClfDS(test_rows, tok)
     test_dl = DataLoader(test_ds, batch_size=BATCH, collate_fn=collate(pad_id))
 
-    model = IdiomaticityClf(args.encoder).to(device)
+    model = IdiomaticityClf(args.encoder, dropout=args.dropout, freeze=args.freeze).to(device)
+    if args.freeze:
+        ntr = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f"freeze {args.freeze} → trainable {ntr/1e6:.1f}M")
     if args.checkpoint:
         model.load_state_dict(torch.load(args.checkpoint, map_location=device)["model"])
         print(f"yüklendi: {args.checkpoint}")
@@ -222,7 +243,8 @@ def main() -> None:
     train_dl = DataLoader(train_ds, batch_size=BATCH, shuffle=True, collate_fn=collate(pad_id))
     print(f"train_ds {len(train_ds)}  class-weights {w.tolist()}")
 
-    opt = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=0.01)
+    opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad],
+                            lr=args.lr, weight_decay=args.weight_decay)
     total = len(train_dl) * args.epochs
     sch = get_linear_schedule_with_warmup(opt, int(total * WARMUP), total)
 
@@ -240,13 +262,16 @@ def main() -> None:
             opt.step(); sch.step()
             tot += loss.item()
         res = evaluate(model, test_dl, device)
-        # seçim skoru: idyomatik-F1 ve literal-eleme dengesi (macro)
-        score = (res["idyom_F1"] + res["literal_eleme"]) / 2
+        # seçim skoru: iki sınıfın recall'ı dengeli (= dengeli doğruluk). Boru hattı
+        # "doğru-ayırt" metriği tam bunu ölçüyor — hem idyomatiği yakala HEM literali ele.
+        # (Eski (idyom_F1+literal_eleme)/2 literal_eleme'yi aşırı ödüllendirip aşırı
+        # temkinli epoch'u seçiyordu.)
+        score = (res["idyom_R"] + res["literal_eleme"]) / 2
         print(f"ep{ep} loss {tot/len(train_dl):.4f}  {res}  macro {score:.1f}")
         if score > best:
             best = score
-            torch.save({"model": model.state_dict(), "encoder": args.encoder, "metrics": res}, CKPT)
-            print(f"  → {CKPT.name}")
+            torch.save({"model": model.state_dict(), "encoder": args.encoder, "metrics": res}, out_ckpt)
+            print(f"  → {out_ckpt.name}")
     print(f"best macro {best:.1f}")
 
 
