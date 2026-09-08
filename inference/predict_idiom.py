@@ -3,9 +3,13 @@
 """DizgeBERT-Idiom çıkarım — düz metin (cümle/satır) → deyim (VID) / eşdizim (LVC) span'leri.
 
 Kullanım:
-    python predict_idiom.py --demo                                   # örnek cümleler
-    python predict_idiom.py --in cumleler.txt --checkpoint idiom_data/best_idiom_tagger.pt
-    python predict_idiom.py --in cumleler.txt --hf                    # yayınlanmış HF modeli
+    python inference/predict_idiom.py --demo                                   # örnek cümleler
+    python inference/predict_idiom.py --in cumleler.txt --checkpoint idiom_data/best_idiom_tagger.pt
+    python inference/predict_idiom.py --in cumleler.txt --hf                   # yayınlanmış HF modeli (iki-aşama içeride)
+    python inference/predict_idiom.py --demo --stage2 idiom_data/best_idiomaticity_clf_v3.pt  # yerel + stage-2
+
+Not: `--hf` yolu iki-aşama (stage-2 idyomatiklik filtresi) YAYINLANAN modele gömülü olduğu için
+otomatik uygular. Yerel `--checkpoint` yolu VARSAYILAN ham stage-1'dir; stage-2 için `--stage2`.
 """
 from __future__ import annotations
 
@@ -47,6 +51,9 @@ def main() -> None:
     ap.add_argument("--hf", action="store_true", help="yerel .pt yerine yayınlanmış HF modeli")
     ap.add_argument("--hf-repo", default="iatagun/DizgeBERT-Idiom")
     ap.add_argument("--checkpoint", default=str(PROJECT_ROOT / "idiom_data" / "best_idiom_tagger.pt"))
+    ap.add_argument("--stage2", default=None,
+                    help="yerel yolda idyomatiklik sınıflandırıcı checkpoint'i (stage-2 filtresi)")
+    ap.add_argument("--stage2-thresh", type=float, default=0.5)
     args = ap.parse_args()
 
     if not args.demo and not args.inp:
@@ -68,7 +75,8 @@ def main() -> None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model, tok, ls = load_local(args.checkpoint, device)
 
-        from dizgebert_idiom.modeling_dizgebert_idiom import align_words, decode_bigappy_spans, viterbi_decode
+        from dizgebert_idiom.modeling_dizgebert_idiom import (
+            align_words, decode_bigappy_spans, spans_from_bigappy, viterbi_decode)
         from training.train_idiom_bert import MAX_LEN
 
         @torch.no_grad()
@@ -77,18 +85,12 @@ def main() -> None:
             out = model(enc["input_ids"], enc["attention_mask"], fp, lp)
             tags1 = viterbi_decode(out["tags"][0], ls.tags)
             tags2 = viterbi_decode(out["tags2"][0], ls.tags2)
-            spans = []
-            for span in decode_bigappy_spans(tags1, tags2):
-                if len(span) == 3:
-                    s, e, cat = span
-                    spans.append({"text": " ".join(ws[i] for i in range(s, e)),
-                                  "start": s, "end": e, "category": cat, "gappy": False})
-                else:
-                    s1, e1, s2, e2, cat = span
-                    text = " ".join(ws[s1:e1]) + " ... " + " ".join(ws[s2:e2])
-                    spans.append({"text": text, "start": s1, "end": e1, "start2": s2,
-                                  "end2": e2, "category": cat, "gappy": True})
-            return spans
+            return spans_from_bigappy(decode_bigappy_spans(tags1, tags2), ws)
+
+        if args.stage2:
+            from training.train_idiomaticity_clf import wrap_stage2
+            predict_spans = wrap_stage2(predict_spans, args.stage2, args.stage2_thresh)
+            print(f"[iki-aşama] stage-2 filtresi: {args.stage2} (thresh {args.stage2_thresh})")
 
     for sent in sentences:
         words = sent.split()

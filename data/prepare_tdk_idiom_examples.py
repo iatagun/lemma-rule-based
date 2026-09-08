@@ -9,9 +9,11 @@ deyimleri için GERÇEK bağlam cümlesi kaynağı — sentetik üretime gerek y
 
 Zorluk: TDK'nin deyim metni sözlük-madde biçiminde (`gözden düşmek`), örnek cümledeki yüzey
 biçimiyle birebir eşleşmez (`gözden düştü`). `snowballstemmer` ("turkish") ile hem deyim
-kelimelerini hem cümle kelimelerini GÖVDEYE (stem) indirgeyip aynı gövde dizisini cümlede
-ardışık arıyoruz — çekim farkını aşan basit bir eşleştirme. Parantez/`...` temizleme mantığı
-`strip_balanced_parens`'da. Tam morfolojik ayrıştırma değil, yalnız span sınırı aranıyor.
+kelimelerini hem cümle kelimelerini GÖVDEYE indirgeyip aynı gövde dizisini cümlede ardışık
+arıyoruz. Snowball mastar ekini (-mek/-mak) bırakmadığından deyim metninin SON kelimesinden
+(tipik olarak mastar) onu elle atıyoruz (`_idiom_word_stem`). Kalan sınır: snowball geniş
+zaman (-er/-ır) gibi bazı çekimleri tanımıyor → kural-tabanlı analizöre göre bir miktar
+recall kaybı (diskteki mevcut `tdk_examples*.json` eski analizörle üretildi).
 
 Etiket: TDK 'idiom' (Deyim) kaydı → **VID** (PARSEME'nin verbal-idiom etiketiyle aynı sınıf;
 kavramsal olarak deyim = deyim, PARSEME yalnız fiil-merkezli olanları etiketlemişti, TDK
@@ -45,9 +47,18 @@ _STEM = snowballstemmer.stemmer("turkish")
 
 
 def stem(w: str) -> str:
-    """Türkçe gövde. (Eski kural-tabanlı `morphology` çözümleyicisi kaldırıldı —
-    snowball hafif bir gövdeleyici; yeniden üretilen zayıf-denetim verisi diskteki
-    mevcut sürümden bir miktar farklı olabilir.)"""
+    """Türkçe gövde (snowball). (Eski kural-tabanlı `morphology` çözümleyicisi kaldırıldı.)"""
+    return _STEM.stemWord(w.lower()) or w.lower()
+
+
+def _idiom_word_stem(w: str, is_last: bool) -> str:
+    """Deyim SÖZLÜK-biçimi kelimesinin gövdesi. Snowball Türkçe mastar ekini (-mek/-mak)
+    BIRAKMIYOR → "düşmek" gövdesi "düşmek" kalır ama cümledeki "düştü" → "düş". Deyim
+    metninin son kelimesi tipik olarak mastardır (Türkçe deyim yapısı) → önce onu düşür ki
+    çekimli biçimle aynı gövdeye insin. Nominal deyimler ("eli açık") etkilenmez."""
+    w = w.lower()
+    if is_last and len(w) > 4 and w.endswith(("mek", "mak")):
+        w = w[:-3]
     return _STEM.stemWord(w) or w
 
 IN_CSV = PROJECT_ROOT / "idiom_data" / "raw" / "tdk_atasozu_deyim.csv"
@@ -106,7 +117,7 @@ def tokenize(sent: str) -> list[str]:
 def idiom_stems(text: str) -> list[str]:
     cleaned = strip_balanced_parens(text)
     words = [w for w in re.sub(r"[.,!?;:\"']", "", tr_lower(cleaned)).split() if w]
-    return [stem(w) for w in words]
+    return [_idiom_word_stem(w, i == len(words) - 1) for i, w in enumerate(words)]
 
 
 def find_span(idiom_seq: list[str], sent_stems: list[str]) -> tuple[int, int] | None:

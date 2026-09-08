@@ -18,9 +18,13 @@ Eğitim verisi (elle etiketli, `filter_corpus_idiomaticity.py` akışından):
   - held-out: `corpus_minpair_test.json` (görülmemiş 118 deyim, D ve L kayıtları)
 
 Kullanım:
-    python filter_corpus_idiomaticity.py --apply --balance   # (test json'unu üretir)
-    python train_idiomaticity_clf.py --epochs 8
-    python train_idiomaticity_clf.py --eval --checkpoint idiom_data/best_idiomaticity_clf.pt
+    python data/filter_corpus_idiomaticity.py --apply      # _holdout_idioms.json + test json üretir
+    python training/train_idiomaticity_clf.py --freeze 8 --dropout 0.3 --weight-decay 0.05 --epochs 14
+    python training/train_idiomaticity_clf.py --eval --checkpoint idiom_data/best_idiomaticity_clf.pt
+
+Not: bu script `_corpus_sample_labels.tsv` + `_corpus_sample_records.jsonl` + `_holdout_idioms.json`'u
+DOĞRUDAN okur; `--apply`'ın `--balance`'ı YALNIZ `corpus_examples_glu.json`'u (stage-1 `--corpus-glu`
+deney yolu) etkiler, buradaki eğitimi ETKİLEMEZ (dengesizlik sınıf ağırlığıyla halledilir).
 """
 from __future__ import annotations
 
@@ -108,8 +112,9 @@ def load_pairs() -> tuple[list[dict], list[dict]]:
 
 
 class ClfDS(Dataset):
-    def __init__(self, rows: list[dict], tok):
+    def __init__(self, rows: list[dict], tok, name: str = ""):
         self.items = []
+        dropped = 0
         for r in rows:
             enc = tok(r["words"], is_split_into_words=True, truncation=True, max_length=MAX_LEN)
             wid = enc.word_ids()
@@ -120,11 +125,14 @@ class ClfDS(Dataset):
                 first.setdefault(w, i)
                 last[w] = i
             if r["s"] not in first or (r["e"] - 1) not in last:
-                continue  # span truncation'a takıldı
+                dropped += 1  # span MAX_LEN kırpmasına takıldı
+                continue
             self.items.append({
                 "input_ids": enc["input_ids"], "attention_mask": enc["attention_mask"],
                 "sf": first[r["s"]], "sl": last[r["e"] - 1], "y": r["y"],
             })
+        if dropped:
+            print(f"  {name or 'ClfDS'}: {dropped}/{len(rows)} örnek span MAX_LEN'e takıldı, atlandı")
 
     def __len__(self):
         return len(self.items)
@@ -176,6 +184,45 @@ class IdiomaticityClf(nn.Module):
         return self.head(self.dropout(torch.cat([f, g], -1)))
 
 
+def wrap_stage2(base_predict, clf_ckpt: str, thresh: float = 0.5):
+    """Fikir 3: aşama-1 span'lerini idyomatiklik sınıflandırıcısından geçir, literal olanı ELE.
+    Yalnız bitişik VID'e uygulanır (LVC yarı-birleşimsel, gap'li dokunulmaz); span
+    `p(literal) > thresh` ise elenir. Sınıflandırıcı gövdesi cümle başına BİR kez çalışır.
+
+    Bu, `DizgeBertIdiomForTokenClassification.predict_spans(stage2=True)` ile AYNI kuralı
+    kullanır (`spans_from_bigappy` + `span_p_literal`) — standalone `.pt` için (henüz
+    pakete gömülmemiş stage-2 checkpoint'i). `benchmark/eval_idiom` ve `predict_idiom`
+    bunu import eder (üç kopya → tek kaynak)."""
+    from dizgebert_idiom.modeling_dizgebert_idiom import align_words, span_p_literal
+
+    ck = torch.load(clf_ckpt, map_location="cpu")
+    enc_name = ck.get("encoder", ENCODER)
+    tok = AutoTokenizer.from_pretrained(enc_name)
+    clf = IdiomaticityClf(enc_name).eval()
+    clf.load_state_dict(ck["model"])
+
+    @torch.no_grad()
+    def predict(words):
+        spans = base_predict(words)
+        to_check = [sp for sp in spans if sp.get("category") == "VID"
+                    and not sp.get("gappy") and not sp.get("literal")]
+        if not to_check:
+            return spans
+        enc, kept, fp, lp = align_words(tok, words, MAX_LEN)
+        hs = clf.encoder(input_ids=enc["input_ids"],
+                         attention_mask=enc["attention_mask"]).last_hidden_state[0]
+        drop = set()
+        for sp in to_check:
+            s, e = sp["start"], sp["end"]
+            if s >= len(kept) or (e - 1) >= len(kept):
+                continue  # span kırpıldı → dokunma
+            if span_p_literal(hs, fp[0, s], lp[0, e - 1], clf.head) > thresh:
+                drop.add(id(sp))
+        return [sp for sp in spans if id(sp) not in drop]
+
+    return predict
+
+
 @torch.no_grad()
 def evaluate(model, dl, device) -> dict:
     model.eval()
@@ -221,7 +268,7 @@ def main() -> None:
     print(f"train {len(train_rows)} ({Counter(r['y'] for r in train_rows)})  "
           f"test {len(test_rows)} ({Counter(r['y'] for r in test_rows)})")
 
-    test_ds = ClfDS(test_rows, tok)
+    test_ds = ClfDS(test_rows, tok, "held-out")
     test_dl = DataLoader(test_ds, batch_size=BATCH, collate_fn=collate(pad_id))
 
     model = IdiomaticityClf(args.encoder, dropout=args.dropout, freeze=args.freeze).to(device)
@@ -236,7 +283,7 @@ def main() -> None:
         print("held-out:", evaluate(model, test_dl, device))
         return
 
-    train_ds = ClfDS(train_rows, tok)
+    train_ds = ClfDS(train_rows, tok, "train")
     # sınıf ağırlığı: idyomatik(1) baskın (~820:463) → literal'e ağırlık
     cnt = Counter(x["y"] for x in train_ds.items)
     w = torch.tensor([1.0 / max(cnt[0], 1), 1.0 / max(cnt[1], 1)], device=device)

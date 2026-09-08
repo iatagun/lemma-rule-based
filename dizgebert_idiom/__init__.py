@@ -6,11 +6,14 @@ from .modeling_dizgebert_idiom import (
     align_words,
     decode_bigappy_spans,
     decode_bio_spans,
+    spans_from_bigappy,
+    span_p_literal,
     viterbi_decode,
 )
 
 __all__ = ["DizgeBertIdiomConfig", "DizgeBertIdiomForTokenClassification",
-           "align_words", "decode_bigappy_spans", "decode_bio_spans", "viterbi_decode"]
+           "align_words", "decode_bigappy_spans", "decode_bio_spans",
+           "spans_from_bigappy", "span_p_literal", "viterbi_decode"]
 
 try:
     from transformers import AutoConfig, AutoModel

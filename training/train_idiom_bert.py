@@ -336,7 +336,7 @@ def selection_score(res: dict) -> float:
 # ─────────────────────────────────────────────────────────────────────────────
 #  HF export
 # ─────────────────────────────────────────────────────────────────────────────
-def export_hf(model, tokenizer, ls: IdiomLabelSpace, out_dir: Path, metrics: dict | None = None,
+def export_hf(model, tokenizer, ls: IdiomLabelSpace, out_dir: Path,
               stage2_ckpt: str | None = None) -> None:
     import shutil
 
@@ -372,22 +372,11 @@ def export_hf(model, tokenizer, ls: IdiomLabelSpace, out_dir: Path, metrics: dic
     for fn in ("configuration_dizgebert_idiom.py", "modeling_dizgebert_idiom.py"):
         shutil.copy(pkg / fn, out_dir / fn)
 
-    _write_model_card(out_dir, metrics)
+    # README.md = MODEL_CARD.md (sonuç tabloları elle bakımlı — prose bağlamı gerektiriyor).
+    shutil.copy(pkg / "MODEL_CARD.md", out_dir / "README.md")
     print(f"HF paketi yazıldı: {out_dir}")
     print("  Test: python -c \"from transformers import AutoModel;"
           f" AutoModel.from_pretrained(r'{out_dir}', trust_remote_code=True)\"")
-
-
-def _write_model_card(out_dir: Path, metrics: dict | None) -> None:
-    tpl = PROJECT_ROOT / "dizgebert_idiom" / "MODEL_CARD.md"
-    mt = ""
-    if metrics:
-        for c, m in metrics.items():
-            if c == "_token_acc":
-                continue
-            mt += f"| {c} | {m['p']} | {m['r']} | {m['f1']} |\n"
-    text = tpl.read_text(encoding="utf-8").replace("{{METRICS}}", mt or "| – | – | – | – |")
-    (out_dir / "README.md").write_text(text, encoding="utf-8")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -434,12 +423,10 @@ def main() -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
 
-    ckpt_metrics = None
     ck = None
     load_path = args.resume or args.checkpoint
     if load_path:
         ck = torch.load(load_path, map_location=device)
-        ckpt_metrics = ck.get("metrics")
 
     ls = IdiomLabelSpace(ck["label_space"]) if ck and "label_space" in ck else IdiomLabelSpace.load()
     if args.encoder:
@@ -457,7 +444,7 @@ def main() -> None:
     if args.export_hf:
         if not args.checkpoint:
             print("UYARI: --checkpoint verilmedi, eğitilmemiş ağırlıklar export ediliyor.")
-        export_hf(model, tokenizer, ls, Path(args.export_hf), ckpt_metrics, args.stage2_ckpt)
+        export_hf(model, tokenizer, ls, Path(args.export_hf), args.stage2_ckpt)
         return
 
     if args.eval:

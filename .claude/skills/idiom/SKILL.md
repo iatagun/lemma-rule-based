@@ -112,8 +112,8 @@ python data/prepare_tdk_idiom_examples.py
 python data/fetch_leipzig_tr.py
 python -u data/prepare_tdk_corpus_examples.py --cap 8
 
-# stage-2 idyomatiklik sınıflandırıcısı (Fikir 3)
-python data/filter_corpus_idiomaticity.py --apply --balance
+# stage-2 idyomatiklik sınıflandırıcısı (Fikir 3) — --balance stage-2'yi ETKİLEMEZ (yalnız --apply gerekli)
+python data/filter_corpus_idiomaticity.py --apply
 python training/train_idiomaticity_clf.py --freeze 8 --dropout 0.3 --weight-decay 0.05 --epochs 14
 
 # HF export (stage-2 gömülü) + push

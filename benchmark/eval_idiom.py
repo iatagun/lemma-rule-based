@@ -87,7 +87,8 @@ def make_predictor(local: bool, checkpoint: str | None, hf_repo: str):
         from transformers import AutoTokenizer
 
         from training.train_idiom_bert import IdiomLabelSpace, IdiomTagger, MAX_LEN
-        from dizgebert_idiom.modeling_dizgebert_idiom import align_words, decode_bigappy_spans, viterbi_decode
+        from dizgebert_idiom.modeling_dizgebert_idiom import (
+            align_words, decode_bigappy_spans, spans_from_bigappy, viterbi_decode)
 
         ck = torch.load(checkpoint, map_location="cpu")
         ls = IdiomLabelSpace(ck["label_space"])
@@ -101,69 +102,13 @@ def make_predictor(local: bool, checkpoint: str | None, hf_repo: str):
             out = model(enc["input_ids"], enc["attention_mask"], fp, lp)
             tags1 = viterbi_decode(out["tags"][0], ls.tags)
             tags2 = viterbi_decode(out["tags2"][0], ls.tags2)
-            spans = []
-            for span in decode_bigappy_spans(tags1, tags2):
-                if len(span) == 3:
-                    s, e, cat = span
-                    if cat.endswith("-LIT"):   # Fikir 4: literal kullanım → gerçek span değil
-                        continue
-                    spans.append({"text": " ".join(words[i] for i in range(s, e)),
-                                  "start": s, "end": e, "category": cat, "gappy": False})
-                else:
-                    s1, e1, s2, e2, cat = span
-                    text = " ".join(words[s1:e1]) + " ... " + " ".join(words[s2:e2])
-                    spans.append({"text": text, "start": s1, "end": e1, "start2": s2,
-                                  "end2": e2, "category": cat, "gappy": True})
-            return spans
+            return spans_from_bigappy(decode_bigappy_spans(tags1, tags2), words)
         return pred_local
 
     from transformers import AutoModel, AutoTokenizer
     m = AutoModel.from_pretrained(hf_repo, trust_remote_code=True).eval()
     tok = AutoTokenizer.from_pretrained(hf_repo)
     return lambda words: m.predict_spans(words, tokenizer=tok)
-
-
-def wrap_stage2(base_predict, clf_ckpt: str, thresh: float = 0.5):
-    """Fikir 3: aşama-1 span'lerini idyomatiklik sınıflandırıcısından geçir, literal olanı ELE.
-    Yalnız VID'e uygulanır; span YALNIZCA p(literal) > thresh ise elenir (thresh↑ → recall↑)."""
-    import torch
-    from transformers import AutoTokenizer
-    from training.train_idiomaticity_clf import IdiomaticityClf
-
-    ck = torch.load(clf_ckpt, map_location="cpu")
-    enc_name = ck.get("encoder", "dbmdz/electra-base-turkish-cased-discriminator")
-    tok = AutoTokenizer.from_pretrained(enc_name)
-    clf = IdiomaticityClf(enc_name).eval()
-    clf.load_state_dict(ck["model"])
-
-    @torch.no_grad()
-    def _idiomatic(words, s, e) -> bool:
-        enc = tok(words, is_split_into_words=True, return_tensors="pt",
-                  truncation=True, max_length=128)
-        wid = enc.word_ids()
-        first = {}; last = {}
-        for i, w in enumerate(wid):
-            if w is None:
-                continue
-            first.setdefault(w, i); last[w] = i
-        if s not in first or (e - 1) not in last:
-            return True  # span kırpıldı → dokunma
-        logit = clf(enc["input_ids"], enc["attention_mask"],
-                    torch.tensor([first[s]]), torch.tensor([last[e - 1]]))
-        p_literal = float(torch.softmax(logit, -1)[0, 0])
-        return p_literal <= thresh  # yalnız GÜVENLİ literal elenir
-
-    def predict(words):
-        out = []
-        for sp in base_predict(words):
-            # stage-2 YALNIZ VID'e: LVC.full (karar vermek, yardım etmek) tanımı gereği
-            # yarı-birleşimsel, idyomatik/literal ayrımı yok — filtreye sokulmaz. Gap'li de geçer.
-            if sp.get("gappy") or sp.get("category") != "VID":
-                out.append(sp); continue
-            if _idiomatic(words, sp["start"], sp["end"]):
-                out.append(sp)
-        return out
-    return predict
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -205,25 +150,52 @@ def run_external(predict) -> None:
             if r.get("sample", "").strip() and r.get("literal", "").strip()]
     print(f"\n=== Dış kaynak: Çavuşoğlu & Çöltekin (MWE 2026), {len(rows)} deyim çifti ===")
 
-    n = sample_hit = literal_hit = both_correct = 0
+    from data.prepare_tdk_idiom_examples import idiom_stems, find_span, stem
+
+    def target_range(idiom: str, words: list[str]) -> tuple[int, int] | None:
+        """Hedef deyimin cümledeki kelime aralığı (gövde-eşleştirme) — bulunamazsa None."""
+        seq = idiom_stems(idiom)
+        return find_span(seq, [stem(w.lower()) for w in words]) if seq else None
+
+    def hit_at_target(spans: list[dict], rng: tuple[int, int] | None) -> bool:
+        """rng=None → 'cümlede herhangi bir span' (gevşek). Aksi halde span hedefle çakışmalı."""
+        if not spans:
+            return False
+        if rng is None:
+            return True
+        ts, te = rng
+        return any(sp["start"] < te and ts < sp["end"] for sp in spans)
+
+    n = sample_hit = literal_hit = both_correct = 0           # gevşek: cümlede herhangi bir span
+    ns = s_hit_t = l_hit_t = both_t = n_located = 0           # sıkı: span hedef deyimde
     for r in rows:
         sw, lw = r["sample"].split(), r["literal"].split()
         if len(sw) < 2 or len(lw) < 2:
             continue
-        sh = bool(predict(sw))
-        lh = bool(predict(lw))
+        ss, ls_ = predict(sw), predict(lw)
+        sh, lh = bool(ss), bool(ls_)
         n += 1
-        sample_hit += sh
-        literal_hit += lh
-        both_correct += sh and not lh
+        sample_hit += sh; literal_hit += lh; both_correct += sh and not lh
+
+        srng, lrng = target_range(r["idiom"], sw), target_range(r["idiom"], lw)
+        if srng is not None and lrng is not None:   # hedef her iki cümlede konumlanabildi
+            n_located += 1
+            sht, lht = hit_at_target(ss, srng), hit_at_target(ls_, lrng)
+            s_hit_t += sht; l_hit_t += lht; both_t += sht and not lht
 
     print(f"  işlenen: {n}")
     if n == 0:
         print("  UYARI: uygun satır yok (hepsi tek-kelimelik filtreye takıldı).")
         return
-    print(f"  idyomatik cümlede span işaretledi (duyarlılık): {sample_hit}/{n} = %{100*sample_hit/n:.1f}")
-    print(f"  literal cümlede YANLIŞ span işaretledi (yanlış-pozitif): {literal_hit}/{n} = %{100*literal_hit/n:.1f}")
-    print(f"  ikisini de doğru ayırt etti: {both_correct}/{n} = %{100*both_correct/n:.1f}")
+    print(f"  [gevşek — cümlede herhangi bir span]")
+    print(f"    duyarlılık: {sample_hit}/{n} = %{100*sample_hit/n:.1f}   "
+          f"yanlış-poz: {literal_hit}/{n} = %{100*literal_hit/n:.1f}   "
+          f"doğru-ayırt: {both_correct}/{n} = %{100*both_correct/n:.1f}")
+    if n_located:
+        print(f"  [sıkı — span hedef deyimle çakışıyor, {n_located}/{n} satır konumlandı]")
+        print(f"    duyarlılık: {s_hit_t}/{n_located} = %{100*s_hit_t/n_located:.1f}   "
+              f"yanlış-poz: {l_hit_t}/{n_located} = %{100*l_hit_t/n_located:.1f}   "
+              f"doğru-ayırt: {both_t}/{n_located} = %{100*both_t/n_located:.1f}")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -293,10 +265,12 @@ def run_glu(predict) -> None:
     cases = glu_diagnostic_cases()
     print(f"\n=== GLU kılavuzu tanı seti ({len(cases)} vaka) ===")
     n_ok = n_fail = 0
-    # minimal çift muhasebesi: aynı yapının deyim + literal cümlesi ardışık
-    pair_idiom_hit = pair_literal_hit = pair_total = 0
+    # minimal çift muhasebesi: aynı yapının deyim + literal cümlesi ardışık (glu-deyim → glu-literal).
+    # doğru-ayırt = ÇİFT bazında: deyim cümlesinde DOĞRU span VE literal cümlesinde span YOK
+    # (run_external ile aynı formül — eskiden `idiom_hit - literal_hit` kaba farkıyla hesaplanıyordu).
+    pair_idiom_ok = pair_literal_span = pair_both = pair_total = 0
     cur = None
-    prev_was_idiom_ok = None
+    pend_idiom_ok = None
     for cat, sent, phrase, tag in cases:
         if cat != cur:
             print(f"\n  ── {cat} ──"); cur = cat
@@ -308,19 +282,20 @@ def run_glu(predict) -> None:
         got = ", ".join(f"{s['text']}:{s['category']}" for s in spans) or "(span yok)"
         print(f"  {mark} {sent[:52]:52s}  bulundu: {got:32s}  bkln: {phrase or '(yok)'}")
         if cat == "glu-deyim":
-            prev_was_idiom_ok = bool(spans)
-        elif cat == "glu-literal" and prev_was_idiom_ok is not None:
+            pend_idiom_ok = (status == "ok")   # doğru span bulundu mu (yalnız 'herhangi span' değil)
+        elif cat == "glu-literal" and pend_idiom_ok is not None:
+            lit_span = bool(spans)
             pair_total += 1
-            pair_idiom_hit += prev_was_idiom_ok
-            pair_literal_hit += bool(spans)
-            prev_was_idiom_ok = None
+            pair_idiom_ok += pend_idiom_ok
+            pair_literal_span += lit_span
+            pair_both += pend_idiom_ok and not lit_span
+            pend_idiom_ok = None
 
     print(f"\n  vaka skoru: {n_ok}/{n_ok + n_fail}")
     if pair_total:
-        both = pair_idiom_hit - pair_literal_hit  # kaba: deyimde işaretledi, literalde işaretlemedi
-        print(f"  minimal çift ({pair_total}): deyimde span %{100*pair_idiom_hit/pair_total:.0f}, "
-              f"literalde YANLIŞ span %{100*pair_literal_hit/pair_total:.0f}, "
-              f"net doğru-ayırt ~%{100*max(both,0)/pair_total:.0f}")
+        print(f"  minimal çift ({pair_total}): deyimde DOĞRU span %{100*pair_idiom_ok/pair_total:.0f}, "
+              f"literalde YANLIŞ span %{100*pair_literal_span/pair_total:.0f}, "
+              f"doğru-ayırt %{100*pair_both/pair_total:.0f}")
 
 
 def main() -> None:
@@ -338,6 +313,8 @@ def main() -> None:
 
     predict = make_predictor(args.local, args.checkpoint, args.hf_repo)
     if args.stage2:
+        # tek kaynak — modeling.predict_spans(stage2=True) ile aynı mantık
+        from training.train_idiomaticity_clf import wrap_stage2
         predict = wrap_stage2(predict, args.stage2, args.stage2_thresh)
         print(f"[iki-aşama] stage-2 filtresi aktif: {args.stage2} (thresh {args.stage2_thresh})")
 
