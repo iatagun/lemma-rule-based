@@ -105,6 +105,8 @@ def make_predictor(local: bool, checkpoint: str | None, hf_repo: str):
             for span in decode_bigappy_spans(tags1, tags2):
                 if len(span) == 3:
                     s, e, cat = span
+                    if cat.endswith("-LIT"):   # Fikir 4: literal kullanım → gerçek span değil
+                        continue
                     spans.append({"text": " ".join(words[i] for i in range(s, e)),
                                   "start": s, "end": e, "category": cat, "gappy": False})
                 else:

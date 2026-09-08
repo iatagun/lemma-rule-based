@@ -221,7 +221,7 @@ class DizgeBertIdiomForTokenClassification(PreTrainedModel):
 
     @torch.no_grad()
     def predict_spans(self, words: list[str], tokenizer=None, stage2: bool | None = None,
-                      stage2_thresh: float | None = None) -> list[dict]:
+                      stage2_thresh: float | None = None, keep_literal: bool = False) -> list[dict]:
         """`predict()` + iki-katman çözümleme → span listesi.
 
         Sıradan (bitişik) span: `{"text","start","end","category","gappy": False}`.
@@ -231,6 +231,10 @@ class DizgeBertIdiomForTokenClassification(PreTrainedModel):
         `stage2` (varsayılan: config.stage2): açıksa bitişik **VID** adayları idyomatiklik
         sınıflandırıcısından geçirilir, güvenli literal kullanımlar elenir (LVC ve gap'li
         span'ler dokunulmaz). Ağırlıklar pakete gömülü değilse sessizce atlanır.
+
+        `-LIT` kategorisi (deyim-biçimin literal kullanımı — model etiket uzayında açık
+        tahmin ederse) varsayılan olarak **döndürülmez** (gerçek deyim span'i değil).
+        `keep_literal=True` ise `{"category": "VID", "literal": True, ...}` olarak eklenir.
         """
         use_s2 = self.config.stage2 if stage2 is None else stage2
         use_s2 = use_s2 and hasattr(self, "stage2_head")
@@ -244,6 +248,11 @@ class DizgeBertIdiomForTokenClassification(PreTrainedModel):
         for span in decode_bigappy_spans(tags1, tags2):
             if len(span) == 3:
                 s, e, cat = span
+                if cat.endswith("-LIT"):
+                    if keep_literal:
+                        out.append({"text": " ".join(words[s:e]), "start": s, "end": e,
+                                    "category": cat[:-4], "literal": True, "gappy": False})
+                    continue
                 if use_s2 and cat == "VID" and not self._stage2_keep(words, s, e, tokenizer, thr):
                     continue
                 out.append({"text": " ".join(words[s:e]), "start": s, "end": e,

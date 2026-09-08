@@ -282,16 +282,22 @@ def evaluate(model, loader, device, ls: IdiomLabelSpace) -> dict:
                 correct_tok += int(gt == pt)
             g_spans = set(decode_bigappy_spans(g_tags1, g_tags2))
             p_spans = set(decode_bigappy_spans(p_tags1, p_tags2))
+            # "-LIT" (deyim-biçimin literal kullanımı, Fikir 4) kendi satırında sayılır ama
+            # ALL'a KATILMAZ — gerçek deyim/eşdizim span'i değil, "burası O olmalı" sinyali.
+            real = lambda s: not str(s[-1]).endswith("-LIT")
             for s in g_spans & p_spans:
-                tp[s[-1]] += 1; tp["ALL"] += 1
+                tp[s[-1]] += 1
+                if real(s): tp["ALL"] += 1
                 if len(s) == 5:
                     tp["GAPLI"] += 1
             for s in p_spans - g_spans:
-                fp[s[-1]] += 1; fp["ALL"] += 1
+                fp[s[-1]] += 1
+                if real(s): fp["ALL"] += 1
                 if len(s) == 5:
                     fp["GAPLI"] += 1
             for s in g_spans - p_spans:
-                fn[s[-1]] += 1; fn["ALL"] += 1
+                fn[s[-1]] += 1
+                if real(s): fn["ALL"] += 1
                 if len(s) == 5:
                     fn["GAPLI"] += 1
 
