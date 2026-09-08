@@ -39,6 +39,17 @@ morph_data/*
 !morph_data/label_space.json
 dizgebert_morph_hf/
 dizgebert_joint_hf/
+# idiom_data/: aynı mantık — yalnız label_space.json commit'lenir, PARSEME .cupt/JSON'lar
+# CC-BY-NC-SA 4.0 lisanslı (fetch_parseme_tr.py ile yeniden üretilir), izlenmez.
+idiom_data/*
+!idiom_data/label_space.json
+idiom_arc_data/*
+!idiom_arc_data/label_space.json
+dizgebert_idiom_hf/
+
+# GLU deyim etiketleme kılavuzu — telifli akademik belge (G. L. Uzun, Ankara Üniv.);
+# damıtılmış hâli .claude/skills/idiom/glu_karar_cercevesi.md'de, PDF yeniden dağıtılmaz.
+GLU_Deyim_Etiketleme_Ogretmen_Kilavuzu.pdf
 
 # OS
 Thumbs.db

@@ -1,0 +1,8 @@
+{
+  "encoder_model": "dbmdz/electra-base-turkish-cased-discriminator",
+  "arc_tags": [
+    "O",
+    "VID",
+    "LVC"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "encoder_model": "dbmdz/electra-base-turkish-cased-discriminator",
+  "tags": [
+    "O",
+    "B-VID",
+    "I-VID",
+    "B-LVC",
+    "I-LVC"
+  ],
+  "tags2": [
+    "o",
+    "b-VID",
+    "i-VID",
+    "b-LVC",
+    "i-LVC"
+  ]
+}
