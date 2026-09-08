@@ -51,6 +51,11 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest tests/ -q
 
 ## Alt-skill'ler
 
-- **idiom** — DizgeBERT-Idiom durumu, deney günlüğü, GLU karar çerçevesi
-- **dep_parsing** — ELECTRA + Biaffine bağımlılık ayrıştırma
-- **karpathy** — kodlama disiplini (think before coding, simplicity, surgical changes)
+- **finetune-iteration** — deney disiplini: kıyas dosyalarını dondurma, apples-to-apples,
+  checkpoint hijyeni, hangi benchmark neyi ölçer, küçük-sınıflandırıcı overfit oyun kitabı,
+  ortam/harness tuzakları. Yeni varyant/encoder/hiperparametre denerken esas al.
+- **hf-model-publish** — modeli HF'ye `trust_remote_code` paketi olarak yayınlama + companion
+  Space güncelleme (export → round-trip → push → Space restart → smoke test).
+- **idiom** — DizgeBERT-Idiom durumu, deney günlüğü, GLU karar çerçevesi, iki-aşama (stage-2).
+- **dep_parsing** — ELECTRA + Biaffine bağımlılık ayrıştırma.
+- **karpathy** — kodlama disiplini (think before coding, simplicity, surgical changes).

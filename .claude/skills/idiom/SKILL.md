@@ -1,6 +1,6 @@
 ---
 name: idiom
-description: Türkçe deyim (VID) / eşdizim-yardımcıfiil (LVC) span tespiti — DizgeBERT-Idiom. GLU çok-ölçütlü etiketleme karar çerçevesi (bir yapı bu bağlamda deyim mi, eşdizim mi, terim mi, literal mi?) + projenin gerçek deneylerinden çıkan dersler (weak-supervision idyomatikliği ayırt edemez, precision tavanı, v6/v7/v8'de nelerin işe YARAMADIĞI). Trigger — DizgeBERT-Idiom üzerinde çalışırken, deyim/MWE eğitim verisi hazırlarken/etiketlerken, idyomatik-literal ayrımı, `find_span`/`prepare_*idiom*` dosyaları, `/deyim` ya da `/idiom`.
+description: Türkçe deyim (VID) / eşdizim (LVC) span tespiti — DizgeBERT-Idiom. GLU çok-ölçütlü etiketleme karar çerçevesi (bir yapı bu bağlamda deyim mi, eşdizim mi, terim mi, literal mi?) + deney günlüğü (v6-v14 tek-model kaldıraçları TÜKENDİ; iki-aşamalı detect→filter ÇALIŞIYOR ve YAYINLANDI v3) + stage-2 idyomatiklik sınıflandırıcısı iş akışı. Trigger — DizgeBERT-Idiom üzerinde çalışırken, deyim/MWE eğitim verisi hazırlarken/etiketlerken, idyomatik-literal ayrımı, stage-2 sınıflandırıcı, `find_span`/`prepare_*idiom*`/`filter_corpus_idiomaticity`, `/deyim` ya da `/idiom`.
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 user-invokable: true
 ---
@@ -9,8 +9,15 @@ user-invokable: true
 
 `lemma-rule-based` reposunda ELECTRA tabanlı Türkçe deyim (VID) / eşdizim (LVC.full)
 BIO span etiketleyici. **Yayınlandı** (`huggingface.co/iatagun/DizgeBERT-Idiom`).
-Kanonik model = **v5** (`idiom_data/best_idiom_tagger_v5_bigappy.pt`), ELECTRA
-(`dbmdz/electra-base-turkish-cased-discriminator`), bigappy-unicrossy 2-katman + Viterbi.
+
+- **Stage-1 (span modeli) = v5**, değişmedi: `idiom_data/best_idiom_tagger_v5_bigappy.pt`,
+  ELECTRA (`dbmdz/electra-base-turkish-cased-discriminator`), bigappy-unicrossy 2-katman + Viterbi.
+- **Yayınlanan HF sürümü = v3 (iki aşamalı):** v5 span'leri + gömülü stage-2 idyomatiklik
+  sınıflandırıcısı (`idiom_data/best_idiomaticity_clf_v3.pt`, ~880MB bundle, `config.stage2=True`).
+  `predict_spans()` bitişik VID adaylarını süzer, güvenli literal'i eler; `stage2=False` ile kapatılır.
+
+Tam deney günlüğü: `memory/dizgebert-idiom-project.md`. Deney disiplini: [[finetune-iteration]].
+Yayınlama: [[hf-model-publish]].
 
 ## Bu skill ne için
 
@@ -24,29 +31,43 @@ Kanonik model = **v5** (`idiom_data/best_idiom_tagger_v5_bigappy.pt`), ELECTRA
 v5 span-F1: PARSEME test ~69.6, TDK held-out ~72.8, **precision ~%64-71**. Dış bağlam-
 bağımlılık testinde (Çavuşoğlu & Çöltekin) idyomatik/literal doğru-ayırt yalnız ~%37.
 
-**Denendi, HEPSİ reddedildi (2026-09-07):**
+**Denendi, HEPSİ reddedildi (v6-v14, 10 deney):**
 
 | deney | ne | sonuç |
 |---|---|---|
-| **v6** | ConvBERTurk-mC4 encoder (aile-uyumlu, 242GB ön-eğitim) | recall'a kaydı; TDK held-out −1, dış doğru-ayırt −10 |
-| **v7** | +TDK crawl verisi (+144 örnek, frozen-split) | TDK held-out −3 |
-| **v8** | +3M Leipzig derleminden madenlenen 29.7k örnek (sıkı gövde-eşleşmesi) | precision çöküşü 63.8→53.5, epoch 4'te kesildi |
+| **v6** | ConvBERTurk-mC4 encoder | recall'a kaydı; dış doğru-ayırt −10 |
+| **v7** | +TDK crawl verisi (frozen-split) | TDK held-out −3 |
+| **v8** | +Leipzig 29.7k madenlenen örnek | precision çöküşü 63.8→53.5 |
+| **v9-v13** | GLU-filtreli L→hep-O örnekleri, çeşitli D:L oranları | v12 (1:1 küçük) en dengeli ama bağımsız ayrımda kazanç yok; v13 (focus-L) PARSEME-P −3 |
+| **Fikir 4 (v14)** | ayrı `B/I-VID-LIT` etiket sınıfı | görülmemiş deyimde VID-LIT recall %15 — genellemedi; Çavuşoğlu yanlış-poz %25→%39 |
+| **recall-boost** | `--span-weight-mult 1.8/1.35` | span modeli olarak iyi (TDK F1 +2.4) ama iki-aşamada stage-2'yi boğuyor |
 
-**Neden:** her weak-supervision yöntemi (TDK stem-match, derlem sıkı-eşleşme) tek ölçüte
-bakıyor — YÜZEY BİÇİM. GLU çerçevesinin ilk kuralı: *tek ölçüt yetmez*. Model "bu kelimeler
-bu sırada = span" öğreniyor, idyomatik/literal ayrımını (asıl zaaf) öğrenmiyor. Daha fazla
-böyle etiket = daha fazla gürültü = precision'ı recall'a takas.
+**Neden (tek-model):** her weak-supervision yöntemi tek ölçüte bakıyor — YÜZEY BİÇİM. Model
+"bu kelimeler bu sırada = span" öğreniyor; idyomatik/literal ayrımını öğrenmiyor. 7-yönlü
+softmax'ta güçlü B-VID yüzey prior'u yeni sınıf/sinyali bastırıyor. Tükenmiş kaldıraçların
+tam listesi: [[finetune-iteration]].
 
-## Doğru yön: idyomatiklik sinyali
+## ÇALIŞAN yaklaşım: İKİ AŞAMA (Fikir 3, YAYINLANDI)
 
-- **Minimal çiftler** (aynı yüzey biçim, biri literal biri deyim) — GLU kılavuzu ~20 tane
-  elle-seçilmiş veriyor (`glu_karar_cercevesi.md` §minimal-çiftler). Küçük ama yüksek sinyal:
-  hem diagnostik eval hem "deyim-biçimi → O" eğitim örneği.
-- **Hard negative**: bileşen kelimeleri ardışık geçen ama deyim OLMAYAN kullanımlar
-  (bitki adları "aslan ağzı/kuşburnu" = terim; "karar vermek" = eşdizim; literal "yol aldı").
-- **v8 derlem verisini idyomatiklik için filtrele** (LLM'e GLU §5 rubric'i ver → temiz %65-70).
-- **İki aşama**: yüksek-recall BIO (mevcut) → span+cümle → {VID, LVC, literal/O} sınıflandırıcı.
-  GLU'nun kendi yapısı da iki aşamalı (eleme → üç ölçüt).
+Stage-1 = yüksek-recall BIO (v5, değişmedi). **Stage-2** = ayrı ELECTRA gövdesi + span ilk⊕son
+pooling → {literal, idyomatik}; bitişik VID adaylarını süzer (LVC + gap'li dokunulmaz).
+
+- Eğitim verisi: `data/filter_corpus_idiomaticity.py` ile Leipzig derleminden madenlenen deyim
+  cümleleri **elle** GLU rubric'iyle etiketlendi (`_corpus_sample_labels.tsv`, D/L/E; 910 D / 751 L).
+  `--apply --balance` → `corpus_examples_glu.json` (train) + `corpus_minpair_test.json` (118
+  görülmemiş deyim held-out) + `_holdout_idioms.json`.
+- **v3 sınıflandırıcı** = alt 8 katman donduruldu + seçim metriği `(idyom_R+literal_eleme)/2`
+  (overfit oyun kitabı: [[finetune-iteration]]). held-out literal-eleme %78→%82.
+- Boru hattı vs v5-tek: **Çavuşoğlu yanlış-poz %25.3→%16.2, doğru-ayırt %37.4→%41.9, GLU 16→21/35.**
+  PARSEME −2 (yapay — o sette literal kullanım yok).
+- Pakete gömme: `train_idiom_bert.py --stage2-ckpt` → ~880MB bundle. Bkz. [[hf-model-publish]].
+
+### Hâlâ açık
+- Stage-2 ~1k elle-etiketli örnekte hâlâ overfit; literal kullanımların ~%18'i geçiyor
+  ("otobüs yol aldı" sınıflandırıcının kaçırdığı bilinen vaka).
+- Daha çok D/L etiketi (+431 focus-L) iğneyi oynatmadı — tek-model veri kaldıracı gibi doygun.
+- **Minimal çiftler / hard negative** (GLU `glu_karar_cercevesi.md` §minimal-çiftler §hard-negative)
+  hâlâ en iyi ek eğitim/eval sinyali — bitki adları "aslan ağzı" = terim, "karar vermek" = eşdizim.
 
 ## Kritik teknik notlar
 
@@ -61,8 +82,16 @@ böyle etiket = daha fazla gürültü = precision'ı recall'a takas.
 - `train_idiom_bert.py` bayrakları: `--class-weights --tdk-examples` (v5 reçetesi),
   `--corpus-examples` (Leipzig madenciliği), `--encoder <hf-id>` (encoder A/B override).
 - Eşleştirme kuralı her yerde AYNI olmalı: sıkı ardışık GÖVDE alt-dizisi (`find_span`,
-  `dizgebert_idiom/modeling_dizgebert_idiom.py` içinde değil — `prepare_tdk_idiom_examples.py`).
-  Gevşetme (fuzzy/threshold) DENEME — v7/v8 dersi.
+  `data/prepare_tdk_idiom_examples.py`; `stem()` artık snowballstemmer). Gevşetme
+  (fuzzy/threshold) DENEME — v7/v8 dersi.
+- **Stage-2:** `modeling_dizgebert_idiom.py` içinde `config.stage2` ise `stage2_encoder` +
+  `stage2_head` kurulur; `predict_spans(stage2=, stage2_thresh=, keep_literal=)`. Yalnız
+  bitişik VID süzülür. `_LIT` kategorisi (Fikir 4 kalıntısı, inert) gerçek span sayılmaz.
+- **Stage-2 eğitim held-out'u DEYİM düzeyinde**: `_holdout_idioms.json` (118 görülmemiş deyim);
+  `train_idiomaticity_clf.py load_pairs` bunu okur (cümle-metni değil — focus-l sonradan
+  aynı deyimden cümle ekleyince sızardı).
+- **Kanonik span modeli `best_idiom_tagger.pt` = v5, DOKUNULMADI.** İki-aşama = v5 + stage-2;
+  recall-boost turları span modeli olarak arşivde ama boru hattına konmadı.
 
 ## Komutlar
 
