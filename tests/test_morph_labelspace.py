@@ -17,7 +17,7 @@ pytestmark = pytest.mark.skipif(
     reason="label_space.json yok (önce prepare_morph_data_ud.py --build-label-space)",
 )
 
-from train_morph_bert import LabelSpace  # noqa: E402
+from training.train_morph_bert import LabelSpace  # noqa: E402
 
 
 @pytest.fixture(scope="module")

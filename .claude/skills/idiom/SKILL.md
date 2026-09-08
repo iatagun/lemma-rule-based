@@ -66,34 +66,43 @@ böyle etiket = daha fazla gürültü = precision'ı recall'a takas.
 
 ## Komutlar
 
+Scriptler repo kökünden çalıştırılır (`training/`, `data/`, `inference/` alt dizinleri).
+
 ```bash
 # eğitim (v5 reçetesi)
-python train_idiom_bert.py --class-weights --tdk-examples --epochs 10
+python training/train_idiom_bert.py --class-weights --tdk-examples --epochs 10
 
 # değerlendirme — 4 eksen
 python benchmark/eval_idiom.py --local --checkpoint idiom_data/best_idiom_tagger.pt --mode all
-python train_idiom_bert.py --eval --checkpoint <ckpt> --eval-file idiom_data/tdk_examples_test.json
+python training/train_idiom_bert.py --eval --checkpoint <ckpt> --eval-file idiom_data/tdk_examples_test.json
 
-# TDK verisi yeniden üret (frozen-split otomatik)
-python prepare_tdk_idiom_examples.py
+# TDK verisi yeniden üret (frozen-split otomatik; snowballstemmer ile gövde-eşleştirme)
+python data/prepare_tdk_idiom_examples.py
 
 # Leipzig derlem madenciliği
-python fetch_leipzig_tr.py
-python -u prepare_tdk_corpus_examples.py --cap 8
+python data/fetch_leipzig_tr.py
+python -u data/prepare_tdk_corpus_examples.py --cap 8
 
-# HF export + push
-python train_idiom_bert.py --checkpoint idiom_data/best_idiom_tagger.pt --export-hf dizgebert_idiom_hf/
-python push_idiom_hf.py
+# stage-2 idyomatiklik sınıflandırıcısı (Fikir 3)
+python data/filter_corpus_idiomaticity.py --apply --balance
+python training/train_idiomaticity_clf.py --freeze 8 --dropout 0.3 --weight-decay 0.05 --epochs 14
+
+# HF export (stage-2 gömülü) + push
+python training/train_idiom_bert.py --checkpoint idiom_data/best_idiom_tagger.pt \
+    --stage2-ckpt idiom_data/best_idiomaticity_clf_v3.pt --export-hf dizgebert_idiom_hf
+python inference/push_idiom_hf.py
 ```
 
 ## Dosya envanteri
 
-`fetch_parseme_tr.py`, `prepare_idiom_data.py`, `fetch_tdk_deyim.mjs`,
-`prepare_tdk_idiom_examples.py` (+frozen-split), `fetch_leipzig_tr.py`,
-`prepare_tdk_corpus_examples.py` (stem-map cache + sıkı eşleşme taraması),
-`train_idiom_bert.py`, `dizgebert_idiom/` (config+modeling+MODEL_CARD),
-`benchmark/eval_idiom.py`, `predict_idiom.py`, `push_idiom_hf.py`,
-`tests/test_idiom_labelspace.py`. **Arşiv/kullanılmıyor**: `prepare_idiom_arc_data.py`,
-`train_idiom_arc_bert.py` (reddedilen arc-classification).
+`data/fetch_parseme_tr.py`, `data/prepare_idiom_data.py`, `data/fetch_tdk_deyim.mjs`,
+`data/prepare_tdk_idiom_examples.py` (+frozen-split, snowball stemmer),
+`data/fetch_leipzig_tr.py`, `data/prepare_tdk_corpus_examples.py` (stem-map cache + sıkı eşleşme),
+`data/filter_corpus_idiomaticity.py`, `data/prepare_glu_examples.py`,
+`training/train_idiom_bert.py`, `training/train_idiomaticity_clf.py`,
+`dizgebert_idiom/` (config+modeling+MODEL_CARD, kökte),
+`benchmark/eval_idiom.py`, `inference/predict_idiom.py`, `inference/push_idiom_hf.py`,
+`tests/test_idiom_labelspace.py`. **Arşiv/kullanılmıyor**: `data/prepare_idiom_arc_data.py`,
+`training/train_idiom_arc_bert.py` (reddedilen arc-classification).
 
 Kaynak kılavuz: `GLU_Deyim_Etiketleme_Ogretmen_Kilavuzu.pdf` (repo kökü).

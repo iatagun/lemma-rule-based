@@ -6,16 +6,14 @@ Gold: bir CoNLL-U dosyası (varsayılan `benchmark/test.conllu` = BOUN test, hel
 Modlar:
   neural   (varsayılan) — eğitilmiş DizgeBERT-Morph checkpoint'i
   majority              — train.json'dan (treebank, form) → en sık (upos,xpos,feats)
-  rule                  — kural-tabanlı çözümleyici + _extract_feats  (yalnızca --rule-baseline ile)
 
 Metrikler (treebank başına): UPOS acc, XPOS acc, UFeats micro-F1 (CoNLL-18),
 FEATS exact-match, full-tag acc, özellik-başına F1. PUNCT'lu / PUNCT'suz ayrı.
 
 Kullanım:
     python benchmark/eval_morph.py                                    # BOUN test, neural
-    python benchmark/eval_morph.py --file ngram_pos/UD_Turkish-Kenet-master/tr_kenet-ud-test.conllu --scheme kenet
+    python benchmark/eval_morph.py --file data/treebanks/UD_Turkish-Kenet/tr_kenet-ud-test.conllu --scheme kenet
     python benchmark/eval_morph.py --mode majority
-    python benchmark/eval_morph.py --mode rule --rule-baseline
 """
 from __future__ import annotations
 
@@ -32,8 +30,8 @@ sys.path.insert(0, str(_PROJECT))
 import torch
 from torch.utils.data import DataLoader
 
-from prepare_morph_data_ud import canon_feats, iter_sentences, sentence_to_record
-from train_morph_bert import (
+from data.prepare_morph_data_ud import canon_feats, iter_sentences, sentence_to_record
+from training.train_morph_bert import (
     DATA_DIR,
     TREEBANKS,
     LabelSpace,
@@ -143,28 +141,6 @@ def predict_majority(gold: list[dict]) -> list[dict]:
     return out
 
 
-def predict_rule(gold: list[dict]) -> list[dict]:
-    from morphology import create_default_analyzer
-    from morphology.dependency import _extract_feats
-
-    analyzer = create_default_analyzer(
-        dictionary_path=str(_PROJECT / "turkish_words.txt")
-    )
-    out = []
-    for r in gold:
-        pf = []
-        for w, u in zip(r["words"], r["upos"]):
-            try:
-                a = analyzer.analyze(w, upos=u)
-                pf.append(canon_feats(dict(_extract_feats(a))) if a else "_")
-            except Exception:
-                pf.append("_")
-        # kural-tabanlı UPOS/XPOS üretmiyoruz → gold UPOS'u kopyala (yalnız FEATS ölçülür)
-        out.append({"treebank": r["treebank"], "words": r["words"],
-                    "upos": list(r["upos"]), "xpos": ["_"] * len(r["words"]), "feats": pf})
-    return out
-
-
 def strip_punct(records: list[dict]) -> list[dict]:
     out = []
     for r in records:
@@ -183,9 +159,7 @@ def main() -> None:
                     help="gold dosyanın şeması (metrik gruplaması + neural scheme)")
     ap.add_argument("--scheme", choices=TREEBANKS, default=None,
                     help="neural çıkarım şeması (varsayılan: --treebank)")
-    ap.add_argument("--mode", choices=["neural", "majority", "rule"], default="neural")
-    ap.add_argument("--rule-baseline", action="store_true",
-                    help="rule modunu etkinleştir (varsayılan kapalı)")
+    ap.add_argument("--mode", choices=["neural", "majority"], default="neural")
     ap.add_argument("--checkpoint", default=str(DATA_DIR / "best_morph_tagger.pt"))
     ap.add_argument("--batch-size", type=int, default=32)
     args = ap.parse_args()
@@ -194,13 +168,7 @@ def main() -> None:
     print(f"Dosya: {args.file}  ({len(gold)} cümle, {sum(len(r['words']) for r in gold)} token)")
     print(f"Mod: {args.mode}   Treebank/şema: {args.treebank}\n")
 
-    if args.mode == "rule":
-        if not args.rule_baseline:
-            sys.exit("rule modu için --rule-baseline gerekli (kural-tabanlı yalnızca eval baseline).")
-        res_all = eval_from_predictions(gold, predict_rule(gold))
-        res_np = eval_from_predictions(strip_punct(gold), strip_punct(predict_rule(gold)))
-
-    elif args.mode == "majority":
+    if args.mode == "majority":
         res_all = eval_from_predictions(gold, predict_majority(gold))
         res_np = eval_from_predictions(strip_punct(gold), predict_majority(strip_punct(gold)))
 

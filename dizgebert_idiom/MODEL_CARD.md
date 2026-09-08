@@ -52,8 +52,9 @@ artık anlamlı çalışıyor.)
      bunun 308'i gap'li — artık atılmıyor, 2. katmana taşınıyor).
   2. TDK Atasözleri ve Deyimler Sözlüğü'nden çıkarılan 2.629 gömülü örnek cümle (2.501 benzersiz
      deyim) — isim/sıfat deyimlerini de kapsar (*eli açık*, *başı dertte* gibi, PARSEME'de yok);
-     repo'nun kural-tabanlı morfoloji çözümleyicisiyle gövde-eşleştirme (stem matching) ile
-     zayıf-etiketlenmiş (weak supervision). 313 deyim (323 cümle, ayrıca 313 başka deyim 328
+     gövde-eşleştirme (stem matching) ile zayıf-etiketlenmiş (weak supervision), deyim
+     sözlük-biçimi ile örnek cümledeki çekimli yüzey biçimi aynı gövde dizisine indirgenerek.
+     313 deyim (323 cümle, ayrıca 313 başka deyim 328
      cümlelik bir dev parçasında) tamamen ayrı tutulup hiç eğitime sokulmadı; bölme **hem deyim
      hem cümle metni düzeyinde** yapıldı (aynı alıntı cümle birden fazla deyime örnek
      verilebiliyor — sızıntı riski görülüp düzeltildi) — held-out genelleme testi için.

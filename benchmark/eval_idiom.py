@@ -86,7 +86,7 @@ def make_predictor(local: bool, checkpoint: str | None, hf_repo: str):
         import torch
         from transformers import AutoTokenizer
 
-        from train_idiom_bert import IdiomLabelSpace, IdiomTagger, MAX_LEN
+        from training.train_idiom_bert import IdiomLabelSpace, IdiomTagger, MAX_LEN
         from dizgebert_idiom.modeling_dizgebert_idiom import align_words, decode_bigappy_spans, viterbi_decode
 
         ck = torch.load(checkpoint, map_location="cpu")
@@ -128,7 +128,7 @@ def wrap_stage2(base_predict, clf_ckpt: str, thresh: float = 0.5):
     Yalnız VID'e uygulanır; span YALNIZCA p(literal) > thresh ise elenir (thresh↑ → recall↑)."""
     import torch
     from transformers import AutoTokenizer
-    from train_idiomaticity_clf import IdiomaticityClf
+    from training.train_idiomaticity_clf import IdiomaticityClf
 
     ck = torch.load(clf_ckpt, map_location="cpu")
     enc_name = ck.get("encoder", "dbmdz/electra-base-turkish-cased-discriminator")
@@ -230,7 +230,7 @@ def run_external(predict) -> None:
 #  Mod 2: PARSEME test.cupt span-F1
 # ═══════════════════════════════════════════════════════════════════════
 def run_neural(predict) -> None:
-    from prepare_idiom_data import iter_sentences, sentence_to_record
+    from data.prepare_idiom_data import iter_sentences, sentence_to_record
     from dizgebert_idiom.modeling_dizgebert_idiom import decode_bigappy_spans
 
     test_path = _PROJECT / "idiom_data" / "raw" / "test.cupt"
@@ -288,7 +288,7 @@ def run_neural(predict) -> None:
 #  .claude/skills/idiom/glu_karar_cercevesi.md). CASES'in prensipli, bağlam-odaklı hâli.
 # ═══════════════════════════════════════════════════════════════════════
 def run_glu(predict) -> None:
-    from prepare_glu_examples import glu_diagnostic_cases
+    from data.prepare_glu_examples import glu_diagnostic_cases
 
     cases = glu_diagnostic_cases()
     print(f"\n=== GLU kılavuzu tanı seti ({len(cases)} vaka) ===")
