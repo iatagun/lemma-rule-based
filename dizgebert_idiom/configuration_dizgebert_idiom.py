@@ -15,6 +15,8 @@ class DizgeBertIdiomConfig(PretrainedConfig):
         tags2: list[str] | None = None,
         dropout: float = 0.15,
         max_len: int = 128,
+        stage2: bool = False,
+        stage2_thresh: float = 0.5,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -25,3 +27,10 @@ class DizgeBertIdiomConfig(PretrainedConfig):
         self.tags2 = tags2 or ["o"]
         self.dropout = dropout
         self.max_len = max_len
+        # Aşama-2 idyomatiklik sınıflandırıcısı (Fikir 3 — iki aşamalı boru hattı):
+        # ayrı ELECTRA gövdesi + span ilk⊕son pooling → {idyomatik, literal}. Açıksa
+        # predict_spans() bitişik VID adaylarını filtreden geçirir, "güvenli literal"
+        # olanı eler (LVC + gap'li span'ler dokunulmaz). Yalnız stage2 ağırlıkları
+        # pakete gömülüyse anlamlı.
+        self.stage2 = stage2
+        self.stage2_thresh = stage2_thresh

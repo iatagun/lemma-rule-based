@@ -121,6 +121,49 @@ def make_predictor(local: bool, checkpoint: str | None, hf_repo: str):
     return lambda words: m.predict_spans(words, tokenizer=tok)
 
 
+def wrap_stage2(base_predict, clf_ckpt: str, thresh: float = 0.5):
+    """Fikir 3: aşama-1 span'lerini idyomatiklik sınıflandırıcısından geçir, literal olanı ELE.
+    Yalnız VID'e uygulanır; span YALNIZCA p(literal) > thresh ise elenir (thresh↑ → recall↑)."""
+    import torch
+    from transformers import AutoTokenizer
+    from train_idiomaticity_clf import IdiomaticityClf
+
+    ck = torch.load(clf_ckpt, map_location="cpu")
+    enc_name = ck.get("encoder", "dbmdz/electra-base-turkish-cased-discriminator")
+    tok = AutoTokenizer.from_pretrained(enc_name)
+    clf = IdiomaticityClf(enc_name).eval()
+    clf.load_state_dict(ck["model"])
+
+    @torch.no_grad()
+    def _idiomatic(words, s, e) -> bool:
+        enc = tok(words, is_split_into_words=True, return_tensors="pt",
+                  truncation=True, max_length=128)
+        wid = enc.word_ids()
+        first = {}; last = {}
+        for i, w in enumerate(wid):
+            if w is None:
+                continue
+            first.setdefault(w, i); last[w] = i
+        if s not in first or (e - 1) not in last:
+            return True  # span kırpıldı → dokunma
+        logit = clf(enc["input_ids"], enc["attention_mask"],
+                    torch.tensor([first[s]]), torch.tensor([last[e - 1]]))
+        p_literal = float(torch.softmax(logit, -1)[0, 0])
+        return p_literal <= thresh  # yalnız GÜVENLİ literal elenir
+
+    def predict(words):
+        out = []
+        for sp in base_predict(words):
+            # stage-2 YALNIZ VID'e: LVC.full (karar vermek, yardım etmek) tanımı gereği
+            # yarı-birleşimsel, idyomatik/literal ayrımı yok — filtreye sokulmaz. Gap'li de geçer.
+            if sp.get("gappy") or sp.get("category") != "VID":
+                out.append(sp); continue
+            if _idiomatic(words, sp["start"], sp["end"]):
+                out.append(sp)
+        return out
+    return predict
+
+
 # ═══════════════════════════════════════════════════════════════════════
 #  Mod 1: nokta-atışı CASES
 # ═══════════════════════════════════════════════════════════════════════
@@ -284,9 +327,17 @@ def main() -> None:
     ap.add_argument("--local", action="store_true", help="HF yerine yerel .pt")
     ap.add_argument("--checkpoint", default=str(_PROJECT / "idiom_data" / "best_idiom_tagger.pt"))
     ap.add_argument("--hf-repo", default="iatagun/DizgeBERT-Idiom")
+    ap.add_argument("--stage2", default=None,
+                    help="idyomatiklik sınıflandırıcı checkpoint'i (Fikir 3 iki-aşama) — "
+                         "aşama-1 VID span'leri bundan geçirilip literal olanlar elenir")
+    ap.add_argument("--stage2-thresh", type=float, default=0.5,
+                    help="span yalnız p(literal) > bu değer ise elenir (yüksek → recall korunur)")
     args = ap.parse_args()
 
     predict = make_predictor(args.local, args.checkpoint, args.hf_repo)
+    if args.stage2:
+        predict = wrap_stage2(predict, args.stage2, args.stage2_thresh)
+        print(f"[iki-aşama] stage-2 filtresi aktif: {args.stage2} (thresh {args.stage2_thresh})")
 
     if args.mode in ("all", "neural"):
         run_neural(predict)

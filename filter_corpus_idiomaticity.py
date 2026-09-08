@@ -251,6 +251,10 @@ def apply_manual(recs: list[dict], holdout: float = 0.15, seed: int = 7,
 
     OUT_JSON.write_text(json.dumps(train_out, ensure_ascii=False), encoding="utf-8")
     TEST_JSON.write_text(json.dumps(test_out, ensure_ascii=False), encoding="utf-8")
+    # held-out deyim listesi — train_idiomaticity_clf.py bunu DEYİM düzeyinde bölme için okur
+    # (cümle-metni düzeyi yetmez: focus-l sonradan aynı deyimden yeni cümle ekleyince sızar)
+    (PROJECT_ROOT / "idiom_data" / "_holdout_idioms.json").write_text(
+        json.dumps(sorted(test_idioms), ensure_ascii=False), encoding="utf-8")
     nd = sum(1 for r in train_out if any(t != "O" for t in r["tags"]))
     print(f"etiket: {len(lab)}/{len(picked)}  dağılım {dict(dist)}")
     print(f"train: {len(train_out):,} ({nd} D-span / {len(train_out)-nd} L-hepO)  → {OUT_JSON.name}")

@@ -20,7 +20,15 @@ verildiğinde her kelimeye BIO etiketi atar: **B/I-VID** (deyim — figüratif, 
 *gözden düşmek*, *eli açık*), **B/I-LVC** (eşdizim/yardımcı-fiil birleşimi — *light-verb
 construction*: *karar vermek*), **O** (serbest birleşim / deyim değil).
 
-**v1 erken sürüm** — sınırlamalar bölümüne bakın, özellikle precision (~%64-71) hakkında.
+**İki aşamalı boru hattı (v2):** Aşama 1 aday span'leri bulur (yukarıdaki BIO modeli); **Aşama 2**
+ayrı bir idyomatiklik sınıflandırıcısıdır — her bitişik **VID** adayını *(cümle, span)* olarak alıp
+{idyomatik / literal} kararı verir ve **güvenli literal kullanımları eler** ("otobüs yol aldı" gibi).
+Aşama 2 varsayılan olarak `predict_spans()` içinde açıktır; `stage2=False` ile kapatılır. Tek-BIO
+modeli yüzey biçim eşleşince bağlamdan bağımsız işaretliyordu — Aşama 2 bunu düzeltmeyi hedefler.
+
+**v2 — Aşama 2 deneyseldir.** Bağlam ayrımını ölçülebilir biçilde iyileştirir (dış kaynakta
+yanlış-pozitif %25→%19, doğru-ayırt %37→%41) ama küçük elle-etiketli veriyle eğitildi (overfit);
+literal kullanımların ~%20'si hâlâ geçiyor. precision (~%60-71) ve sınırlamalar bölümüne bakın.
 
 - **Gövde:** [`dbmdz/electra-base-turkish-cased-discriminator`](https://huggingface.co/dbmdz/electra-base-turkish-cased-discriminator)
   (DizgeBERT-Morph/Joint/Dep ile aynı → ortak subword sözlüğü)
@@ -31,6 +39,11 @@ construction*: *karar vermek*), **O** (serbest birleşim / deyim değil).
   span'in **2. parçasını** taşır; 1. parça her zaman ana BIO katmanında. Çıkarımda iki katman
   ayrı ayrı Viterbi ile çözülüp aynı kategoriden en yakın parçalar eşleştirilir.
 - **Çözümleme:** geçiş-kısıtlı **Viterbi** (argmax değil), her iki katmanda da.
+- **Aşama 2 — idyomatiklik sınıflandırıcısı:** ikinci, bağımsız bir ELECTRA gövdesi + span
+  ilk⊕son subword temsili → `Linear(2H, 2)` → {literal, idyomatik}. `predict_spans()` bitişik
+  VID adaylarını bundan geçirir; yalnız *güvenli* literal (p(literal) > eşik, varsayılan 0.5)
+  elenir — LVC ve gap'li span'ler dokunulmaz (LVC yarı-birleşimsel, ayrım anlamsız). Model
+  dosyası bu yüzden iki ELECTRA gövdesi içerir (~880 MB).
 - **Eğitim verisi:**
   1. [PARSEME Türkçe fiil-merkezli çok-sözcüklü ifade derlemi, edition 1.2](https://gitlab.com/parseme/sharedtask-data/-/tree/master/1.2/TR)
      (Güngör & Yirmibeşoğlu) — 17.945 cümle, VID+LVC.full toplam ~6.7k span (yalnız *verbal* MWE;
@@ -42,8 +55,15 @@ construction*: *karar vermek*), **O** (serbest birleşim / deyim değil).
      cümlelik bir dev parçasında) tamamen ayrı tutulup hiç eğitime sokulmadı; bölme **hem deyim
      hem cümle metni düzeyinde** yapıldı (aynı alıntı cümle birden fazla deyime örnek
      verilebiliyor — sızıntı riski görülüp düzeltildi) — held-out genelleme testi için.
+  3. **Aşama 2 için:** Leipzig Türkçe derleminden (Wikipedia + Haber + Web, CC-BY) deyim yüzey
+     biçimiyle eşleşen cümleler madenlenip **elle etiketlendi** (GLU deyim etiketleme kılavuzu
+     rubriğiyle) — 1661 kullanım (910 idyomatik + 751 literal). 975'i eğitim (622 idyomatik +
+     353 literal, sınıf ağırlığıyla dengelendi), 686'sı **118 hiç görülmemiş deyimden** held-out.
 
-## Sonuçlar (span-düzeyi, exact-match, Viterbi çözümlemeyle)
+## Sonuçlar
+
+Aşağıdaki tablo **Aşama 1** (tek-BIO, `stage2=False`) performansıdır — span-düzeyi, exact-match,
+Viterbi çözümlemeyle:
 
 | test seti | kapsam | P | R | F1 |
 |---|---|---|---|---|
@@ -56,21 +76,27 @@ recall garanti %0). İki-katmanlı şemayla artık ~%38-47 (test/dev) kurtarıl�
 ama sıfırdan gerçek bir kazanım. Kontiguous (bitişik) span'lerdeki performans korunmuş (tek-katman
 öncesi sürümle aynı büyüklük mertebesinde — 2. head eklenmesi ana görevi bozmadı).
 
+### Aşama 2 (varsayılan, `stage2=True`) — bağlam ayrımı
+
 **Bağımsız dış kaynak — bağlam-bağımlılık testi.** Çavuşoğlu & Çöltekin'in (MWE 2026)
 elle-yazılmış Türkçe deyim benchmark'ı (198 deyim, her biri için gerçek idyomatik-kullanım
 + literal-kullanım cümle çifti, eğitim verimizde yok — `benchmark/eval_idiom.py --mode
 external`) üzerinde:
 
-| ölçüm | sonuç |
-|---|---|
-| idyomatik cümlede span işaretledi (duyarlılık) | %59.1 (117/198) |
-| literal cümlede **yanlış** span işaretledi | %25.3 (50/198) |
-| ikisini de doğru ayırt etti | %37.4 (74/198) |
+| ölçüm | Aşama 1 (stage2=False) | **+ Aşama 2 (varsayılan)** |
+|---|---|---|
+| idyomatik cümlede span işaretledi (duyarlılık) | %59.1 | %55.1 |
+| literal cümlede **yanlış** span işaretledi | %25.3 | **%18.7** |
+| ikisini de doğru ayırt etti | %37.4 | **%40.9** |
 
-Bu, kullanıcının en baştaki endişesini (bağlam-bağımlılık) doğrudan ölçüyor: model
-idyomatik/literal ayrımını **kısmen** çözüyor ama üçte birinin biraz üstünde tam doğru — bu
-küme çoğunlukla isim/sıfat deyimlerinden oluştuğu için (PARSEME'nin zayıf olduğu kategori),
-sayı beklenenden düşük çıkıyor. Dürüst, bilinen bir sınırlama.
+Aşama 2, literal cümledeki yanlış-pozitifleri ~1/4 azaltır ve doğru-ayırt oranını yükseltir —
+bedeli birkaç puan duyarlılık (bazı gerçek idyomatik kullanımlar da elenir). Aynı yönde:
+GLU tanı seti 16/35 → 19/35. PARSEME test'te Aşama 2 F1'i **69.60 → 67.60** düşürür — ama bu
+yapaydır: o benchmark'ta **tüm** span'ler idyomatik kullanımdır (literal yok), dolayısıyla her
+eleme bir false-negative'dir. Gerçek metinde (idyomatik + literal karışık) kazanç nettir.
+
+Model idyomatik/literal ayrımını **kısmen** çözüyor — dürüst, bilinen bir sınırlama. Aşama 2
+küçük veriyle eğitildiğinden literal kullanımların ~%20'si hâlâ geçiyor.
 
 **Çözümleme: Viterbi, argmax değil.** Ham token-düzeyi argmax yapısal olarak geçersiz diziler
 üretebilir (`O` sonrası yetim `I-VID`, ya da `B-VID` sonrası kategori-karışık `I-LVC`). Çıkışa
@@ -100,12 +126,21 @@ m = AutoModel.from_pretrained("iatagun/DizgeBERT-Idiom", trust_remote_code=True)
 tok = AutoTokenizer.from_pretrained("iatagun/DizgeBERT-Idiom")
 
 words = ["Sonunda", "gözden", "düştü", "."]
-print(m.predict(words, tokenizer=tok))
+print(m.predict(words, tokenizer=tok))            # ham BIO (Aşama 1, Aşama 2'den etkilenmez)
 # [('Sonunda', 'O', 'o'), ('gözden', 'B-VID', 'o'), ('düştü', 'I-VID', 'o'), ('.', 'O', 'o')]
-print(m.predict_spans(words, tokenizer=tok))
+
+print(m.predict_spans(words, tokenizer=tok))      # Aşama 2 varsayılan AÇIK
 # [{'text': 'gözden düştü', 'start': 1, 'end': 3, 'category': 'VID', 'gappy': False}]
 
-# gap'li (süreksiz) örnek — "sahip ... olarak"
+# Aşama 2, literal kullanımı eler:
+lit = ["Otobüs", "kısa", "sürede", "çok", "yol", "aldı", "."]
+print(m.predict_spans(lit, tokenizer=tok))                 # → []  (literal, elendi)
+print(m.predict_spans(lit, tokenizer=tok, stage2=False))   # → [{'text': 'yol aldı', ...}]
+
+# eşiği gevşetmek (daha az eleme, recall koru): stage2_thresh yüksek
+print(m.predict_spans(lit, tokenizer=tok, stage2_thresh=0.9))
+
+# gap'li (süreksiz) örnek — "sahip ... olarak" (Aşama 2 dokunmaz)
 ws = "... sahip olduğu ... değerleriyle olarak önemini ...".split()
 print(m.predict_spans(ws, tokenizer=tok))
 # gappy=True ise: {'text': 'sahip ... olarak', 'start':.., 'end':.., 'start2':.., 'end2':.., 'category':..}
@@ -113,7 +148,10 @@ print(m.predict_spans(ws, tokenizer=tok))
 
 ## Kısıtlar
 
-- **Precision ~%64-71** (yukarıya bakın) — üretim kullanımında çıktıyı doğrulamadan güvenmeyin.
+- **Aşama 2 deneysel, küçük veriyle eğitildi** (975 örnek, elle etiketli) — belirgin overfit.
+  Literal kullanımların ~%20'sini yakalayamıyor; bazı gerçek idyomatik kullanımları da yanlışlıkla
+  eliyor (dış kaynak duyarlılık %59→%55). `stage2=False` ile tamamen devre dışı bırakılabilir.
+- **Precision ~%60-71** (yukarıya bakın) — üretim kullanımında çıktıyı doğrulamadan güvenmeyin.
 - **Gap'li (süreksiz) span'ler kısmen çözülüyor, tam değil.** İki-katmanlı şema ~%38-47'sini
   kurtarıyor (yukarıya bakın); geri kalanı hâlâ kaçıyor. Ayrıca şema yalnız **tam 2 parçalı**
   gap'leri temsil eder (PARSEME-TR'de ampirik olarak hep böyle — 3+ parçalı hiç görülmedi).
@@ -134,6 +172,11 @@ print(m.predict_spans(ws, tokenizer=tok))
   ~326k tokenden ~300'ü non-'o')
 - PARSEME train + TDK train (2.629 örnek) karışık; PARSEME dev ile model seçimi (epoch 10/10)
 - Çıkarım: token-düzeyi argmax değil, geçiş-kısıtlı **Viterbi** (her iki katmanda ayrı ayrı)
+
+**Aşama 2 (idyomatiklik sınıflandırıcısı):** ayrı ELECTRA gövdesi + span ilk⊕son pooling →
+`Linear(2H, 2)`. 975 elle-etiketli örnek (Leipzig derleminden madenlenip GLU rubriğiyle
+sınıflandırıldı), sınıf ağırlığı literal'e; 118 görülmemiş deyimlik held-out ile seçim
+(best: acc ~%83, literal-eleme ~%78). Aşama 1'den tamamen bağımsız eğitildi.
 
 ## Atıf
 

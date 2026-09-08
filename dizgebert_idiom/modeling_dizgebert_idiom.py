@@ -177,6 +177,12 @@ class DizgeBertIdiomForTokenClassification(PreTrainedModel):
         # bigappy-unicrossy 2. katman — yalnız gap'li span'lerin 2. parçası (bkz.
         # prepare_idiom_data.py). Morph'un çoklu-head deseniyle aynı: bağımsız softmax.
         self.tag_head2 = nn.Linear(2 * h, len(config.tags2))
+        # Aşama-2: ayrı ELECTRA gövdesi + span ilk⊕son → 2 sınıf {literal=0, idyomatik=1}.
+        # `train_idiomaticity_clf.IdiomaticityClf` ile birebir aynı (state_dict anahtarları
+        # `stage2_encoder.*` / `stage2_head.*` önekiyle pakete gömülü).
+        if getattr(config, "stage2", False):
+            self.stage2_encoder = AutoModel.from_config(AutoConfig.from_pretrained(config.encoder_name))
+            self.stage2_head = nn.Linear(2 * h, 2)
         self.post_init()
 
     def forward(self, input_ids, attention_mask=None, first_pos=None, last_pos=None):
@@ -201,13 +207,36 @@ class DizgeBertIdiomForTokenClassification(PreTrainedModel):
         return list(zip([words[w] for w in kept], tags1, tags2))
 
     @torch.no_grad()
-    def predict_spans(self, words: list[str], tokenizer=None) -> list[dict]:
+    def _stage2_keep(self, words: list[str], s: int, e: int, tokenizer, thresh: float) -> bool:
+        """Aday span (words[s:e]) idyomatik mi? → tut/ele. `wrap_stage2` ile aynı kural:
+        yalnız GÜVENLİ literal (p_literal > thresh) elenir; belirsizde span korunur."""
+        enc, kept, fp, lp = align_words(tokenizer, words, self.config.max_len, self.device)
+        if s >= len(kept) or (e - 1) >= len(kept):
+            return True  # span kırpmaya takıldı — koru
+        hs = self.stage2_encoder(input_ids=enc["input_ids"],
+                                 attention_mask=enc["attention_mask"]).last_hidden_state[0]
+        vec = torch.cat([hs[fp[0, s]], hs[lp[0, e - 1]]], dim=-1)
+        p_literal = torch.softmax(self.stage2_head(vec), dim=-1)[0].item()
+        return p_literal <= thresh
+
+    @torch.no_grad()
+    def predict_spans(self, words: list[str], tokenizer=None, stage2: bool | None = None,
+                      stage2_thresh: float | None = None) -> list[dict]:
         """`predict()` + iki-katman çözümleme → span listesi.
 
         Sıradan (bitişik) span: `{"text","start","end","category","gappy": False}`.
         Gap'li (süreksiz) span, ör. "sahip ... olarak": `{"text": "sahip ... olarak",
         "start","end" (1. parça), "start2","end2" (2. parça), "category", "gappy": True}`.
+
+        `stage2` (varsayılan: config.stage2): açıksa bitişik **VID** adayları idyomatiklik
+        sınıflandırıcısından geçirilir, güvenli literal kullanımlar elenir (LVC ve gap'li
+        span'ler dokunulmaz). Ağırlıklar pakete gömülü değilse sessizce atlanır.
         """
+        use_s2 = self.config.stage2 if stage2 is None else stage2
+        use_s2 = use_s2 and hasattr(self, "stage2_head")
+        thr = self.config.stage2_thresh if stage2_thresh is None else stage2_thresh
+        tokenizer = tokenizer or AutoTokenizer.from_pretrained(self.config._name_or_path)
+
         triples = self.predict(words, tokenizer)
         tags1 = [t1 for _w, t1, _t2 in triples]
         tags2 = [t2 for _w, _t1, t2 in triples]
@@ -215,6 +244,8 @@ class DizgeBertIdiomForTokenClassification(PreTrainedModel):
         for span in decode_bigappy_spans(tags1, tags2):
             if len(span) == 3:
                 s, e, cat = span
+                if use_s2 and cat == "VID" and not self._stage2_keep(words, s, e, tokenizer, thr):
+                    continue
                 out.append({"text": " ".join(words[s:e]), "start": s, "end": e,
                             "category": cat, "gappy": False})
             else:

@@ -182,18 +182,25 @@ def _class_weights(counts: np.ndarray, device) -> torch.Tensor:
     return torch.tensor(w, dtype=torch.float32, device=device)
 
 
-def build_class_weights(train_jsons: list[Path], ls: IdiomLabelSpace, device) -> torch.Tensor:
+def build_class_weights(train_jsons: list[Path], ls: IdiomLabelSpace, device,
+                        span_mult: float = 1.0) -> torch.Tensor:
     """Ters-karekök frekans ağırlıkları (ortalama 1, [0.3, 6] arası). BIO'da O sınıfı
     baskın (idiom span'ler seyrek) — standart NER dengesizlik lehine ağırlıklandırma.
     `train_jsons` FİİLEN eğitime giren TÜM kaynakları içermeli (yalnız train.json değil —
-    `--tdk-examples` karışımı ağırlıkları etkiler, kod incelemesinde bulundu)."""
+    `--tdk-examples` karışımı ağırlıkları etkiler, kod incelemesinde bulundu).
+    span_mult > 1: B/I-* sınıflarının ağırlığını arttırır → recall↑ (iki-aşama boru hattında
+    stage-2 precision'ı geri kazandığı için stage-1'i recall'a ayarlamak mantıklı)."""
     counts = np.zeros(len(ls.tags))
     for train_json in train_jsons:
         data = json.loads(train_json.read_text(encoding="utf-8"))
         for rec in data:
             for t in rec["tags"]:
                 counts[ls.tag_to_id.get(t, 0)] += 1
-    return _class_weights(counts, device)
+    w = _class_weights(counts, device)
+    if span_mult != 1.0:
+        w[1:] *= span_mult          # O (index 0) hariç tüm B/I-* sınıfları
+        w = torch.clamp(w, 0.3, 8.0)
+    return w
 
 
 def build_class_weights2(train_jsons: list[Path], ls: IdiomLabelSpace, device) -> torch.Tensor:
@@ -321,7 +328,8 @@ def selection_score(res: dict) -> float:
 # ─────────────────────────────────────────────────────────────────────────────
 #  HF export
 # ─────────────────────────────────────────────────────────────────────────────
-def export_hf(model, tokenizer, ls: IdiomLabelSpace, out_dir: Path, metrics: dict | None = None) -> None:
+def export_hf(model, tokenizer, ls: IdiomLabelSpace, out_dir: Path, metrics: dict | None = None,
+              stage2_ckpt: str | None = None) -> None:
     import shutil
 
     from safetensors.torch import save_file
@@ -331,6 +339,7 @@ def export_hf(model, tokenizer, ls: IdiomLabelSpace, out_dir: Path, metrics: dic
     out_dir.mkdir(parents=True, exist_ok=True)
     cfg = DizgeBertIdiomConfig(
         encoder_name=ls.encoder_model, tags=ls.tags, tags2=ls.tags2, dropout=DROPOUT, max_len=MAX_LEN,
+        stage2=bool(stage2_ckpt),
     )
     cfg.architectures = ["DizgeBertIdiomForTokenClassification"]
     cfg.auto_map = {
@@ -340,6 +349,14 @@ def export_hf(model, tokenizer, ls: IdiomLabelSpace, out_dir: Path, metrics: dic
     cfg.save_pretrained(out_dir)
 
     state = {k: v.contiguous() for k, v in model.state_dict().items()}
+    if stage2_ckpt:
+        # `train_idiomaticity_clf.IdiomaticityClf` anahtarları: encoder.* + head.{weight,bias}
+        # → stage2_encoder.* / stage2_head.* önekiyle aynı safetensors'a kat.
+        s2 = torch.load(stage2_ckpt, map_location="cpu")["model"]
+        for k, v in s2.items():
+            nk = ("stage2_" + k) if k.startswith("head.") else k.replace("encoder.", "stage2_encoder.", 1)
+            state[nk] = v.contiguous()
+        print(f"stage-2 ağırlıkları katıldı: {stage2_ckpt} (+{len(s2)} tensör)")
     save_file(state, out_dir / "model.safetensors", metadata={"format": "pt"})
     tokenizer.save_pretrained(out_dir)
 
@@ -381,8 +398,13 @@ def main() -> None:
     ap.add_argument("--lr", type=float, default=LR)
     ap.add_argument("--eval-file", type=str, default=str(DATA_DIR / "dev.json"))
     ap.add_argument("--export-hf", type=str, default=None)
+    ap.add_argument("--stage2-ckpt", type=str, default=None,
+                    help="idyomatiklik sınıflandırıcısı checkpoint'i — export-hf'e gömülür "
+                         "(iki-aşamalı boru hattı; predict_spans stage-2 filtresi)")
     ap.add_argument("--class-weights", action="store_true",
                     help="O sınıfı baskınlığına karşı ters-frekans ağırlıklandırma")
+    ap.add_argument("--span-weight-mult", type=float, default=1.0,
+                    help="B/I-* sınıf ağırlıklarını bununla çarp (>1 → recall↑; iki-aşama stage-1)")
     ap.add_argument("--tdk-examples", action="store_true",
                     help="idiom_data/tdk_examples.json'u (TDK sözlüğü gömülü örnekleri, "
                          "isim/sıfat deyimler dahil) train'e ekle")
@@ -427,7 +449,7 @@ def main() -> None:
     if args.export_hf:
         if not args.checkpoint:
             print("UYARI: --checkpoint verilmedi, eğitilmemiş ağırlıklar export ediliyor.")
-        export_hf(model, tokenizer, ls, Path(args.export_hf), ckpt_metrics)
+        export_hf(model, tokenizer, ls, Path(args.export_hf), ckpt_metrics, args.stage2_ckpt)
         return
 
     if args.eval:
@@ -468,7 +490,8 @@ def main() -> None:
         weight_sources += [corpus_glu_path]
         print(f"Derlem (GLU-filtreli) örnekleri: +{len(cg_ds)}")
 
-    weights = build_class_weights(weight_sources, ls, device) if args.class_weights else None
+    weights = (build_class_weights(weight_sources, ls, device, args.span_weight_mult)
+               if args.class_weights else None)
     if weights is not None:
         print(f"class-weighting açık (katman 1): {dict(zip(ls.tags, weights.tolist()))}")
     # katman 2 (gap'li 2. parça) ağırlıklandırması her zaman açık — bkz. build_class_weights2 docstring.
