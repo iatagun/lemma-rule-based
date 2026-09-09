@@ -63,19 +63,25 @@ SYS_PROMPT = (
     "kılavuzunun ölçütlerini uyguluyorsun. Yalnızca istenen biçimde, kısa yanıt ver."
 )
 
-TASK = """Aşağıda numaralı Türkçe cümleler var; her birinde bir SÖZ ÖBEĞİ işaretli. Her öbeğin \
-O CÜMLEDEKİ kullanımını sınıflandır:
+TASK = """Aşağıda numaralı Türkçe cümleler var. Her satırda: cümle, işaretli ÖBEK (çekimli), \
+ve o öbeğin SÖZLÜK BİÇİMİ. Sözlük biçimi TDK Deyimler Sözlüğü'nde KAYITLI bir deyimdir — \
+yani yapı kesinlikle bir deyimdir. Senin işin bu YAPI'nın deyim olup olmadığına karar vermek \
+DEĞİL; O CÜMLEDEKİ kullanımın mecazi mi literal mi olduğuna karar vermek:
 
-D = öbek DEYİM olarak kullanılmış: bütüne ait, mecazi/aktarılmış bir anlam taşıyor; birebir \
-okunuşu bu bağlamda olağan değil. Örn: "Projede yol aldık", "Soruyu topu taca atarak geçiştirdi".
-L = öbek LİTERAL kullanılmış: kelimesi kelimesine, gerçek/temel anlamıyla; birebir okunuş bu \
-bağlamda olağan ve mantıklı. Örn: "Otobüs kısa sürede çok yol aldı", "Hırsız eli kolu bağlanarak \
-götürüldü", "Devrede kısa devre oldu".
-E = öbek aslında deyim değil: sıradan eşdizim ("karar verdi", "yardım etti"), terim ya da \
-bitki/canlı adı ("aslan ağzı" = çiçek, "kuşburnu", "deve dikeni"), ya da karar verilemiyor.
+D = öbek bu cümlede DEYİM anlamıyla (mecazi/aktarılmış) kullanılmış. Birebir okunuşu bu bağlamda \
+olağan/mantıklı değil. Varsayılan budur — çoğu kullanım D'dir. \
+Örn: "Projede yol aldık", "Soruyu topu taca atarak geçiştirdi", "Patron gözden düştü".
+L = öbek bu cümlede LİTERAL (kelimesi kelimesine, gerçek/temel anlamıyla) kullanılmış; birebir \
+okunuş bu bağlamda tamamen olağan ve mantıklı. Öbeği temel anlamıyla açsan cümle bozulmaz. \
+Örn: "Otobüs kısa sürede çok yol aldı", "Hırsız eli kolu bağlanarak götürüldü", \
+"Kontak lensi gözünden düştü", "Devrede kısa devre oldu".
+E = SADECE şu durumda: işaretli öbek aslında o deyim değil, yüzey biçimi çakışan başka bir şey \
+— terim, bitki/canlı adı ("aslan ağzı"=çiçek, "kuşburnu", "deve dikeni"), özel ad, ya da öbek \
+cümlede bir bütün oluşturmuyor (kelimeler rastlantısal yan yana). Kararsızlık E DEĞİLDİR — \
+emin değilsen D ile L arasından seç.
 
-Test soruları: Öbeğin birebir okunuşu bu bağlamda olağan mı? Özne/nesne somut mu, soyut mu? \
-Öbeği temel (sözlük) anlamıyla değiştirince cümle tutarlı kalıyor mu? (evet → L)
+Karar testi (D mi L mi): Özne/nesne somut mu soyut mu? Öbeği temel sözlük anlamıyla değiştirince \
+cümle hâlâ tutarlı ve olağan mı? Tutarlı → L, değil → D.
 
 Her satır için SADECE: <numara> <D|L|E>  — başka açıklama yok.
 
@@ -107,7 +113,8 @@ def sample(items: list[dict], per_idiom: int, total: int, seed: int) -> list[dic
 
 
 def call_llm(base_url: str, model: str, api_key: str, batch: list[dict], timeout: int) -> dict[int, str]:
-    lines = [f"{i+1}. {' '.join(it['words'])}  ||  öbek: {it['span']}" for i, it in enumerate(batch)]
+    lines = [f"{i+1}. {' '.join(it['words'])}\n   öbek: {it['span']}   |   sözlük biçimi: {it['idiom']}"
+             for i, it in enumerate(batch)]
     body = {
         "model": model,
         "messages": [
@@ -117,6 +124,11 @@ def call_llm(base_url: str, model: str, api_key: str, batch: list[dict], timeout
         "temperature": 0,
         "max_tokens": 8 * len(batch) + 64,
     }
+    if "anthropic.com" in base_url:
+        # sonnet-5 vb. `temperature`'ı reddeder; düşünme açık kalırsa max_tokens'ı yer
+        # (finish_reason=length, boş içerik) — sınıflandırma için düşünmeye gerek yok
+        body.pop("temperature")
+        body["thinking"] = {"type": "disabled"}
     url = base_url.rstrip("/") + "/chat/completions"
     hdrs = {"Content-Type": "application/json",
             **({"Authorization": f"Bearer {api_key}"} if api_key else {})}
