@@ -117,14 +117,24 @@ def call_llm(base_url: str, model: str, api_key: str, batch: list[dict], timeout
         "temperature": 0,
         "max_tokens": 8 * len(batch) + 64,
     }
-    req = urllib.request.Request(
-        base_url.rstrip("/") + "/chat/completions",
-        data=json.dumps(body).encode(),
-        headers={"Content-Type": "application/json",
-                 **({"Authorization": f"Bearer {api_key}"} if api_key else {})},
-    )
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        txt = json.loads(r.read())["choices"][0]["message"]["content"]
+    url = base_url.rstrip("/") + "/chat/completions"
+    hdrs = {"Content-Type": "application/json",
+            **({"Authorization": f"Bearer {api_key}"} if api_key else {})}
+
+    def _post() -> str:
+        req = urllib.request.Request(url, data=json.dumps(body).encode(), headers=hdrs)
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read())["choices"][0]["message"]["content"]
+
+    try:
+        txt = _post()
+    except urllib.error.HTTPError as e:
+        # yeni Claude modelleri (sonnet-5 vb.) OpenAI-uyumlu uçta `temperature`'ı reddediyor
+        if e.code == 400 and "temperature" in e.read().decode(errors="ignore").lower() and "temperature" in body:
+            body.pop("temperature")
+            txt = _post()
+        else:
+            raise
     out: dict[int, str] = {}
     for m in re.finditer(r"(\d+)\s*[.):\-]?\s*([DLEdle])\b", txt):
         out[int(m.group(1))] = m.group(2).upper()
