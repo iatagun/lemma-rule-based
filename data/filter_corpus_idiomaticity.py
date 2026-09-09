@@ -15,13 +15,19 @@ LLM: OpenAI-uyumlu endpoint (varsayılan LM Studio http://localhost:1234/v1). Re
 etiketler `_corpus_idiomaticity_labels.jsonl`'e satır satır yazılır, tekrar çalıştırınca
 kaldığı yerden.
 
-Kullanım:
-    # (LM Studio'da bir model yükle, sunucuyu başlat)
-    python filter_corpus_idiomaticity.py --max-per-idiom 3 --max-total 6000
-    # farklı endpoint:
-    python filter_corpus_idiomaticity.py --base-url https://api.openai.com/v1 --model gpt-4o-mini
-    # sonra:
-    python train_idiom_bert.py --class-weights --tdk-examples --corpus-glu --epochs 10
+Kullanım (LM Studio — varsayılan):
+    python data/filter_corpus_idiomaticity.py --max-per-idiom 3 --max-total 6000
+Farklı endpoint:
+    python data/filter_corpus_idiomaticity.py --base-url https://api.openai.com/v1 --model gpt-4o-mini
+    ANTHROPIC_API_KEY=sk-ant-... python data/filter_corpus_idiomaticity.py \
+        --base-url https://api.anthropic.com/v1 --model claude-sonnet-5
+Sonra (stage-1 --corpus-glu yolu):
+    python training/train_idiom_bert.py --class-weights --tdk-examples --corpus-glu --epochs 10
+
+Stage-2 idyomatiklik sınıflandırıcısı için (Fikir 3):
+    --gate            LLM'i frozen elle-etiketli sette koştur → etiket kalitesi kapısı
+    --new-idioms-only  örneklemeden frozen + held-out deyimleri çıkar (kapsam turu)
+    --ingest-llm      auto-LLM etiketlerini YENİ-deyim kaydı olarak frozen sete EKLE (append-only)
 """
 from __future__ import annotations
 
@@ -473,7 +479,8 @@ def main() -> None:
                     help="örneklemeden frozen + held-out deyimleri çıkar (kapsam turu)")
     ap.add_argument("--base-url", default=os.environ.get("LLM_BASE_URL", "http://localhost:1234/v1"))
     ap.add_argument("--model", default=os.environ.get("LLM_MODEL", "local-model"))
-    ap.add_argument("--api-key", default=os.environ.get("LLM_API_KEY", os.environ.get("OPENAI_API_KEY", "")))
+    ap.add_argument("--api-key", default=os.environ.get("LLM_API_KEY",
+                    os.environ.get("OPENAI_API_KEY", os.environ.get("ANTHROPIC_API_KEY", ""))))
     ap.add_argument("--batch", type=int, default=12)
     ap.add_argument("--max-per-idiom", type=int, default=3)
     ap.add_argument("--max-total", type=int, default=6000)
