@@ -55,3 +55,7 @@ GLU_Deyim_Etiketleme_Ogretmen_Kilavuzu.pdf
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# elle-etiketleme çıktısı (kök dizine iniyor)
+/gold_labels.json
+/annotation_batch.json

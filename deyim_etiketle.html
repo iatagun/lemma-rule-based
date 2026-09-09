@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deyim Etiketleme — D / N</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#181b22; --line:#2a2f3a; --fg:#e6e8ec; --dim:#9aa2b1;
+    --mark:#3b82f6; --d:#22c55e; --n:#f97316; --s:#64748b;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f7f7f8; --panel:#fff; --line:#e2e4e8; --fg:#1a1c20; --dim:#6b7280; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:760px;margin:0 auto;padding:20px 16px 80px}
+  h1{font-size:15px;font-weight:600;margin:0 0 12px;color:var(--dim)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 22px 18px;margin:14px 0}
+  .sent{font-size:20px;line-height:1.7}
+  mark{background:var(--mark);color:#fff;padding:1px 5px;border-radius:5px;font-weight:600}
+  .meta{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);color:var(--dim);font-size:14px}
+  .meta b{color:var(--fg)}
+  .btns{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+  button{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--panel);color:var(--fg);
+    border-radius:10px;padding:11px 18px;cursor:pointer}
+  button:hover{border-color:var(--dim)}
+  .bD{border-color:var(--d);color:var(--d)} .bN{border-color:var(--n);color:var(--n)} .bS{color:var(--s)}
+  .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:6px 0 2px}
+  .bar>i{display:block;height:100%;background:var(--mark)}
+  .row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--dim)}
+  .tally span{margin-left:14px}
+  .hint{margin-top:10px;font-size:13px}
+  .hint u{cursor:pointer;color:var(--dim)}
+  .hintval{background:var(--line);padding:2px 8px;border-radius:6px}
+  details{margin:14px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:0 14px}
+  details[open]{padding-bottom:12px}
+  summary{cursor:pointer;padding:12px 0;font-weight:600;color:var(--dim)}
+  details ol{margin:4px 0;padding-left:20px} details li{margin:6px 0}
+  .top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  input[type=file]{font:inherit;color:var(--dim)}
+  .kbd{font-family:ui-monospace,monospace;background:var(--line);border-radius:4px;padding:1px 5px;font-size:12px}
+  .done{text-align:center;padding:40px 0}
+  .warn{color:var(--n)}
+  a.dl{display:inline-block;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>DizgeBERT-Idiom · stage-2 altın set · D (mecazi deyim) / N (değil)</h1>
+
+  <div class="top">
+    <input type="file" id="file" accept=".json">
+    <button id="dlBtn">💾 Etiketleri indir</button>
+    <span id="status" style="color:var(--dim);font-size:13px"></span>
+  </div>
+
+  <details>
+    <summary>Kılavuz — karar prosedürü (aç/kapat: <span class="kbd">G</span>)</summary>
+    <ol>
+      <li><b>İşaretli öbek gerçekten o deyim mi?</b> Yüzey biçimi çakışan başka bir şeyse
+        — terim / bitki-canlı adı ("aslan ağzı"=çiçek) / özel ad / kelimeler rastlantısal
+        yan yana → <b class="warn">N</b>.</li>
+      <li><b>Deyim yapısıysa: bu cümlede mecazi mi, literal mi?</b>
+        <br>Test: öbeği <b>temel/sözlük anlamıyla</b> düz oku. Cümle olduğu gibi tutarlı ve
+        olağan mı? → <b class="warn">N</b> ("Otobüs yol aldı", "altını kısıp pişirin").
+        <br>Anlamak için <b>mecazi bir sıçrama</b> gerekiyor mu? → <b>D</b>
+        ("Projede yol aldık", "patron gözden düştü").</li>
+      <li><b>"X gibi"</b> biçiminde anlık/yaratıcı benzetme ("internet bomba gibi") → <b class="warn">N</b>.</li>
+      <li><b>Gerçekten kararsızsan → ATLA</b> (<span class="kbd">S</span>). Zorlama.</li>
+    </ol>
+    <p style="color:var(--dim);font-size:13px">Tuşlar: <span class="kbd">D</span> deyim ·
+      <span class="kbd">N</span> değil · <span class="kbd">S</span> atla ·
+      <span class="kbd">←</span> geri · <span class="kbd">H</span> makine tahminini göster</p>
+  </details>
+
+  <div id="app" hidden>
+    <div class="row">
+      <span id="pos"></span>
+      <span class="tally"><span style="color:var(--d)">D <b id="tD">0</b></span>
+        <span style="color:var(--n)">N <b id="tN">0</b></span>
+        <span>atla <b id="tS">0</b></span></span>
+    </div>
+    <div class="bar"><i id="fill"></i></div>
+
+    <div class="card">
+      <div class="sent" id="sent"></div>
+      <div class="meta">
+        <div>sözlük biçimi: <b id="idiom"></b></div>
+        <div id="meaning" style="margin-top:3px"></div>
+        <div class="hint"><u id="hintToggle">🤖 makine tahminini göster</u>
+          <span id="hintVal" class="hintval" hidden></span></div>
+      </div>
+      <div class="btns">
+        <button class="bD" data-l="D">D — mecazi deyim <span class="kbd">D</span></button>
+        <button class="bN" data-l="N">N — değil (literal/terim/benzetme) <span class="kbd">N</span></button>
+        <button class="bS" data-l="S">atla <span class="kbd">S</span></button>
+        <button id="back">← geri</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="done" class="done" hidden>
+    <p>✔ Tüm kayıtlar dolaştın.</p>
+    <p id="doneStats" style="color:var(--dim)"></p>
+    <button id="dlBtn2">💾 Etiketleri indir</button>
+  </div>
+</div>
+
+<script>
+const LS = "deyim_gold_v1";
+let batch = [], labels = {}, cur = 0, order = [];
+
+const $ = s => document.querySelector(s);
+
+function sig(){ return batch.length + "|" + (batch[0] ? batch[0].sentence.slice(0,40) : ""); }
+function loadLS(){ try{ return JSON.parse(localStorage.getItem(LS)) || {}; }catch(e){ return {}; } }
+function saveLS(){
+  try{ localStorage.setItem(LS, JSON.stringify({sig:sig(), labels})); }catch(e){}
+}
+
+$("#file").addEventListener("change", e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    batch = JSON.parse(r.result);
+    const prev = loadLS();
+    labels = (prev.sig === sig() && prev.labels) ? prev.labels : {};
+    order = batch.map((_,i)=>i);
+    cur = order.findIndex(i => !(i in labels));
+    if(cur < 0) cur = order.length;
+    $("#app").hidden = false;
+    render();
+    $("#status").textContent = Object.keys(labels).length
+      ? `${Object.keys(labels).length} kayıt zaten etiketli — kaldığın yerden devam.` : "";
+  };
+  r.readAsText(f);
+});
+
+function render(){
+  const total = batch.length, done = Object.keys(labels).length;
+  $("#pos").textContent = `${Math.min(cur+1,total)} / ${total}`;
+  $("#fill").style.width = (100*done/total) + "%";
+  const c = Counter();
+  $("#tD").textContent = c.D; $("#tN").textContent = c.N; $("#tS").textContent = c.S;
+
+  if(cur >= order.length){
+    $("#app").hidden = true; $("#done").hidden = false;
+    $("#doneStats").textContent = `D ${c.D} · N ${c.N} · atla ${c.S} · toplam ${done}/${total}`;
+    saveLS(); return;
+  }
+  $("#app").hidden = false; $("#done").hidden = true;
+  const it = batch[order[cur]];
+  const w = it.words.map((x,i)=> (i>=it.s && i<it.e) ? `<mark>${esc(x)}</mark>` : esc(x));
+  $("#sent").innerHTML = w.join(" ");
+  $("#idiom").textContent = it.idiom;
+  $("#meaning").textContent = it.meaning || "";
+  $("#meaning").style.color = "var(--dim)";
+  const hv = $("#hintVal"); hv.hidden = true; $("#hintToggle").hidden = false;
+  hv.textContent = it.sonnet ? `🤖 ${it.sonnet}` : "yok";
+  const existing = labels[order[cur]];
+  $("#status").textContent = existing ? `(bu kayıt: ${existing} — değiştirebilirsin)` : "";
+}
+
+function Counter(){
+  const c = {D:0,N:0,S:0};
+  for(const k in labels) if(labels[k] in c) c[labels[k]]++;
+  return c;
+}
+function esc(s){ return s.replace(/[&<>]/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m])); }
+
+function setLabel(l){
+  if(cur >= order.length) return;
+  labels[order[cur]] = l;
+  saveLS();
+  cur++;
+  render();
+}
+function back(){ if(cur>0){ cur--; render(); } }
+
+document.addEventListener("click", e=>{
+  const b = e.target.closest("button[data-l]");
+  if(b) setLabel(b.dataset.l);
+  if(e.target.id === "back") back();
+  if(e.target.id === "hintToggle"){ $("#hintVal").hidden = false; e.target.hidden = true; }
+});
+
+document.addEventListener("keydown", e=>{
+  if(e.target.tagName === "INPUT") return;
+  const k = e.key.toLowerCase();
+  if(k === "d") setLabel("D");
+  else if(k === "n") setLabel("N");
+  else if(k === "s" || e.key === " ") { e.preventDefault(); setLabel("S"); }
+  else if(e.key === "ArrowLeft" || e.key === "Backspace") { e.preventDefault(); back(); }
+  else if(k === "h") { $("#hintVal").hidden = false; $("#hintToggle").hidden = true; }
+  else if(k === "g") { const d = document.querySelector("details"); d.open = !d.open; }
+});
+
+function download(){
+  const out = batch.map((it,i)=> ({
+    idx: it.idx, idiom: it.idiom, span: it.span, sentence: it.sentence,
+    label: labels[i] || null
+  })).filter(r => r.label);
+  const blob = new Blob([JSON.stringify(out, null, 0)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "gold_labels.json"; a.click();
+}
+$("#dlBtn").addEventListener("click", download);
+$("#dlBtn2").addEventListener("click", download);
+
+// batch yoksa bile önceki oturum uyarısı
+window.addEventListener("load", ()=>{
+  const prev = loadLS();
+  if(prev.labels && Object.keys(prev.labels).length)
+    $("#status").textContent = `Tarayıcıda ${Object.keys(prev.labels).length} kayıtlık kaydedilmiş ilerleme var — aynı batch dosyasını yükle.`;
+});
+</script>
+</body>
+</html>
