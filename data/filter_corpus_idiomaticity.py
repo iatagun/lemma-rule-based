@@ -49,6 +49,8 @@ OUT_JSON = PROJECT_ROOT / "idiom_data" / "corpus_examples_glu.json"
 SAMPLE_TSV = PROJECT_ROOT / "idiom_data" / "_corpus_sample.tsv"
 MANUAL_LABELS = PROJECT_ROOT / "idiom_data" / "_corpus_sample_labels.tsv"
 SAMPLE_RECS = PROJECT_ROOT / "idiom_data" / "_corpus_sample_records.jsonl"  # idx→tam kayıt (apply bunu okur)
+HOLDOUT_JSON = PROJECT_ROOT / "idiom_data" / "_holdout_idioms.json"
+GATE_LABELS = PROJECT_ROOT / "idiom_data" / "_gate_llm_labels.jsonl"  # --gate: LLM'in frozen sette verdiği etiketler
 
 SYS_PROMPT = (
     "Sen Türkçe deyim/söz varlığı uzmanısın. GLU (Gülsün Leylâ Uzun) deyim etiketleme "
@@ -271,6 +273,185 @@ def apply_manual(recs: list[dict], holdout: float = 0.15, seed: int = 7,
     print("         python benchmark/eval_idiom.py --local --checkpoint <ckpt> --eval-file idiom_data/corpus_minpair_test.json  # (train_idiom_bert --eval yolu)")
 
 
+def frozen_idiom_set() -> set[str]:
+    """Elle etiketlenmiş (frozen) deyimler + held-out deyimler — kapsam örneklemesi bunları hariç tutar."""
+    s: set[str] = set()
+    if SAMPLE_RECS.exists():
+        s = {json.loads(l)["idiom"] for l in SAMPLE_RECS.read_text(encoding="utf-8").splitlines() if l.strip()}
+    if HOLDOUT_JSON.exists():
+        s |= set(json.loads(HOLDOUT_JSON.read_text(encoding="utf-8")))
+    return s
+
+
+def _read_gold() -> dict[int, str]:
+    gold: dict[int, str] = {}
+    for line in MANUAL_LABELS.read_text(encoding="utf-8").splitlines():
+        p = re.split(r"[\t ,]+", line.strip())
+        if len(p) >= 2 and p[0].isdigit() and p[1].upper() in "DLE":
+            gold[int(p[0])] = p[1].upper()
+    return gold
+
+
+def _cohen_kappa(pairs: list[tuple[str, str]], labels: tuple[str, ...]) -> float:
+    n = len(pairs)
+    if not n:
+        return 0.0
+    po = sum(1 for a, b in pairs if a == b) / n
+    pe = sum((sum(1 for a, _ in pairs if a == l) / n) * (sum(1 for _, b in pairs if b == l) / n)
+             for l in labels)
+    return 1.0 if pe == 1 else (po - pe) / (1 - pe)
+
+
+def _gate_report(gold: dict[int, str], pred: dict[int, str]) -> None:
+    cats = ["D", "L", "E"]
+    conf = {g: Counter() for g in cats}
+    for i, g in gold.items():
+        if i in pred:
+            conf[g][pred[i]] += 1
+    print("\n=== 3x3 confusion (satır=altın, sütun=LLM) ===")
+    print("        " + "".join(f"{c:>7}" for c in cats) + "   toplam")
+    for g in cats:
+        row = conf[g]
+        print(f"  {g:>4}  " + "".join(f"{row[c]:>7}" for c in cats) + f"   {sum(row.values()):>6}")
+
+    dl = [(g, pred[i]) for i, g in gold.items() if g in ("D", "L") and i in pred]
+    n_dl = len(dl)
+    acc = sum(1 for g, p in dl if g == p) / n_dl if n_dl else 0.0
+    d_all = sum(1 for g, _ in dl if g == "D") or 1
+    l_all = sum(1 for g, _ in dl if g == "L") or 1
+    d_r = sum(1 for g, p in dl if g == "D" and p == "D") / d_all
+    l_r = sum(1 for g, p in dl if g == "L" and p == "L") / l_all
+    kappa = _cohen_kappa([(g, p) for g, p in dl if p in ("D", "L")], ("D", "L"))
+    e_gold = [i for i, g in gold.items() if g == "E" and i in pred]
+    e2d = sum(1 for i in e_gold if pred[i] == "D") / (len(e_gold) or 1)
+
+    print(f"\nD-vs-L doğruluk (altın∈D/L, {n_dl} örnek):  {acc*100:.1f}%")
+    print(f"  D-recall {d_r*100:.1f}%   L-recall {l_r*100:.1f}%   min {min(d_r, l_r)*100:.1f}%")
+    print(f"Cohen κ (D/L):  {kappa:.3f}")
+    print(f"altın-E → LLM-D sızıntı ({len(e_gold)} E):  {e2d*100:.1f}%")
+
+    def band(v, go, cond, hi=True):
+        ok, c = ((v >= go, v >= cond) if hi else (v <= go, v <= cond))
+        return "GEÇ" if ok else ("KOŞULLU" if c else "KALDI")
+
+    rows = [("D-vs-L doğruluk", acc, 0.88, 0.80, True),
+            ("min(D-R, L-R)", min(d_r, l_r), 0.85, 0.78, True),
+            ("Cohen κ", kappa, 0.75, 0.60, True),
+            ("E→D sızıntı", e2d, 0.15, 0.25, False)]
+    print("\n=== KAPI ===")
+    verds = []
+    for name, v, go, cond, hi in rows:
+        vd = band(v, go, cond, hi)
+        verds.append(vd)
+        print(f"  {name:<18} {v*100:5.1f}%   {vd}")
+    overall = "KALDI" if "KALDI" in verds else ("KOŞULLU" if "KOŞULLU" in verds else "GEÇ")
+    print(f"\n  SONUÇ: {overall}  "
+          f"({'Adım 2/3 devam' if overall == 'GEÇ' else 'model değiştir / fallback' if overall == 'KALDI' else 'daha iyi model dene'})")
+
+
+def gate(base_url: str, model: str, api_key: str, batch_size: int, timeout: int, restart: bool) -> None:
+    """LLM'i frozen elle-etiketli sette koştur, altın D/L/E ile kıyasla → etiket kalitesi kapısı."""
+    if not SAMPLE_RECS.exists() or not MANUAL_LABELS.exists():
+        sys.exit("frozen etiket seti yok (_corpus_sample_records.jsonl / _corpus_sample_labels.tsv)")
+    recs = {json.loads(l)["idx"]: json.loads(l)
+            for l in SAMPLE_RECS.read_text(encoding="utf-8").splitlines() if l.strip()}
+    gold = _read_gold()
+    if restart:
+        GATE_LABELS.unlink(missing_ok=True)
+    done: dict[int, str] = {}
+    if GATE_LABELS.exists():
+        for line in GATE_LABELS.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                d = json.loads(line)
+                done[int(d["idx"])] = d["label"]
+    todo = [i for i in sorted(gold) if i in recs and i not in done]
+    print(f"gate: {len(gold)} altın · {len(done)} etiketli · {len(todo)} kalan  (model={model})")
+    t = time.time()
+    with GATE_LABELS.open("a", encoding="utf-8") as gf:
+        for b0 in range(0, len(todo), batch_size):
+            idxs = todo[b0:b0 + batch_size]
+            batch = [recs[i] for i in idxs]
+            try:
+                res = call_llm(base_url, model, api_key, batch, timeout)
+            except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+                print(f"  LLM hatası ({e}) — 10s bekle, tekrar dene")
+                time.sleep(10)
+                res = call_llm(base_url, model, api_key, batch, timeout)
+            for pos, i in enumerate(idxs):
+                lb = res.get(pos + 1, "E")
+                gf.write(json.dumps({"idx": i, "label": lb}) + "\n")
+                done[i] = lb
+            gf.flush()
+            if (b0 // batch_size) % 10 == 0:
+                print(f"  {len(done):,}/{len(gold):,}  {time.time() - t:.0f}s")
+    _gate_report(gold, done)
+
+
+def ingest_llm(items: list[dict]) -> None:
+    """`_corpus_idiomaticity_labels.jsonl` (auto-LLM çıktısı) → YENİ-deyim kayıtlarını frozen sete EKLE.
+
+    Append-only: ilk 2173 satır dokunulmaz. Cümle metniyle `corpus_examples.json`'a join
+    ederek `words`/`tags` alınır. frozen deyim veya görülmüş cümle atlanır (re-run idempotent)."""
+    if not LABELS.exists():
+        sys.exit(f"{LABELS} yok — önce auto-LLM etiketleme koşusu (bkz. --new-idioms-only)")
+    by_text = {" ".join(it["words"]): it for it in items}
+    frozen_idioms, seen_texts, nxt = set(), set(), 0
+    if SAMPLE_RECS.exists():
+        for l in SAMPLE_RECS.read_text(encoding="utf-8").splitlines():
+            if not l.strip():
+                continue
+            r = json.loads(l)
+            frozen_idioms.add(r["idiom"])
+            seen_texts.add(" ".join(r["words"]))
+            nxt = max(nxt, r["idx"] + 1)
+    if HOLDOUT_JSON.exists():
+        frozen_idioms |= set(json.loads(HOLDOUT_JSON.read_text(encoding="utf-8")))
+
+    new_recs, new_labs, seen_batch, dist = [], [], set(), Counter()
+    skip_frozen = skip_nojoin = skip_dup = 0
+    for line in LABELS.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        d = json.loads(line)
+        lb = d.get("label", "E").upper()
+        lb = lb if lb in ("D", "L", "E") else "E"
+        k = d["k"]
+        it = by_text.get(k)
+        if it is None:
+            skip_nojoin += 1
+            continue
+        if it["idiom"] in frozen_idioms:
+            skip_frozen += 1
+            continue
+        if k in seen_texts or k in seen_batch:
+            skip_dup += 1
+            continue
+        seen_batch.add(k)
+        new_recs.append({"idx": nxt, "words": it["words"], "tags": it["tags"],
+                         "idiom": it["idiom"], "span": it["span"]})
+        new_labs.append((nxt, lb))
+        dist[lb] += 1
+        nxt += 1
+
+    if not new_recs:
+        print(f"eklenecek yeni-deyim kaydı yok  (atlandı: {skip_frozen} frozen, "
+              f"{skip_nojoin} join-yok, {skip_dup} tekrar)")
+        return
+    with SAMPLE_RECS.open("a", encoding="utf-8") as f:
+        for r in new_recs:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    with MANUAL_LABELS.open("a", encoding="utf-8") as f:
+        for i, lb in new_labs:
+            f.write(f"{i}\t{lb}\n")
+    _write_tsv(new_recs, "a")
+    n_idiom = len({r["idiom"] for r in new_recs})
+    print(f"eklendi: {len(new_recs):,} kayıt / {n_idiom} yeni deyim  dağılım {dict(dist)}")
+    print(f"  atlandı: {skip_frozen} frozen-deyim · {skip_nojoin} join-yok · {skip_dup} tekrar")
+    print(f"  _corpus_sample_labels.tsv artık idx {nxt}'e kadar  (ilk 2173 dokunulmadı)")
+    print("Sonraki: python training/train_idiomaticity_clf.py --freeze 8 --dropout 0.3 "
+          "--weight-decay 0.05 --epochs 14 --out idiom_data/best_idiomaticity_clf_v4.pt")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dump", action="store_true", help="örneği elle sınıflandırma için TSV'ye yaz")
@@ -284,6 +465,12 @@ def main() -> None:
     ap.add_argument("--focus-l", action="store_true",
                     help="L etiketli (literal-eğilimli) deyimlerden DAHA ÇOK cümle örnekle (v13)")
     ap.add_argument("--focus-n", type=int, default=6, help="--focus-l: deyim başına ek cümle")
+    ap.add_argument("--gate", action="store_true",
+                    help="LLM'i frozen elle-etiketli sette koştur, altınla kıyasla → kalite kapısı")
+    ap.add_argument("--ingest-llm", action="store_true",
+                    help="auto-LLM etiketlerini (_corpus_idiomaticity_labels.jsonl) YENİ-deyim kaydı olarak frozen sete EKLE")
+    ap.add_argument("--new-idioms-only", action="store_true",
+                    help="örneklemeden frozen + held-out deyimleri çıkar (kapsam turu)")
     ap.add_argument("--base-url", default=os.environ.get("LLM_BASE_URL", "http://localhost:1234/v1"))
     ap.add_argument("--model", default=os.environ.get("LLM_MODEL", "local-model"))
     ap.add_argument("--api-key", default=os.environ.get("LLM_API_KEY", os.environ.get("OPENAI_API_KEY", "")))
@@ -296,6 +483,18 @@ def main() -> None:
     args = ap.parse_args()
 
     items = load_items()
+
+    if args.gate:
+        return gate(args.base_url, args.model, args.api_key, args.batch, args.timeout, args.restart)
+    if args.ingest_llm:
+        return ingest_llm(items)
+
+    if args.new_idioms_only:
+        excl = frozen_idiom_set()
+        before = len(items)
+        items = [it for it in items if it["idiom"] not in excl]
+        print(f"--new-idioms-only: {before:,} → {len(items):,} örnek  ({len(excl)} deyim hariç)")
+
     picked = sample(items, args.max_per_idiom, args.max_total, args.seed)
     key = lambda it: " ".join(it["words"])
     print(f"{len(items):,} örnek → örneklenen {len(picked):,} "
