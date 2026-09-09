@@ -2,8 +2,11 @@
 # -*- coding: utf-8 -*-
 """Elle-etiketlenmiş altın seti (`gold_labels.json`) stage-2 verisine katar.
 
-`deyim_etiketle.html` çıktısı: [{idx, idiom, span, sentence, label}]  label ∈ D/N/S.
+`deyim_etiketle.html` çıktısı: [{idx, idiom, span, sentence, label, note?}]
+  label ∈ D (mecazi deyim) / N (literal-terim-benzetme) / Y (öbek yanlış seçilmiş) / S (atla).
 `annotation_batch.json` ile idx üzerinden join edilip `words`/`tags` alınır.
+  D → y=1 (idyomatik). N ve Y → y=0 (stage-2 filtrelemeli). S atlanır.
+  `note` alanları `_missed_idioms.txt`'ye dökülür (tespit edilmemiş deyimler → kapsam işi).
 
 - Deyim düzeyinde bölünür (`--eval-frac`, varsayılan 0.5): eval deyimleri
   `_holdout_idioms.json`'a EKLENİR → `train_idiomaticity_clf.py` bunları otomatik
@@ -39,6 +42,7 @@ LABS = D / "_corpus_sample_labels.tsv"
 TSV = D / "_corpus_sample.tsv"
 HOLD = D / "_holdout_idioms.json"
 GOLD_EVAL = D / "_gold_eval_idioms.json"
+MISSED = D / "_missed_idioms.txt"
 
 
 def main() -> None:
@@ -58,19 +62,24 @@ def main() -> None:
     nxt = max((r["idx"] for r in frozen_recs), default=-1) + 1
 
     rows = []           # (idiom, words, tags, y_label "D"/"L")
+    missed = []         # (sentence, note)
     skip_s = skip_dup = skip_nojoin = 0
+    n_y = 0
     for g in gold:
-        lb = (g.get("label") or "").upper()
-        if lb not in ("D", "N"):
-            skip_s += 1
-            continue
         b = batch.get(g["idx"])
         if b is None or b["sentence"] != g.get("sentence", b["sentence"]):
             skip_nojoin += 1
             continue
+        if (g.get("note") or "").strip():
+            missed.append((b["sentence"], g["note"].strip()))
+        lb = (g.get("label") or "").upper()
+        if lb not in ("D", "N", "Y"):
+            skip_s += 1
+            continue
         if b["sentence"] in frozen_txt:
             skip_dup += 1
             continue
+        n_y += (lb == "Y")
         tags = b["tags"] if lb == "D" else ["O"] * len(b["words"])
         rows.append((b["idiom"], b["words"], tags, "D" if lb == "D" else "L"))
 
@@ -84,8 +93,9 @@ def main() -> None:
     train_idioms = set(idioms[n_eval:])
 
     n_d = sum(1 for r in rows if r[3] == "D")
-    print(f"altın: {len(gold)} kayıt → {len(rows)} kullanılabilir ({n_d} D / {len(rows)-n_d} N), "
-          f"{len(idioms)} deyim  (atlandı: {skip_s} S, {skip_dup} tekrar, {skip_nojoin} join-yok)")
+    print(f"altın: {len(gold)} kayıt → {len(rows)} kullanılabilir "
+          f"({n_d} D / {len(rows)-n_d} N+Y, bunun {n_y}'i Y), {len(idioms)} deyim  "
+          f"(atlandı: {skip_s} S, {skip_dup} tekrar, {skip_nojoin} join-yok · {len(missed)} not)")
     print(f"bölme: {len(eval_idioms)} deyim eval (held-out'a eklenecek) / {len(train_idioms)} deyim train")
     overlap = (eval_idioms | train_idioms) & frozen_idioms
     if overlap:
@@ -94,6 +104,12 @@ def main() -> None:
     if args.dry_run:
         print("(dry-run — yazılmadı)")
         return
+
+    if missed:
+        with MISSED.open("a", encoding="utf-8") as f:
+            for s, n in missed:
+                f.write(f"{n}\t{s}\n")
+        print(f"{len(missed)} not → {MISSED.name}")
 
     new_recs, new_labs = [], []
     for idiom, words, tags, y in rows:

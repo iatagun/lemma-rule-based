@@ -7,7 +7,7 @@
 <style>
   :root{
     --bg:#0f1115; --panel:#181b22; --line:#2a2f3a; --fg:#e6e8ec; --dim:#9aa2b1;
-    --mark:#3b82f6; --d:#22c55e; --n:#f97316; --s:#64748b;
+    --mark:#3b82f6; --d:#22c55e; --n:#f97316; --y:#e11d48; --s:#64748b;
   }
   @media (prefers-color-scheme: light){
     :root{ --bg:#f7f7f8; --panel:#fff; --line:#e2e4e8; --fg:#1a1c20; --dim:#6b7280; }
@@ -25,7 +25,10 @@
   button{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--panel);color:var(--fg);
     border-radius:10px;padding:11px 18px;cursor:pointer}
   button:hover{border-color:var(--dim)}
-  .bD{border-color:var(--d);color:var(--d)} .bN{border-color:var(--n);color:var(--n)} .bS{color:var(--s)}
+  .bD{border-color:var(--d);color:var(--d)} .bN{border-color:var(--n);color:var(--n)}
+  .bY{border-color:var(--y);color:var(--y)} .bS{color:var(--s)}
+  textarea{width:100%;margin-top:14px;background:var(--bg);color:var(--fg);border:1px solid var(--line);
+    border-radius:8px;padding:8px;font:14px/1.5 inherit;resize:vertical}
   .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:6px 0 2px}
   .bar>i{display:block;height:100%;background:var(--mark)}
   .row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--dim)}
@@ -58,20 +61,26 @@
   <details>
     <summary>Kılavuz — karar prosedürü (aç/kapat: <span class="kbd">G</span>)</summary>
     <ol>
-      <li><b>İşaretli öbek gerçekten o deyim mi?</b> Yüzey biçimi çakışan başka bir şeyse
-        — terim / bitki-canlı adı ("aslan ağzı"=çiçek) / özel ad / kelimeler rastlantısal
-        yan yana → <b class="warn">N</b>.</li>
-      <li><b>Deyim yapısıysa: bu cümlede mecazi mi, literal mi?</b>
+      <li><b>Vurgulanan kelimeler doğru öbeği gösteriyor mu?</b> Yanlış kelimeler seçilmiş,
+        sınırlar kaymış, ya da o deyim bu cümlede hiç yoksa → <b style="color:var(--y)">Y</b>
+        (öbek yanlış). Sınır bir kelime kayması bile olsa Y.</li>
+      <li><b>Öbek doğru ama aslında o deyim değil</b> — terim / bitki-canlı adı ("aslan
+        ağzı"=çiçek) / özel ad / kelimeler rastlantısal yan yana → <b class="warn">N</b>.</li>
+      <li><b>Öbek doğru ve deyim: bu cümlede mecazi mi, literal mi?</b>
         <br>Test: öbeği <b>temel/sözlük anlamıyla</b> düz oku. Cümle olduğu gibi tutarlı ve
         olağan mı? → <b class="warn">N</b> ("Otobüs yol aldı", "altını kısıp pişirin").
         <br>Anlamak için <b>mecazi bir sıçrama</b> gerekiyor mu? → <b>D</b>
         ("Projede yol aldık", "patron gözden düştü").</li>
       <li><b>"X gibi"</b> biçiminde anlık/yaratıcı benzetme ("internet bomba gibi") → <b class="warn">N</b>.</li>
       <li><b>Gerçekten kararsızsan → ATLA</b> (<span class="kbd">S</span>). Zorlama.</li>
+      <li><b>Cümlede tespit edilmemiş başka deyim(ler) varsa</b> → <span class="kbd">E</span>
+        ile not alanına yaz (sözlük biçimiyle, virgülle ayır). Bu kayıtları ayrıca
+        değerlendireceğiz — kapsam genişletme için değerli.</li>
     </ol>
     <p style="color:var(--dim);font-size:13px">Tuşlar: <span class="kbd">D</span> deyim ·
-      <span class="kbd">N</span> değil · <span class="kbd">S</span> atla ·
-      <span class="kbd">←</span> geri · <span class="kbd">H</span> makine tahminini göster</p>
+      <span class="kbd">N</span> literal/terim · <span class="kbd">Y</span> öbek yanlış ·
+      <span class="kbd">S</span> atla · <span class="kbd">←</span> geri ·
+      <span class="kbd">E</span> not · <span class="kbd">H</span> makine tahmini</p>
   </details>
 
   <div id="app" hidden>
@@ -79,6 +88,7 @@
       <span id="pos"></span>
       <span class="tally"><span style="color:var(--d)">D <b id="tD">0</b></span>
         <span style="color:var(--n)">N <b id="tN">0</b></span>
+        <span style="color:var(--y)">Y <b id="tY">0</b></span>
         <span>atla <b id="tS">0</b></span></span>
     </div>
     <div class="bar"><i id="fill"></i></div>
@@ -93,10 +103,12 @@
       </div>
       <div class="btns">
         <button class="bD" data-l="D">D — mecazi deyim <span class="kbd">D</span></button>
-        <button class="bN" data-l="N">N — değil (literal/terim/benzetme) <span class="kbd">N</span></button>
+        <button class="bN" data-l="N">N — literal / terim / benzetme <span class="kbd">N</span></button>
+        <button class="bY" data-l="Y">Y — öbek YANLIŞ seçilmiş <span class="kbd">Y</span></button>
         <button class="bS" data-l="S">atla <span class="kbd">S</span></button>
         <button id="back">← geri</button>
       </div>
+      <textarea id="note" rows="2" placeholder="bu cümledeki diğer deyimler / not (isteğe bağlı) — odak: E tuşu, çık: Esc"></textarea>
     </div>
   </div>
 
@@ -109,14 +121,14 @@
 
 <script>
 const LS = "deyim_gold_v1";
-let batch = [], labels = {}, cur = 0, order = [];
+let batch = [], labels = {}, notes = {}, cur = 0, order = [];
 
 const $ = s => document.querySelector(s);
 
 function sig(){ return batch.length + "|" + (batch[0] ? batch[0].sentence.slice(0,40) : ""); }
 function loadLS(){ try{ return JSON.parse(localStorage.getItem(LS)) || {}; }catch(e){ return {}; } }
 function saveLS(){
-  try{ localStorage.setItem(LS, JSON.stringify({sig:sig(), labels})); }catch(e){}
+  try{ localStorage.setItem(LS, JSON.stringify({sig:sig(), labels, notes})); }catch(e){}
 }
 
 $("#file").addEventListener("change", e=>{
@@ -125,7 +137,9 @@ $("#file").addEventListener("change", e=>{
   r.onload = () => {
     batch = JSON.parse(r.result);
     const prev = loadLS();
-    labels = (prev.sig === sig() && prev.labels) ? prev.labels : {};
+    const ok = prev.sig === sig();
+    labels = (ok && prev.labels) ? prev.labels : {};
+    notes = (ok && prev.notes) ? prev.notes : {};
     order = batch.map((_,i)=>i);
     cur = order.findIndex(i => !(i in labels));
     if(cur < 0) cur = order.length;
@@ -142,11 +156,13 @@ function render(){
   $("#pos").textContent = `${Math.min(cur+1,total)} / ${total}`;
   $("#fill").style.width = (100*done/total) + "%";
   const c = Counter();
-  $("#tD").textContent = c.D; $("#tN").textContent = c.N; $("#tS").textContent = c.S;
+  $("#tD").textContent = c.D; $("#tN").textContent = c.N;
+  $("#tY").textContent = c.Y; $("#tS").textContent = c.S;
 
   if(cur >= order.length){
     $("#app").hidden = true; $("#done").hidden = false;
-    $("#doneStats").textContent = `D ${c.D} · N ${c.N} · atla ${c.S} · toplam ${done}/${total}`;
+    $("#doneStats").textContent = `D ${c.D} · N ${c.N} · Y ${c.Y} · atla ${c.S} · `
+      + `not ${Object.keys(notes).filter(k=>notes[k]&&notes[k].trim()).length} · toplam ${done}/${total}`;
     saveLS(); return;
   }
   $("#app").hidden = false; $("#done").hidden = true;
@@ -156,6 +172,7 @@ function render(){
   $("#idiom").textContent = it.idiom;
   $("#meaning").textContent = it.meaning || "";
   $("#meaning").style.color = "var(--dim)";
+  $("#note").value = notes[order[cur]] || "";
   const hv = $("#hintVal"); hv.hidden = true; $("#hintToggle").hidden = false;
   hv.textContent = it.sonnet ? `🤖 ${it.sonnet}` : "yok";
   const existing = labels[order[cur]];
@@ -163,7 +180,7 @@ function render(){
 }
 
 function Counter(){
-  const c = {D:0,N:0,S:0};
+  const c = {D:0,N:0,Y:0,S:0};
   for(const k in labels) if(labels[k] in c) c[labels[k]]++;
   return c;
 }
@@ -185,13 +202,23 @@ document.addEventListener("click", e=>{
   if(e.target.id === "hintToggle"){ $("#hintVal").hidden = false; e.target.hidden = true; }
 });
 
+$("#note").addEventListener("input", e=>{
+  if(cur < order.length){ notes[order[cur]] = e.target.value; saveLS(); }
+});
+$("#note").addEventListener("keydown", e=>{
+  if(e.key === "Escape"){ e.target.blur(); }
+  e.stopPropagation();   // not alanındayken D/N/Y kısayolları tetiklenmesin
+});
+
 document.addEventListener("keydown", e=>{
-  if(e.target.tagName === "INPUT") return;
+  if(e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
   const k = e.key.toLowerCase();
   if(k === "d") setLabel("D");
   else if(k === "n") setLabel("N");
+  else if(k === "y") setLabel("Y");
   else if(k === "s" || e.key === " ") { e.preventDefault(); setLabel("S"); }
   else if(e.key === "ArrowLeft" || e.key === "Backspace") { e.preventDefault(); back(); }
+  else if(k === "e") { e.preventDefault(); $("#note").focus(); }
   else if(k === "h") { $("#hintVal").hidden = false; $("#hintToggle").hidden = true; }
   else if(k === "g") { const d = document.querySelector("details"); d.open = !d.open; }
 });
@@ -199,8 +226,8 @@ document.addEventListener("keydown", e=>{
 function download(){
   const out = batch.map((it,i)=> ({
     idx: it.idx, idiom: it.idiom, span: it.span, sentence: it.sentence,
-    label: labels[i] || null
-  })).filter(r => r.label);
+    label: labels[i] || null, note: (notes[i] || "").trim() || undefined
+  })).filter(r => r.label || r.note);
   const blob = new Blob([JSON.stringify(out, null, 0)], {type:"application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob); a.download = "gold_labels.json"; a.click();
