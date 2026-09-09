@@ -62,12 +62,29 @@ pooling → {literal, idyomatik}; bitişik VID adaylarını süzer (LVC + gap'li
   PARSEME −2 (yapay — o sette literal kullanım yok).
 - Pakete gömme: `train_idiom_bert.py --stage2-ckpt` → ~880MB bundle. Bkz. [[hf-model-publish]].
 
-### Hâlâ açık
-- Stage-2 ~1k elle-etiketli örnekte hâlâ overfit; literal kullanımların ~%18'i geçiyor
-  ("otobüs yol aldı" sınıflandırıcının kaçırdığı bilinen vaka).
-- Daha çok D/L etiketi (+431 focus-L) iğneyi oynatmadı — tek-model veri kaldıracı gibi doygun.
-- **Minimal çiftler / hard negative** (GLU `glu_karar_cercevesi.md` §minimal-çiftler §hard-negative)
-  hâlâ en iyi ek eğitim/eval sinyali — bitki adları "aslan ağzı" = terim, "karar vermek" = eşdizim.
+### Stage-2 tavanı da kırılamadı (2026-09-09) — TEKRAR DENEME
+
+Çavuşoğlu doğru-ayırt ~%42 stage-2 tavanı. Denenip REDDEDİLEN:
+
+| deney | ne | sonuç |
+|---|---|---|
+| **v4 / v4b** | LLM-ölçekli GLU etiketi (Sonnet-5 ikili D/N, 8k cümle / 3980 yeni deyim, `--new-idioms-only`), freeze 8/10 | PARSEME ALL −2.2/−2.9 (VID aşırı filtre), Çavuşoğlu doğru-ayırt düz/−1.5, GLU −3. Model temiz held-out'ta epoch ilerledikçe kötüleşiyor → LLM etiketleri ~%20 sınır gürültüsü (κ 0.57). **Kapsam per-etiket gürültüsünü yenmedi.** |
+| **v5ctx** | stage-2 mimarisi: span ilk⊕son → `[CLS] ⊕ span-ortalama ⊕ ilk ⊕ son`, `Linear(4H,2)`; 8k LLM veri | Çavuşoğlu **birebir v3** — mimari ayrım ekseninde sıfır fark, darboğaz etiket kalitesi |
+| **v5ctx_clean** | aynı bağlam mimarisi + orijinal ~975 temiz etiket | GLU minimal-çift ayırt 33→44 (ama 9-çift = gürültü), Çavuşoğlu yanlış-poz 16.2→13.6 AMA **doğru-ayırt her eşikte ~41'de sabit**, duyarlılık −3. Wash. |
+
+**Ders:** stage-2 tavanı (a) daha çok veri, (b) ikili çerçeve, (c) cümle-bağlamı mimarisi ile
+kırılmıyor — tek-model tavanının (v6-v14) stage-2 karşılığı. Mimari değişikliği geri alındı.
+
+`data/filter_corpus_idiomaticity.py` yeni bayraklar (`stage2-llm-labels` dalı, main'e merge
+kararı açık): `--gate` (LLM'i frozen sette kıyasla), `--new-idioms-only` (kapsam örneklemesi),
+`--ingest-llm` (append-only). GLU prompt'u İKİLİ (D/N) + `sözlük biçimi: {idiom}` satırda.
+anthropic.com uçları: `temperature` at + `thinking:{type:disabled}` (yoksa boş içerik).
+
+### Hâlâ açık (düşük beklenen değer)
+- Stage-2 ~1k elle-etiketli örnekte overfit; literal kullanımların ~%16-18'i geçiyor.
+- Denenmemiş: contrastive margin kaybı, elle/LLM etiket karışım ağırlığı, stage-1 p(literal)
+  özelliği. Meta-örüntü net — tavan yapısal.
+- **Minimal çiftler / hard negative** (GLU `glu_karar_cercevesi.md`) hâlâ en keskin eval sinyali.
 
 ## Kritik teknik notlar
 
