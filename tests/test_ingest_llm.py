@@ -55,9 +55,9 @@ def test_ingest_llm_join_dedup_append_only(tmp_path, monkeypatch):
     ]
     auto.write_text("".join(json.dumps(d, ensure_ascii=False) + "\n" for d in [
         {"k": "yeni cümle bir", "label": "D", "idiom": "kulak vermek", "span": "cümle"},
-        {"k": "baska yeni cümle", "label": "L", "idiom": "göz atmak", "span": "cümle"},
+        {"k": "baska yeni cümle", "label": "N", "idiom": "göz atmak", "span": "cümle"},     # N → negatif (L)
         {"k": "yeni cümle bir", "label": "D", "idiom": "kulak vermek", "span": "cümle"},   # tekrar → atla
-        {"k": "a boy attı", "label": "L", "idiom": "boy atmak", "span": "boy attı"},        # frozen deyim → atla
+        {"k": "a boy attı", "label": "N", "idiom": "boy atmak", "span": "boy attı"},        # frozen deyim → atla
         {"k": "held out cumlesi", "label": "D", "idiom": "el atmak", "span": "out"},        # held-out → atla
         {"k": "join yok bu", "label": "D", "idiom": "yok", "span": "x"},                    # join yok → atla
     ]), encoding="utf-8")

@@ -64,26 +64,27 @@ SYS_PROMPT = (
 )
 
 TASK = """Aşağıda numaralı Türkçe cümleler var. Her satırda: cümle, işaretli ÖBEK (çekimli), \
-ve o öbeğin SÖZLÜK BİÇİMİ. Sözlük biçimi TDK Deyimler Sözlüğü'nde KAYITLI bir deyimdir — \
-yani yapı kesinlikle bir deyimdir. Senin işin bu YAPI'nın deyim olup olmadığına karar vermek \
-DEĞİL; O CÜMLEDEKİ kullanımın mecazi mi literal mi olduğuna karar vermek:
+ve o öbeğin SÖZLÜK BİÇİMİ (TDK Deyimler Sözlüğü'nde kayıtlı). Soru: öbek BU CÜMLEDE gerçek bir \
+DEYİM gibi mi kullanılmış?
 
-D = öbek bu cümlede DEYİM anlamıyla (mecazi/aktarılmış) kullanılmış. Birebir okunuşu bu bağlamda \
-olağan/mantıklı değil. Varsayılan budur — çoğu kullanım D'dir. \
-Örn: "Projede yol aldık", "Soruyu topu taca atarak geçiştirdi", "Patron gözden düştü".
-L = öbek bu cümlede LİTERAL (kelimesi kelimesine, gerçek/temel anlamıyla) kullanılmış; birebir \
-okunuş bu bağlamda tamamen olağan ve mantıklı. Öbeği temel anlamıyla açsan cümle bozulmaz. \
-Örn: "Otobüs kısa sürede çok yol aldı", "Hırsız eli kolu bağlanarak götürüldü", \
-"Kontak lensi gözünden düştü", "Devrede kısa devre oldu".
-E = SADECE şu durumda: işaretli öbek aslında o deyim değil, yüzey biçimi çakışan başka bir şey \
-— terim, bitki/canlı adı ("aslan ağzı"=çiçek, "kuşburnu", "deve dikeni"), özel ad, ya da öbek \
-cümlede bir bütün oluşturmuyor (kelimeler rastlantısal yan yana). Kararsızlık E DEĞİLDİR — \
-emin değilsen D ile L arasından seç.
+D = EVET. Öbek bu cümlede bütüncül, mecazi/aktarılmış anlamıyla kullanılmış; öznesi/nesnesi soyut \
+ya da mecazi; birebir/fiziksel okunuşu bu bağlamda olağan değil. \
+Örn: "Projede yol aldık", "Soruyu topu taca atarak geçiştirdi", "Patron gözden düştü", \
+"Yalanı çıkınca içeri girdi" (=hapse girdi), "Bu haber bomba etkisi yarattı".
 
-Karar testi (D mi L mi): Özne/nesne somut mu soyut mu? Öbeği temel sözlük anlamıyla değiştirince \
-cümle hâlâ tutarlı ve olağan mı? Tutarlı → L, değil → D.
+N = HAYIR. Öbek bu cümlede deyim işlevinde DEĞİL. Şunlardan biri:
+ • LİTERAL: kelimesi kelimesine, fiziksel/somut/teknik anlamda — yemek tarifi ("altını kısıp \
+   pişirin"), işlem adımı ("kaydı siler", "elektriği kesti", "şifreyi çözdü"), fiziksel eylem \
+   ("karaya ayak bastı", "zirveye çıktı", "silah patladı", "isabet alarak yaralandı").
+ • TERİM / ÖZEL AD / bitki-canlı adı ("aslan ağzı"=çiçek, "kuşburnu").
+ • "X gibi" biçiminde anlık/yaratıcı benzetme ("internet canlı bomba gibi", "şimşek gibi geçti").
+ • Sıradan eşdizim ("hazırlık yapmak", "kamp yapmak", "karar vermek") — mecaz yok.
+ • Kelimeler cümlede rastlantısal yan yana, bir bütün oluşturmuyor.
 
-Her satır için SADECE: <numara> <D|L|E>  — başka açıklama yok.
+Test: Öbeği temel/sözlük anlamıyla düz okuyunca cümle olduğu gibi tutarlı kalıyorsa → N. \
+Ancak mecazi bir sıçrama gerekiyorsa → D. Kararsızsan cümlede hangi okunuş daha olağansa onu seç.
+
+Her satır için SADECE: <numara> <D|N>  — başka açıklama yok.
 
 """
 
@@ -148,7 +149,7 @@ def call_llm(base_url: str, model: str, api_key: str, batch: list[dict], timeout
         else:
             raise
     out: dict[int, str] = {}
-    for m in re.finditer(r"(\d+)\s*[.):\-]?\s*([DLEdle])\b", txt):
+    for m in re.finditer(r"(\d+)\s*[.):\-]?\s*([DNdn])\b", txt):
         out[int(m.group(1))] = m.group(2).upper()
     return out
 
@@ -331,50 +332,46 @@ def _cohen_kappa(pairs: list[tuple[str, str]], labels: tuple[str, ...]) -> float
 
 
 def _gate_report(gold: dict[int, str], pred: dict[int, str]) -> None:
-    cats = ["D", "L", "E"]
-    conf = {g: Counter() for g in cats}
-    for i, g in gold.items():
-        if i in pred:
-            conf[g][pred[i]] += 1
-    print("\n=== 3x3 confusion (satır=altın, sütun=LLM) ===")
-    print("        " + "".join(f"{c:>7}" for c in cats) + "   toplam")
-    for g in cats:
-        row = conf[g]
-        print(f"  {g:>4}  " + "".join(f"{row[c]:>7}" for c in cats) + f"   {sum(row.values()):>6}")
+    """İkili karşılaştırma: LLM D/N döndürür; altın L ve E → N'e katlanır.
+    (Altın etiketler önceki oturumların Claude çıktısı — kusurlu; kapı yön verir, kesin değil.)"""
+    fold = lambda x: "D" if x == "D" else "N"
+    pairs = [(fold(g), fold(pred[i])) for i, g in gold.items() if i in pred]
+    n = len(pairs)
+    conf = Counter(pairs)
+    print("\n=== 2x2 confusion (satır=altın, sütun=LLM;  L,E → N) ===")
+    print(f"          D-llm    N-llm    toplam")
+    for g in ("D", "N"):
+        print(f"  {g}-altın  {conf[(g, 'D')]:>6}   {conf[(g, 'N')]:>6}   {conf[(g,'D')]+conf[(g,'N')]:>6}")
 
-    dl = [(g, pred[i]) for i, g in gold.items() if g in ("D", "L") and i in pred]
-    n_dl = len(dl)
-    acc = sum(1 for g, p in dl if g == p) / n_dl if n_dl else 0.0
-    d_all = sum(1 for g, _ in dl if g == "D") or 1
-    l_all = sum(1 for g, _ in dl if g == "L") or 1
-    d_r = sum(1 for g, p in dl if g == "D" and p == "D") / d_all
-    l_r = sum(1 for g, p in dl if g == "L" and p == "L") / l_all
-    kappa = _cohen_kappa([(g, p) for g, p in dl if p in ("D", "L")], ("D", "L"))
-    e_gold = [i for i, g in gold.items() if g == "E" and i in pred]
-    e2d = sum(1 for i in e_gold if pred[i] == "D") / (len(e_gold) or 1)
+    acc = sum(1 for a, b in pairs if a == b) / n if n else 0.0
+    d_all = sum(1 for a, _ in pairs if a == "D") or 1
+    n_all = sum(1 for a, _ in pairs if a == "N") or 1
+    d_r = conf[("D", "D")] / d_all      # altın-D'yi D bilme
+    n_r = conf[("N", "N")] / n_all      # altın-N'yi N bilme (literal/terim eleme)
+    n2d = conf[("N", "D")] / n_all      # altın-N'yi yanlışlıkla D deme (sınıflandırıcıyı zehirler)
+    kappa = _cohen_kappa(pairs, ("D", "N"))
 
-    print(f"\nD-vs-L doğruluk (altın∈D/L, {n_dl} örnek):  {acc*100:.1f}%")
-    print(f"  D-recall {d_r*100:.1f}%   L-recall {l_r*100:.1f}%   min {min(d_r, l_r)*100:.1f}%")
-    print(f"Cohen κ (D/L):  {kappa:.3f}")
-    print(f"altın-E → LLM-D sızıntı ({len(e_gold)} E):  {e2d*100:.1f}%")
+    print(f"\ndoğruluk: {acc*100:.1f}%   (altın kusurlu, ~tavan referansı)")
+    print(f"  altın-D → D  {d_r*100:.1f}%     altın-N → N  {n_r*100:.1f}%")
+    print(f"  altın-N → D (zararlı yön)  {n2d*100:.1f}%")
+    print(f"Cohen κ:  {kappa:.3f}")
 
     def band(v, go, cond, hi=True):
         ok, c = ((v >= go, v >= cond) if hi else (v <= go, v <= cond))
         return "GEÇ" if ok else ("KOŞULLU" if c else "KALDI")
 
-    rows = [("D-vs-L doğruluk", acc, 0.88, 0.80, True),
-            ("min(D-R, L-R)", min(d_r, l_r), 0.85, 0.78, True),
-            ("Cohen κ", kappa, 0.75, 0.60, True),
-            ("E→D sızıntı", e2d, 0.15, 0.25, False)]
-    print("\n=== KAPI ===")
+    rows = [("doğruluk", acc, 0.82, 0.75, True),
+            ("altın-N → N", n_r, 0.65, 0.50, True),
+            ("Cohen κ", kappa, 0.55, 0.42, True),
+            ("altın-N → D", n2d, 0.20, 0.32, False)]
+    print("\n=== KAPI (altın gürültülü — yön göstergesi) ===")
     verds = []
     for name, v, go, cond, hi in rows:
         vd = band(v, go, cond, hi)
         verds.append(vd)
-        print(f"  {name:<18} {v*100:5.1f}%   {vd}")
-    overall = "KALDI" if "KALDI" in verds else ("KOŞULLU" if "KOŞULLU" in verds else "GEÇ")
-    print(f"\n  SONUÇ: {overall}  "
-          f"({'Adım 2/3 devam' if overall == 'GEÇ' else 'model değiştir / fallback' if overall == 'KALDI' else 'daha iyi model dene'})")
+        print(f"  {name:<14} {v*100:5.1f}%   {vd}")
+    overall = "KALDI" if verds.count("KALDI") >= 2 else ("KOŞULLU" if "KALDI" in verds or "KOŞULLU" in verds else "GEÇ")
+    print(f"\n  SONUÇ: {overall}  — asıl yargıç uçtan uca stage-2 v4 vs v3 kıyası")
 
 
 def gate(base_url: str, model: str, api_key: str, batch_size: int, timeout: int, restart: bool) -> None:
@@ -406,7 +403,7 @@ def gate(base_url: str, model: str, api_key: str, batch_size: int, timeout: int,
                 time.sleep(10)
                 res = call_llm(base_url, model, api_key, batch, timeout)
             for pos, i in enumerate(idxs):
-                lb = res.get(pos + 1, "E")
+                lb = res.get(pos + 1, "N")
                 gf.write(json.dumps({"idx": i, "label": lb}) + "\n")
                 done[i] = lb
             gf.flush()
@@ -441,8 +438,9 @@ def ingest_llm(items: list[dict]) -> None:
         if not line.strip():
             continue
         d = json.loads(line)
-        lb = d.get("label", "E").upper()
-        lb = lb if lb in ("D", "L", "E") else "E"
+        # LLM ikili döndürür (D/N); stage-2 eğitici D→y=1, L→y=0 okur (E'yi atlar).
+        # N ve eski L/E hepsi negatif sınıf → "L" olarak yaz.
+        lb = "D" if d.get("label", "N").upper() == "D" else "L"
         k = d["k"]
         it = by_text.get(k)
         if it is None:
@@ -562,7 +560,7 @@ def main() -> None:
                 except Exception as e2:
                     sys.exit(f"LLM erişilemiyor: {e2}\nLM Studio açık mı? --base-url doğru mu?")
             for i, it in enumerate(batch):
-                lab = res.get(i + 1, "E")  # ayrıştırılamayan → E (elenir)
+                lab = res.get(i + 1, "N")  # ayrıştırılamayan → N (negatif)
                 lf.write(json.dumps({"k": key(it), "label": lab,
                                      "idiom": it["idiom"], "span": it["span"]},
                                     ensure_ascii=False) + "\n")
