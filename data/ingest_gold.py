@@ -48,16 +48,28 @@ GOLD_SPANS = D / "gold_spans.jsonl"
 MISSED = D / "_missed_idioms.txt"
 
 
-def bio(n: int, spans: list[dict]) -> list[str]:
-    """idio öbeklerden BIO etiket dizisi (lit öbek O bırakılır)."""
-    tags = ["O"] * n
+def bio2(n: int, spans: list[dict]) -> tuple[list[str], list[str]]:
+    """idio öbeklerden iki-katman BIO (bigappy-unicrossy): katman1 = 1. parça / bitişik,
+    katman2 (küçük harf) = süreksiz öbeğin 2. parçası. lit öbek O."""
+    t1 = ["O"] * n
+    t2 = ["o"] * n
     for sp in spans:
         if sp.get("sense") != "idio":
             continue
         cat = sp.get("cat", "VID")
         for i in range(sp["s"], min(sp["e"], n)):
-            tags[i] = ("B-" if i == sp["s"] else "I-") + cat
-    return tags
+            t1[i] = ("B-" if i == sp["s"] else "I-") + cat
+        if sp.get("s2") is not None:
+            for i in range(sp["s2"], min(sp["e2"], n)):
+                t2[i] = ("b-" if i == sp["s2"] else "i-") + cat
+    return t1, t2
+
+
+def contig(n: int, s: int, e: int, cat: str = "VID") -> list[str]:
+    t = ["O"] * n
+    for i in range(s, min(e, n)):
+        t[i] = ("B-" if i == s else "I-") + cat
+    return t
 
 
 def covers(sp: dict, c: dict) -> float:
@@ -98,8 +110,8 @@ def main() -> None:
         if (g.get("note") or "").strip():
             missed.append((g["sentence"], g["note"].strip()))
 
-        span_rows.append({"idiom": idiom, "words": words, "tags": bio(len(words), spans),
-                          "spans": spans})
+        t1, t2 = bio2(len(words), spans)
+        span_rows.append({"idiom": idiom, "words": words, "tags": t1, "tags2": t2, "spans": spans})
 
         # aday öbeğin stage-2 etiketi (cand None = madenlenen öbek düzenlemede kayboldu → spurious)
         best, bscore = None, 0.35
@@ -109,7 +121,7 @@ def main() -> None:
                 if sc >= bscore:
                     best, bscore = sp, sc
         if cand and best and best.get("sense") == "idio":
-            lab, tags = "D", bio(len(words), [{"s": cand["s"], "e": cand["e"], "cat": "VID", "sense": "idio"}])
+            lab, tags = "D", contig(len(words), cand["s"], cand["e"])
             kd += 1
         else:
             lab, tags = "L", ["O"] * len(words)     # literal, silinmiş ya da düzenlemede kaybolmuş aday

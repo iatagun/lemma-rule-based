@@ -126,6 +126,11 @@
   .srow .sense.lit{color:var(--lit);border-color:color-mix(in srgb,var(--lit) 45%,var(--rule2))}
   .srow .del{color:var(--faint);font-size:14px;padding:0 4px}
   .srow .del:hover{color:var(--lit)}
+  .srow .frag{font-size:11px;color:var(--faint);border:1px solid var(--rule2);border-radius:12px;padding:2px 7px}
+  .srow .frag:hover{color:var(--ink);border-color:var(--soft)}
+  .srow .gap{font-size:10px;font-family:var(--mono);color:var(--lvc);border:1px solid currentColor;
+    border-radius:4px;padding:1px 4px}
+  .tok.gapmid{opacity:.5}
   .newspan{font-size:12px;color:var(--faint);padding:4px 6px}
   .newspan b{color:var(--soft)}
   .newspan .pick{color:var(--vid);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
@@ -239,7 +244,7 @@
     <div class="keys">
       <span>kelimeye tıkla: öbek başlat/seç</span><span>2. tıkla: bitir</span>
       <span><kbd>1</kbd> VID <kbd>2</kbd> LVC</span><span><kbd>D</kbd> deyim <kbd>L</kbd> literal</span>
-      <span><kbd>C</kbd> tür <kbd>X</kbd> sil</span><span><kbd>↵</kbd> <kbd>→</kbd> sonraki <kbd>←</kbd> önceki</span>
+      <span><kbd>C</kbd> tür <kbd>P</kbd> süreksiz <kbd>X</kbd> sil</span><span><kbd>↵</kbd> <kbd>→</kbd> sonraki <kbd>←</kbd> önceki</span>
       <span><kbd>W</kbd> cümleyi düzenle <kbd>Y</kbd> kopyala</span>
       <span><kbd>F</kbd> işaretle <kbd>E</kbd> not <kbd>Z</kbd> sıfırla</span><span><kbd>H</kbd> makine <kbd>G</kbd> kılavuz</span>
     </div>
@@ -258,9 +263,14 @@
         tutarlı kalıyorsa <b>literal</b> (<kbd>L</kbd>), mecazi sıçrama gerekiyorsa <b>deyim</b>
         (<kbd>D</kbd>). Literal öbek kayıtta kalır ama BIO’da O olur.</li>
       <li><b>Öbek aslında o yapı değilse</b> (terim, bitki adı, rastlantısal yan yana) → sil.</li>
-      <li><b>Tespit edilmemiş başka deyim/eşdizim varsa</b> kelimelerine tıkla, yeni öbek kur.
-        Eşdizim (karar vermek, görüş almak) için <kbd>2</kbd> ile LVC seç.</li>
-      <li>“X gibi” anlık benzetme → öbek değil, sil.</li>
+      <li><b>Tespit edilmemiş başka deyim/eşdizim varsa</b> kelimelerine tıkla, yeni öbek kur —
+        ama <b>kalıplaşmış</b> bir yapı olmalı (TDK/PARSEME'de olabilecek). Rastgele kelime çifti,
+        açımlama, terim (kara delik, çekim merkezi) → <b>ekleme</b>. Eşdizim (karar vermek,
+        görüş almak) için <kbd>2</kbd> ile LVC.</li>
+      <li><b>Süreksiz öbek</b> (yardımına … koştu, sahip … olarak): öbeği seç, <kbd>P</kbd>,
+        sonra ikinci parçanın kelimelerine tıkla. Aradaki kelimeleri seçme.</li>
+      <li>“X gibi” anlık benzetme → öbek değil, sil. Noktalama (<kbd>,</kbd> <kbd>.</kbd> <kbd>"</kbd>)
+        öbek sınırında olamaz — otomatik kırpılır.</li>
       <li><b>Cümlede yazım hatası / bozuk kelime / fazla simge</b> varsa <kbd>W</kbd> ile
         metni düzelt; öbekler yeniden eşlenir. <kbd>Y</kbd> cümleyi panoya kopyalar.</li>
     </ol>
@@ -280,7 +290,7 @@
 const LS = "deyim_gold_v2";
 let B = [], anno = {}, flags = {}, notes = {}, times = {};
 let curIdx = 0, filter = "all", enter = 0, sessionStart = 0;
-let anchor = -1, sel = -1, activeCat = "VID", showGuess = false;
+let anchor = -1, anchor2 = -1, frag2 = false, sel = -1, activeCat = "VID", showGuess = false;
 const $ = s => document.querySelector(s);
 const catCls = c => c === "VID" ? "V" : "M";
 
@@ -403,20 +413,45 @@ function commitNext(){
 }
 
 /* ---------- timing ---------- */
-function enterItem(){ enter = Date.now(); anchor = -1; sel = -1; showGuess = false; }
+function enterItem(){ enter = Date.now(); anchor = -1; anchor2 = -1; frag2 = false; sel = -1; showGuess = false; }
 function recordTime(){
   if(curIdx < 0) return;
   times[curIdx] = +( (times[curIdx]||0) + (Date.now()-enter)/1000 ).toFixed(1);
 }
 
 /* ---------- span edits ---------- */
-function spanAt(i){ const a = getA(curIdx); for(let k=0;k<a.spans.length;k++){ const sp=a.spans[k]; if(i>=sp.s && i<sp.e) return k; } return -1; }
+const PUNCT = /^[.,;:!?"'«»()\[\]{}…”“‘’\-–—/\\]+$/;
+function trimPunct(s, e){
+  const w = wordsOf(curIdx);
+  while(s < e && PUNCT.test(w[s])) s++;
+  while(e > s && PUNCT.test(w[e-1])) e--;
+  return e > s ? [s, e] : null;
+}
+function inSpan(sp, i){ return (i >= sp.s && i < sp.e) || (sp.s2 != null && i >= sp.s2 && i < sp.e2); }
+function spanAt(i){ const a = getA(curIdx); for(let k=0;k<a.spans.length;k++) if(inSpan(a.spans[k], i)) return k; return -1; }
+
+function flash(msg){ window._flash = {msg, t: Date.now()}; setTimeout(render, 2600); }
+
 function clickTok(i){
   const a = getA(curIdx);
+  if(frag2){                                  // seçili öbeğe 2. parça ekle
+    if(anchor2 < 0){ anchor2 = i; render(); return; }
+    const r = trimPunct(Math.min(anchor2,i), Math.max(anchor2,i) + 1);
+    frag2 = false; anchor2 = -1;
+    if(!r){ flash("2. parça boş / sadece noktalama"); render(); return; }
+    const sp = a.spans[sel];
+    let f1 = [sp.s, sp.e], f2 = r;
+    if(f2[0] < f1[0]) [f1, f2] = [f2, f1];     // erken parça önce
+    if(f1[1] > f2[0]){ flash("parçalar çakışıyor"); render(); return; }
+    sp.s = f1[0]; sp.e = f1[1]; sp.s2 = f2[0]; sp.e2 = f2[1];
+    a.touched = true; save(); buildMini(); render(); return;
+  }
   if(anchor >= 0){
-    const s = Math.min(anchor,i), e = Math.max(anchor,i) + 1;
-    a.spans.push({s, e, cat:activeCat, sense:"idio"});
-    a.touched = true; anchor = -1; sel = a.spans.length - 1;
+    const r = trimPunct(Math.min(anchor,i), Math.max(anchor,i) + 1);
+    anchor = -1;
+    if(!r){ flash("öbek boş / sadece noktalama"); render(); return; }
+    a.spans.push({s:r[0], e:r[1], cat:activeCat, sense:"idio"});
+    a.touched = true; sel = a.spans.length - 1;
     save(); buildMini(); render(); return;
   }
   const k = spanAt(i);
@@ -426,11 +461,17 @@ function clickTok(i){
 function selSpan(){ const a = getA(curIdx); return (sel >= 0 && a.spans[sel]) ? a.spans[sel] : (a.spans.length ? a.spans[0] : null); }
 function setSense(v){ const sp = selSpan(); if(!sp) return; sp.sense = v; getA(curIdx).touched = true; save(); buildMini(); render(); }
 function toggleCat(){ const sp = selSpan(); if(!sp) return; sp.cat = sp.cat === "VID" ? "LVC" : "VID"; getA(curIdx).touched = true; save(); render(); }
+function startFrag2(){
+  if(sel < 0){ flash("önce bir öbek seç"); render(); return; }
+  const sp = getA(curIdx).spans[sel];
+  if(sp.s2 != null){ delete sp.s2; delete sp.e2; getA(curIdx).touched = true; save(); render(); return; }  // süreksizliği kaldır
+  frag2 = true; anchor2 = -1; render();
+}
 function delSpan(k){
   const a = getA(curIdx);
   if(k == null) k = sel;
   if(k < 0 || !a.spans[k]) return;
-  a.spans.splice(k,1); a.touched = true; sel = -1;
+  a.spans.splice(k,1); a.touched = true; sel = -1; frag2 = false;
   save(); buildMini(); render();
 }
 function resetOne(){
@@ -527,17 +568,18 @@ function render(){
     const t = $("#sentEdit"); t.focus(); t.setSelectionRange(t.value.length, t.value.length);
   } else {
     $("#sent").innerHTML = words.map((w,i) => {
-      const k = a.spans.findIndex(sp => i >= sp.s && i < sp.e);
+      const k = a.spans.findIndex(sp => inSpan(sp, i));
       let cls = "tok";
       if(k >= 0){
         const sp = a.spans[k];
         cls += sp.cat === "VID" ? " inV" : " inM";
         if(sp.sense === "lit") cls += " lit";
-        if(i === sp.s) cls += " b";
-        if(i === sp.e - 1) cls += " e";
+        const f1 = (i >= sp.s && i < sp.e), f2 = (sp.s2 != null && i >= sp.s2 && i < sp.e2);
+        if((f1 && i === sp.s) || (f2 && i === sp.s2)) cls += " b";
+        if((f1 && i === sp.e - 1) || (f2 && i === sp.e2 - 1)) cls += " e";
         if(k === sel) cls += " sel";
       }
-      if(i === anchor) cls += " anchor";
+      if(i === anchor || i === anchor2) cls += " anchor";
       return `<span class="${cls}" data-i="${i}">${esc(w)}</span>`;
     }).join(" ")
       + ` <span class="stools"><button id="editS" title="cümleyi düzenle (W)">düzenle</button>`
@@ -545,12 +587,17 @@ function render(){
       + (a.words ? `<span class="edited">düzenlendi</span>` : "") + `</span>`;
   }
 
-  $("#hint").innerHTML = window._edit
+  const fl = window._flash && (Date.now() - window._flash.t < 2500) ? window._flash.msg : null;
+  $("#hint").innerHTML = fl
+    ? `<b style="color:var(--lit)">${fl}</b>`
+    : window._edit
     ? `<b>cümle düzenleniyor</b>`
+    : frag2
+    ? `<b>2. parça</b> — süreksiz öbeğin ikinci parçasının kelimelerine tıkla (Esc iptal)`
     : anchor >= 0
     ? `<b>başlangıç seçildi</b> — bitiş kelimesine tıkla (Esc ile bırak)`
     : (sel >= 0
-        ? `seçili öbek — <kbd>D</kbd> deyim · <kbd>L</kbd> literal · <kbd>C</kbd> tür · <kbd>X</kbd> sil`
+        ? `seçili öbek — <kbd>D</kbd> deyim · <kbd>L</kbd> literal · <kbd>C</kbd> tür · <kbd>P</kbd> süreksiz · <kbd>X</kbd> sil`
         : `<u id="reveal" style="cursor:pointer">makine tahmini</u>` + (showGuess ? ` <b>${it.sonnet || "yok"}</b>` : "")
           + (times[curIdx] ? ` &nbsp; bu kayıtta ${fmt(times[curIdx])}` : ""));
 
@@ -564,15 +611,19 @@ function render(){
 
   const newCls = activeCat === "VID" ? "" : "M";
   $("#spanList").innerHTML = a.spans.map((sp,k) => {
-    const txt = words.slice(sp.s, sp.e).join(" ");
+    const txt = sp.s2 != null
+      ? words.slice(sp.s, sp.e).join(" ") + " … " + words.slice(sp.s2, sp.e2).join(" ")
+      : words.slice(sp.s, sp.e).join(" ");
     return `<div class="srow ${k===sel?'on':''}" data-si="${k}">
       <button class="cat ${catCls(sp.cat)}" data-act="cat">${sp.cat}</button>
       <span class="txt">${esc(txt)}</span>
+      ${sp.s2 != null ? '<span class="gap" title="süreksiz">süreksiz</span>' : ''}
+      <button class="frag" data-act="frag" title="süreksiz parça (P)">${sp.s2 != null ? '⟞ kaldır' : '+ parça'}</button>
       <button class="sense ${sp.sense==='lit'?'lit':'idio'}" data-act="sense">${sp.sense==='lit'?'literal':'deyim'}</button>
       <button class="del" data-act="del" title="sil">✕</button>
     </div>`;
   }).join("")
-    + `<div class="newspan">Yeni öbek: cümlede <span class="pick ${newCls}" id="pickCat">${activeCat}</span> kelimesine tıkla · <kbd>1</kbd> VID <kbd>2</kbd> LVC</div>`;
+    + `<div class="newspan">Yeni öbek: cümlede <span class="pick ${newCls}" id="pickCat">${activeCat}</span> kelimesine tıkla · <kbd>1</kbd> VID <kbd>2</kbd> LVC · <kbd>P</kbd> süreksiz</div>`;
 
   $("#flagBtn").classList.toggle("flagged", !!flags[curIdx]);
   $("#flagBtn").textContent = flags[curIdx] ? "işaretli " : "işaretle ";
@@ -601,6 +652,7 @@ $("#spanList").addEventListener("click", e => {
   const k = +row.dataset.si;
   if(act === "del"){ delSpan(k); return; }
   if(act === "cat"){ sel = k; toggleCat(); return; }
+  if(act === "frag"){ sel = k; startFrag2(); return; }
   if(act === "sense"){ sel = k; setSense(getA(curIdx).spans[k].sense === "lit" ? "idio" : "lit"); return; }
   sel = (sel === k) ? -1 : k; render();
 });
@@ -620,7 +672,7 @@ document.addEventListener("keydown", e => {
   if(e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
   if(!$("#guide").hidden){ if(["escape","?","g"].includes(e.key.toLowerCase())) $("#guide").hidden = true; return; }
   const k = e.key.toLowerCase();
-  if(e.key === "Escape"){ anchor = -1; sel = -1; render(); }
+  if(e.key === "Escape"){ anchor = -1; anchor2 = -1; frag2 = false; sel = -1; render(); }
   else if(e.key === "Enter" || e.key === "ArrowRight"){ e.preventDefault(); commitNext(); }
   else if(e.key === "ArrowLeft" || e.key === "Backspace"){ e.preventDefault(); recordTime(); step(-1); }
   else if(k === "1"){ activeCat = "VID"; render(); }
@@ -628,6 +680,7 @@ document.addEventListener("keydown", e => {
   else if(k === "d") setSense("idio");
   else if(k === "l") setSense("lit");
   else if(k === "c") toggleCat();
+  else if(k === "p") startFrag2();
   else if(k === "x"){ if(sel >= 0) delSpan(sel); }
   else if(k === "z") resetOne();
   else if(k === "w"){ e.preventDefault(); window._edit = true; render(); }
@@ -656,7 +709,9 @@ function download(){
       idx: it.idx, idiom: it.idiom, sentence: w.join(" "), words: w,
       orig_words: a.words ? it.words : undefined,
       cand: cand ? {s: cand.s, e: cand.e} : null,
-      spans: a.spans.map(s => ({s:s.s, e:s.e, cat:s.cat, sense:s.sense})),
+      spans: a.spans.map(s => s.s2 != null
+        ? {s:s.s, e:s.e, s2:s.s2, e2:s.e2, cat:s.cat, sense:s.sense}
+        : {s:s.s, e:s.e, cat:s.cat, sense:s.sense}),
       visited: !!a.visited,
       edited: a.words ? true : undefined,
       flag: flags[i] ? true : undefined,
