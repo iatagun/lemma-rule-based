@@ -93,12 +93,13 @@ anthropic.com uçları: `temperature` at + `thinking:{type:disabled}` (yoksa bo�
 
 ### Hâlâ açık (düşük beklenen değer)
 - Stage-2 ~1k elle-etiketli örnekte overfit; literal kullanımların ~%16-18'i geçiyor.
-- **En umut verici (denenmemiş): per-deyim uyarlanır eşik** — izole ölçüm çift-içi
-  sıralamanın %93 olduğunu ama tek global eşiğin bunu %59'a düşürdüğünü gösterdi.
-  Çıkarımda çift yok; ama deyimi nötr/şablon bağlamda skorlayıp o deyime özgü referans
-  noktası türetmek göreli sinyali kullanır. Retrain yok.
-- Denenmemiş: contrastive margin kaybı (muhtemelen marjinal — sıralama zaten %93, sorun
-  mutlak kalibrasyon), stage-1 p(literal) özelliği, adversarial deyim-kimliği silme.
+- **per-deyim uyarlanır eşik — DENENDİ, NEGATİF (2026-09-10).** Sentetik per-deyim referans
+  (span tek başına / "cümlede X var" şablonu) ile eşik. Bare-span prior'ı per-deyim
+  midpoint'le sadece r≈0.30 korele → per-deyim eşik %60.9, global-en-iyi eşik %60.3'ün
+  üstünde değil. Mutlak kayma çıkarım-zamanı sentetik referanstan kestirilemiyor.
+- Denenmemiş: **adversarial deyim-kimliği silme** (GRL head — span rep'inden deyim ID'si
+  tahmin edilemesin → model bağlama dayansın, per-deyim offset düzleşsin) tek kalan gerçek
+  stage-2 kaldıracı, belirsiz. contrastive margin muhtemelen marjinal (sıralama zaten %93).
 - **`--mode stage2-iso`** (`benchmark/eval_idiom.py`) = güvenilir izole stage-2 tabanı
   (179 çift). 11-çift "sıkı" metriği ve 9-çift GLU minimal-çift ±gürültülüydü; bunu kullan.
 - **Minimal çiftler / hard negative** (GLU `glu_karar_cercevesi.md`) hâlâ keskin eval sinyali.
