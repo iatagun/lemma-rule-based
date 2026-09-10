@@ -187,7 +187,7 @@
 <div class="page">
   <header>
     <span class="title">Deyim etiketleme</span>
-    <span class="sub">span + BIO seti</span>
+    <span class="sub" id="title2">span + BIO seti</span>
     <div class="tools">
       <span class="saved" id="saved" hidden><span class="pip" id="pip"></span>kaydedildi</span>
       <button class="lnk" id="dl">indir</button>
@@ -196,8 +196,9 @@
   </header>
 
   <div class="load" id="load">
-    <p>Başlamak için etiketleme dosyasını seç.</p>
-    <label class="filebtn">annotation_batch.json seç<input type="file" id="file" accept=".json" hidden></label>
+    <p>Yeni etiketleme için <b>annotation_batch.json</b>, önceki çalışmayı gözden geçirmek
+      için <b>gold_labels.json</b> seç.</p>
+    <label class="filebtn">dosya seç<input type="file" id="file" accept=".json" hidden></label>
     <small id="lsHint"></small>
   </div>
 
@@ -295,10 +296,11 @@ const $ = s => document.querySelector(s);
 const catCls = c => c === "VID" ? "V" : "M";
 
 /* ---------- storage ---------- */
+function lsKey(){ return window.review ? LS + "_review" : LS; }
 function sig(){ return B.length + "|" + (B[0] ? B[0].sentence.slice(0,40) : ""); }
-function loadLS(){ try{ return JSON.parse(localStorage.getItem(LS)) || {}; }catch(e){ return {}; } }
+function loadLS(){ try{ return JSON.parse(localStorage.getItem(lsKey())) || {}; }catch(e){ return {}; } }
 function save(){
-  try{ localStorage.setItem(LS, JSON.stringify({sig:sig(), anno, flags, notes, times})); }catch(e){}
+  try{ localStorage.setItem(lsKey(), JSON.stringify({sig:sig(), anno, flags, notes, times})); }catch(e){}
   $("#saved").hidden = false;
   const p = $("#pip"); p.classList.remove("beat"); void p.offsetWidth; p.classList.add("beat");
 }
@@ -320,7 +322,7 @@ function candOf(i){
     const c = findSurf(anno[i].words, (B[i].span || "").split(/\s+/).filter(Boolean));
     return c || null;
   }
-  return {s:B[i].s, e:B[i].e};
+  return B[i].e > B[i].s ? {s:B[i].s, e:B[i].e} : null;
 }
 function defSpans(i){
   const c = candOf(i);
@@ -360,11 +362,73 @@ function copySentence(){
 }
 
 /* ---------- load ---------- */
+window.review = false;                                  // gold_labels.json gözden geçirme modu
+
+function cleanSpan(sp, words){
+  const t1 = trimEdge(sp.s, sp.e, words); if(!t1) return null;
+  const o = {s:t1[0], e:t1[1], cat:sp.cat || "VID", sense:sp.sense || "idio"};
+  if(sp.s2 != null){ const t2 = trimEdge(sp.s2, sp.e2, words);
+    if(t2){ o.s2 = t2[0]; o.e2 = t2[1]; } }
+  return o;
+}
+function trimEdge(s, e, words){
+  while(s < e && PUNCT.test(words[s])) s++;
+  while(e > s && PUNCT.test(words[e-1])) e--;
+  return e > s ? [s, e] : null;
+}
+function isSuspect(a, i){
+  const w = (a.words || B[i].words);
+  return a.spans.some(sp => {
+    const len = (sp.e - sp.s) + (sp.s2 != null ? sp.e2 - sp.s2 : 0);
+    if(len >= 5) return true;                                   // çok uzun
+    const toks = w.slice(sp.s, sp.e).concat(sp.s2 != null ? w.slice(sp.s2, sp.e2) : []);
+    return toks.some((t,j) => j > 0 && /^[A-ZĞÜŞİÖÇ]/.test(t)); // içeride büyük harf (özel ad?)
+  });
+}
+
 $("#file").addEventListener("change", e => {
   const f = e.target.files[0]; if(!f) return;
   const r = new FileReader();
   r.onload = () => {
-    B = JSON.parse(r.result);
+    const parsed = JSON.parse(r.result);
+    window.review = !!(parsed[0] && "spans" in parsed[0]);   // gold_labels.json mı?
+
+    if(window.review){
+      B = parsed.map((g,i) => ({
+        idx: g.idx != null ? g.idx : i, idiom: g.idiom, meaning: g.meaning || "",
+        span: (g.cand ? g.words.slice(g.cand.s, g.cand.e).join(" ") : ""),
+        words: g.words, sentence: g.sentence || g.words.join(" "),
+        s: g.cand ? g.cand.s : 0, e: g.cand ? g.cand.e : 0, sonnet: ""
+      }));
+      anno = {}; flags = {}; notes = {}; times = {};
+      let cleaned = 0;
+      parsed.forEach((g,i) => {
+        const spans = (g.spans || []).map(sp => cleanSpan(sp, g.words)).filter(Boolean);
+        if(JSON.stringify(spans) !== JSON.stringify((g.spans||[]).map(sp=>({s:sp.s,e:sp.e,...(sp.s2!=null?{s2:sp.s2,e2:sp.e2}:{}),cat:sp.cat,sense:sp.sense})))) cleaned++;
+        anno[i] = {spans, visited: !!g.visited, touched: true, words: g.edited ? g.words : undefined};
+        if(g.flag) flags[i] = true;
+        if(g.note) notes[i] = g.note;
+        if(g.sec) times[i] = g.sec;
+      });
+      const rp = loadLS();                              // sürdürülen düzeltmeler varsa onları al
+      if(rp.sig === sig() && rp.anno){
+        anno = rp.anno; flags = rp.flags || {}; notes = rp.notes || {}; times = rp.times || {};
+        cleaned = 0;
+      }
+      $("#lsHint").textContent = "";
+      $("#title2").textContent = "gözden geçirme";
+      buildPairIndex(); buildMini();
+      sessionStart = Date.now();
+      curIdx = firstMatch("suspect"); if(curIdx < 0) curIdx = firstMatch("flagged"); if(curIdx < 0) curIdx = 0;
+      filter = firstMatch("suspect") >= 0 ? "suspect" : "all";
+      $("#load").hidden = true; $("#work").hidden = false; $("#foot").hidden = false;
+      save();
+      enterItem(); render();
+      if(cleaned) flash(`${cleaned} öbekte kenar noktalaması temizlendi`);
+      return;
+    }
+
+    B = parsed;
     const p = loadLS(), ok = p.sig === sig();
     anno  = ok && p.anno  ? p.anno  : {};
     flags = ok && p.flags ? p.flags : {};
@@ -394,6 +458,8 @@ function matches(i, fl){
   if(fl === "unseen") return !seen(i);
   if(fl === "flagged") return !!flags[i];
   if(fl === "modified") return seen(i) && !isDefault(i);
+  if(fl === "suspect") return anno[i] && isSuspect(anno[i], i);
+  if(fl === "noted") return !!(notes[i] && notes[i].trim());
   return true;
 }
 function firstMatch(fl){ for(let i=0;i<B.length;i++) if(matches(i,fl)) return i; return -1; }
@@ -510,8 +576,9 @@ function buildMini(){
   }
   [...m.children].forEach((el,i) => {
     el.className = "";
-    if(seen(i)) el.classList.add(isDefault(i) ? "seen" : "mod");
-    if(anno[i] && anno[i].spans.some(s => s.sense === "lit")) el.classList.add("litmark");
+    if(window.review && anno[i] && isSuspect(anno[i], i)) el.classList.add("litmark");
+    else if(seen(i)) el.classList.add(isDefault(i) ? "seen" : "mod");
+    if(!window.review && anno[i] && anno[i].spans.some(s => s.sense === "lit")) el.classList.add("litmark");
     if(flags[i]) el.classList.add("fl");
     if(i === curIdx) el.classList.add("cur");
   });
@@ -541,9 +608,13 @@ function render(){
     + `<span>${c.mod} düzeltildi</span><span>${c.spanAdd} öbek eklendi</span>`
     + `<span>${c.lit} literal</span><span>${c.flag} işaretli</span>`
     + (rate ? `<span class="pace">${rate.toFixed(0)} kayıt/saat &nbsp; ~${fmt(eta*60)} kaldı</span>` : "");
-  $("#filters").innerHTML =
-    chip("all","tümü",total) + chip("unseen","gezilmemiş",total-c.seen)
-    + chip("modified","düzeltilmiş",c.mod) + chip("flagged","işaretli",c.flag);
+  const nSus = B.reduce((n,_,i) => n + (anno[i] && isSuspect(anno[i], i) ? 1 : 0), 0);
+  const nNote = Object.keys(notes).filter(k => (notes[k]||"").trim()).length;
+  $("#filters").innerHTML = window.review
+    ? chip("all","tümü",total) + chip("suspect","şüpheli",nSus)
+      + chip("noted","notlu",nNote) + chip("flagged","işaretli",c.flag)
+    : chip("all","tümü",total) + chip("unseen","gezilmemiş",total-c.seen)
+      + chip("modified","düzeltilmiş",c.mod) + chip("flagged","işaretli",c.flag);
   buildMini();
 
   if(curIdx < 0){
