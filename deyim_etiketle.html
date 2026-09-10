@@ -3,244 +3,451 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Deyim Etiketleme — D / N</title>
+<title>Deyim Etiketleme</title>
 <style>
   :root{
-    --bg:#0f1115; --panel:#181b22; --line:#2a2f3a; --fg:#e6e8ec; --dim:#9aa2b1;
-    --mark:#3b82f6; --d:#22c55e; --n:#f97316; --y:#e11d48; --s:#64748b;
+    --bg:#0e1014; --bg2:#151821; --panel:#1a1e28; --line:#282d3a; --line2:#333a49;
+    --fg:#e8eaee; --dim:#8a92a4; --dim2:#5b6373;
+    --acc:#5b8def;
+    --d:#2fbf6b; --n:#f59e42; --y:#ef4b6b; --s:#6b7688; --flag:#c084fc;
   }
   @media (prefers-color-scheme: light){
-    :root{ --bg:#f7f7f8; --panel:#fff; --line:#e2e4e8; --fg:#1a1c20; --dim:#6b7280; }
+    :root{
+      --bg:#eef0f3; --bg2:#e6e9ee; --panel:#ffffff; --line:#dfe3ea; --line2:#cdd3dd;
+      --fg:#1b1e24; --dim:#5f6875; --dim2:#8b93a1; --acc:#2f6fe0;
+      --d:#12a150; --n:#d97917; --y:#dc2647; --s:#67707f; --flag:#9333ea;
+    }
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-  .wrap{max-width:760px;margin:0 auto;padding:20px 16px 80px}
-  h1{font-size:15px;font-weight:600;margin:0 0 12px;color:var(--dim)}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 22px 18px;margin:14px 0}
-  .sent{font-size:20px;line-height:1.7}
-  mark{background:var(--mark);color:#fff;padding:1px 5px;border-radius:5px;font-weight:600}
-  .meta{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);color:var(--dim);font-size:14px}
-  .meta b{color:var(--fg)}
-  .btns{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
-  button{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--panel);color:var(--fg);
-    border-radius:10px;padding:11px 18px;cursor:pointer}
-  button:hover{border-color:var(--dim)}
-  .bD{border-color:var(--d);color:var(--d)} .bN{border-color:var(--n);color:var(--n)}
-  .bY{border-color:var(--y);color:var(--y)} .bS{color:var(--s)}
-  textarea{width:100%;margin-top:14px;background:var(--bg);color:var(--fg);border:1px solid var(--line);
-    border-radius:8px;padding:8px;font:14px/1.5 inherit;resize:vertical}
-  .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:6px 0 2px}
-  .bar>i{display:block;height:100%;background:var(--mark)}
-  .row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--dim)}
-  .tally span{margin-left:14px}
-  .hint{margin-top:10px;font-size:13px}
-  .hint u{cursor:pointer;color:var(--dim)}
-  .hintval{background:var(--line);padding:2px 8px;border-radius:6px}
-  details{margin:14px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:0 14px}
-  details[open]{padding-bottom:12px}
-  summary{cursor:pointer;padding:12px 0;font-weight:600;color:var(--dim)}
-  details ol{margin:4px 0;padding-left:20px} details li{margin:6px 0}
-  .top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
-  input[type=file]{font:inherit;color:var(--dim)}
-  .kbd{font-family:ui-monospace,monospace;background:var(--line);border-radius:4px;padding:1px 5px;font-size:12px}
-  .done{text-align:center;padding:40px 0}
-  .warn{color:var(--n)}
-  a.dl{display:inline-block;margin-top:6px}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif}
+  button,textarea,input{font:inherit;color:inherit}
+  .app{max-width:1080px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding:0 18px}
+
+  /* ---- header ---- */
+  header{display:flex;align-items:center;gap:14px;padding:14px 0 10px;flex-wrap:wrap}
+  .logo{font-weight:650;letter-spacing:.2px}
+  .logo b{color:var(--acc)}
+  .file{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--dim)}
+  input[type=file]{max-width:210px;color:var(--dim);font-size:12px}
+  .save{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim2)}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--d);box-shadow:0 0 0 0 var(--d)}
+  .dot.pulse{animation:p .6s ease}
+  @keyframes p{0%{box-shadow:0 0 0 0 rgba(47,191,107,.5)}100%{box-shadow:0 0 0 8px rgba(47,191,107,0)}}
+  .btn{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:7px 13px;
+    cursor:pointer;font-weight:550;font-size:13px}
+  .btn:hover{border-color:var(--line2)}
+
+  /* ---- stats ---- */
+  .stats{display:flex;gap:8px 18px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--dim);
+    padding:8px 0}
+  .stats .k{color:var(--fg);font-weight:600;font-variant-numeric:tabular-nums}
+  .chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;
+    border:1px solid var(--line);cursor:pointer;user-select:none}
+  .chip:hover{border-color:var(--line2)}
+  .chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+  .chip.on .k{color:#fff}
+  .cD{color:var(--d)} .cN{color:var(--n)} .cY{color:var(--y)} .cS{color:var(--s)} .cF{color:var(--flag)}
+
+  /* ---- progress + minimap ---- */
+  .bar{height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin:2px 0 8px}
+  .bar>i{display:block;height:100%;background:var(--acc);transition:width .2s}
+  .mini{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:1px;height:26px;
+    background:var(--line);border-radius:6px;overflow:hidden;margin-bottom:14px;cursor:crosshair}
+  .mini>span{background:var(--dim2);opacity:.35}
+  .mini>span.d{background:var(--d);opacity:1} .mini>span.n{background:var(--n);opacity:1}
+  .mini>span.y{background:var(--y);opacity:1} .mini>span.s{background:var(--s);opacity:.9}
+  .mini>span.cur{outline:2px solid var(--fg);outline-offset:-2px;opacity:1;z-index:2}
+  .mini>span.fl{box-shadow:inset 0 0 0 2px var(--flag)}
+
+  /* ---- card ---- */
+  main{flex:1;display:flex;flex-direction:column;justify-content:center;padding:6px 0 18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px 28px 22px}
+  .ctx{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;color:var(--dim);font-size:13px}
+  .ctx .idiom{font-size:17px;font-weight:650;color:var(--fg)}
+  .ctx .tag{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--dim2);
+    border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+  .mean{color:var(--dim);font-size:13.5px;margin:6px 0 0}
+  .pair{margin-top:8px;font-size:12.5px;color:var(--dim2)}
+  .pair b{color:var(--fg)}
+  .sent{font-size:22px;line-height:1.65;margin:20px 0 4px;letter-spacing:.1px}
+  mark{background:rgba(91,141,239,.22);background:color-mix(in srgb,var(--acc) 26%,transparent);
+    color:var(--fg);padding:2px 6px;border-radius:6px;box-decoration-break:clone;
+    -webkit-box-decoration-break:clone;font-weight:600;border-bottom:2px solid var(--acc)}
+  .hintline{margin-top:12px;font-size:12.5px;color:var(--dim2);min-height:20px}
+  .hintline u{cursor:pointer}
+  .hintline .hv{background:var(--line);color:var(--fg);border-radius:6px;padding:1px 8px;font-weight:600}
+
+  .acts{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}
+  .acts button{border:1px solid var(--line);background:var(--bg2);border-radius:10px;
+    padding:11px 15px;cursor:pointer;font-weight:600;font-size:13.5px;display:flex;gap:8px;align-items:center}
+  .acts button:hover{border-color:var(--line2)}
+  .acts .aD{border-color:color-mix(in srgb,var(--d) 55%,var(--line))} .acts .aD:hover{background:color-mix(in srgb,var(--d) 12%,var(--bg2))}
+  .acts .aN{border-color:color-mix(in srgb,var(--n) 55%,var(--line))}
+  .acts .aY{border-color:color-mix(in srgb,var(--y) 55%,var(--line))}
+  .acts .sel{outline:2px solid var(--fg);outline-offset:1px}
+  kbd{font-family:ui-monospace,"SF Mono",monospace;font-size:11px;background:var(--line);
+    border:1px solid var(--line2);border-bottom-width:2px;border-radius:4px;padding:0 5px;color:var(--dim)}
+  textarea{width:100%;margin-top:14px;background:var(--bg2);border:1px solid var(--line);
+    border-radius:9px;padding:9px 11px;font-size:13.5px;line-height:1.5;resize:vertical;min-height:44px}
+  textarea:focus{outline:none;border-color:var(--acc)}
+
+  /* ---- keyboard bar ---- */
+  .kbar{position:sticky;bottom:0;background:linear-gradient(transparent,var(--bg) 30%);
+    padding:12px 0 14px;display:flex;gap:6px 12px;flex-wrap:wrap;font-size:12px;color:var(--dim2)}
+  .kbar span{display:inline-flex;gap:5px;align-items:center;white-space:nowrap}
+
+  /* ---- overlays ---- */
+  .veil{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;
+    justify-content:center;padding:20px;z-index:10}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    max-width:560px;width:100%;padding:24px 26px;max-height:85vh;overflow:auto}
+  .modal h3{margin:0 0 12px;font-size:15px}
+  .modal ol{padding-left:20px;margin:0} .modal li{margin:9px 0;font-size:13.5px;line-height:1.55}
+  .modal .warn{color:var(--y)} .modal small{color:var(--dim2)}
+  .center{text-align:center;padding:50px 0}
+  .center h2{font-weight:650;font-size:20px;margin:0 0 6px}
+  .big{font-size:13px;color:var(--dim);margin:14px 0}
+  a{color:var(--acc)}
+  .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>DizgeBERT-Idiom · stage-2 altın set · D (mecazi deyim) / N (değil)</h1>
+<div class="app">
+  <header>
+    <span class="logo">Dizge<b>BERT</b>-Idiom · stage-2 altın set</span>
+    <div class="file">
+      <input type="file" id="file" accept=".json" title="annotation_batch.json">
+      <span class="save" id="save" hidden><span class="dot" id="dot"></span> kaydedildi</span>
+      <button class="btn" id="dl">💾 indir</button>
+      <button class="btn" id="guideBtn" title="kılavuz (?)">kılavuz</button>
+    </div>
+  </header>
 
-  <div class="top">
-    <input type="file" id="file" accept=".json">
-    <button id="dlBtn">💾 Etiketleri indir</button>
-    <span id="status" style="color:var(--dim);font-size:13px"></span>
+  <div id="loadHint" class="big" style="text-align:center;padding:40px 0">
+    <b>annotation_batch.json</b> dosyasını yükle.<br>
+    <small id="lsHint" style="color:var(--dim2)"></small>
   </div>
 
-  <details>
-    <summary>Kılavuz — karar prosedürü (aç/kapat: <span class="kbd">G</span>)</summary>
-    <ol>
-      <li><b>Vurgulanan kelimeler doğru öbeği gösteriyor mu?</b> Yanlış kelimeler seçilmiş,
-        sınırlar kaymış, ya da o deyim bu cümlede hiç yoksa → <b style="color:var(--y)">Y</b>
-        (öbek yanlış). Sınır bir kelime kayması bile olsa Y.</li>
-      <li><b>Öbek doğru ama aslında o deyim değil</b> — terim / bitki-canlı adı ("aslan
-        ağzı"=çiçek) / özel ad / kelimeler rastlantısal yan yana → <b class="warn">N</b>.</li>
-      <li><b>Öbek doğru ve deyim: bu cümlede mecazi mi, literal mi?</b>
-        <br>Test: öbeği <b>temel/sözlük anlamıyla</b> düz oku. Cümle olduğu gibi tutarlı ve
-        olağan mı? → <b class="warn">N</b> ("Otobüs yol aldı", "altını kısıp pişirin").
-        <br>Anlamak için <b>mecazi bir sıçrama</b> gerekiyor mu? → <b>D</b>
-        ("Projede yol aldık", "patron gözden düştü").</li>
-      <li><b>"X gibi"</b> biçiminde anlık/yaratıcı benzetme ("internet bomba gibi") → <b class="warn">N</b>.</li>
-      <li><b>Gerçekten kararsızsan → ATLA</b> (<span class="kbd">S</span>). Zorlama.</li>
-      <li><b>Cümlede tespit edilmemiş başka deyim(ler) varsa</b> → <span class="kbd">E</span>
-        ile not alanına yaz (sözlük biçimiyle, virgülle ayır). Bu kayıtları ayrıca
-        değerlendireceğiz — kapsam genişletme için değerli.</li>
-    </ol>
-    <p style="color:var(--dim);font-size:13px">Tuşlar: <span class="kbd">D</span> deyim ·
-      <span class="kbd">N</span> literal/terim · <span class="kbd">Y</span> öbek yanlış ·
-      <span class="kbd">S</span> atla · <span class="kbd">←</span> geri ·
-      <span class="kbd">E</span> not · <span class="kbd">H</span> makine tahmini</p>
-  </details>
-
-  <div id="app" hidden>
-    <div class="row">
-      <span id="pos"></span>
-      <span class="tally"><span style="color:var(--d)">D <b id="tD">0</b></span>
-        <span style="color:var(--n)">N <b id="tN">0</b></span>
-        <span style="color:var(--y)">Y <b id="tY">0</b></span>
-        <span>atla <b id="tS">0</b></span></span>
-    </div>
+  <div id="work" hidden>
+    <div class="stats" id="statsRow"></div>
     <div class="bar"><i id="fill"></i></div>
+    <div class="mini" id="mini"></div>
 
-    <div class="card">
-      <div class="sent" id="sent"></div>
-      <div class="meta">
-        <div>sözlük biçimi: <b id="idiom"></b></div>
-        <div id="meaning" style="margin-top:3px"></div>
-        <div class="hint"><u id="hintToggle">🤖 makine tahminini göster</u>
-          <span id="hintVal" class="hintval" hidden></span></div>
+    <main>
+      <div class="card" id="card">
+        <div class="ctx">
+          <span class="tag">sözlük biçimi</span>
+          <span class="idiom" id="idiom"></span>
+        </div>
+        <div class="mean" id="mean"></div>
+        <div class="pair" id="pair"></div>
+        <div class="sent" id="sent"></div>
+        <div class="hintline" id="hintline"></div>
+
+        <div class="acts">
+          <button class="aD" data-l="D">D <small>mecazi deyim</small> <kbd>D</kbd></button>
+          <button class="aN" data-l="N">N <small>literal / terim / benzetme</small> <kbd>N</kbd></button>
+          <button class="aY" data-l="Y">Y <small>öbek yanlış</small> <kbd>Y</kbd></button>
+          <button data-l="S">atla <kbd>S</kbd></button>
+          <button id="flagBtn">⚑ işaretle <kbd>F</kbd></button>
+          <button id="back">← <kbd>←</kbd></button>
+        </div>
+        <textarea id="note" placeholder="bu cümledeki diğer deyim(ler) / not — odak: E · çık: Esc"></textarea>
       </div>
-      <div class="btns">
-        <button class="bD" data-l="D">D — mecazi deyim <span class="kbd">D</span></button>
-        <button class="bN" data-l="N">N — literal / terim / benzetme <span class="kbd">N</span></button>
-        <button class="bY" data-l="Y">Y — öbek YANLIŞ seçilmiş <span class="kbd">Y</span></button>
-        <button class="bS" data-l="S">atla <span class="kbd">S</span></button>
-        <button id="back">← geri</button>
+    </main>
+  </div>
+
+  <div id="end" hidden>
+    <div class="center">
+      <h2 id="endTitle">✓ bitti</h2>
+      <p class="big" id="endStats"></p>
+      <div class="row">
+        <button class="btn" id="revFlag">⚑ işaretlileri gözden geçir</button>
+        <button class="btn" id="revSkip">atlananları gözden geçir</button>
+        <button class="btn" id="revAll">baştan gez</button>
+        <button class="btn" id="dl2">💾 indir</button>
       </div>
-      <textarea id="note" rows="2" placeholder="bu cümledeki diğer deyimler / not (isteğe bağlı) — odak: E tuşu, çık: Esc"></textarea>
     </div>
   </div>
 
-  <div id="done" class="done" hidden>
-    <p>✔ Tüm kayıtlar dolaştın.</p>
-    <p id="doneStats" style="color:var(--dim)"></p>
-    <button id="dlBtn2">💾 Etiketleri indir</button>
+  <div class="kbar" id="kbar" hidden>
+    <span><kbd>D</kbd> deyim</span><span><kbd>N</kbd> literal</span><span><kbd>Y</kbd> yanlış</span>
+    <span><kbd>S</kbd> atla</span><span><kbd>F</kbd> işaretle</span><span><kbd>E</kbd> not</span>
+    <span><kbd>←</kbd> / <kbd>→</kbd> gez</span><span><kbd>H</kbd> makine</span><span><kbd>?</kbd> kılavuz</span>
+  </div>
+</div>
+
+<div class="veil" id="guide" hidden>
+  <div class="modal">
+    <h3>Karar prosedürü</h3>
+    <ol>
+      <li><b>Vurgulanan kelimeler doğru öbeği gösteriyor mu?</b> Yanlış kelime / kaymış sınır
+        (bir kelime bile) / o deyim bu cümlede yok → <b class="warn">Y</b>.</li>
+      <li><b>Öbek doğru ama aslında o deyim değil</b> — terim, bitki-canlı adı ("aslan
+        ağzı"=çiçek), özel ad, kelimeler rastlantısal yan yana → <b class="warn">N</b>.</li>
+      <li><b>Öbek doğru ve deyim: mecazi mi, literal mi?</b><br>
+        Test: öbeği <b>temel/sözlük anlamıyla</b> düz oku. Cümle olduğu gibi tutarlı mı?
+        → <b class="warn">N</b> ("otobüs yol aldı", "altını kısıp pişirin").<br>
+        Mecazi sıçrama gerekiyor mu? → <b>D</b> ("projede yol aldık", "patron gözden düştü").</li>
+      <li><b>"X gibi"</b> anlık/yaratıcı benzetme ("internet bomba gibi") → <b class="warn">N</b>.</li>
+      <li><b>Kararsızsan → <kbd>S</kbd> atla.</b> Zorlama. Sonra bakmak istersen <kbd>F</kbd> işaretle.</li>
+      <li><b>Cümlede başka deyim varsa</b> → <kbd>E</kbd> ile nota yaz (sözlük biçimiyle, virgülle).</li>
+    </ol>
+    <p><small>Makine tahmini <kbd>H</kbd> ile görünür — <b>önce kendin karar ver</b>, sonra
+      merak edersen bak. Tahmin gürültülü, ölçüt değil.</small></p>
+    <div class="row"><button class="btn" id="guideClose">kapat</button></div>
   </div>
 </div>
 
 <script>
 const LS = "deyim_gold_v1";
-let batch = [], labels = {}, notes = {}, cur = 0, order = [];
-
+let B = [], labels = {}, notes = {}, flags = {}, times = {};
+let curIdx = 0, filter = "all", enter = 0, sessionStart = 0;
 const $ = s => document.querySelector(s);
 
-function sig(){ return batch.length + "|" + (batch[0] ? batch[0].sentence.slice(0,40) : ""); }
+/* ---------- storage ---------- */
+function sig(){ return B.length + "|" + (B[0] ? B[0].sentence.slice(0,40) : ""); }
 function loadLS(){ try{ return JSON.parse(localStorage.getItem(LS)) || {}; }catch(e){ return {}; } }
-function saveLS(){
-  try{ localStorage.setItem(LS, JSON.stringify({sig:sig(), labels, notes})); }catch(e){}
+function save(){
+  try{ localStorage.setItem(LS, JSON.stringify({sig:sig(), labels, notes, flags, times})); }catch(e){}
+  const s = $("#save"); s.hidden = false;
+  $("#dot").classList.remove("pulse"); void $("#dot").offsetWidth; $("#dot").classList.add("pulse");
 }
 
-$("#file").addEventListener("change", e=>{
+/* ---------- load ---------- */
+$("#file").addEventListener("change", e => {
   const f = e.target.files[0]; if(!f) return;
   const r = new FileReader();
   r.onload = () => {
-    batch = JSON.parse(r.result);
-    const prev = loadLS();
-    const ok = prev.sig === sig();
-    labels = (ok && prev.labels) ? prev.labels : {};
-    notes = (ok && prev.notes) ? prev.notes : {};
-    order = batch.map((_,i)=>i);
-    cur = order.findIndex(i => !(i in labels));
-    if(cur < 0) cur = order.length;
-    $("#app").hidden = false;
-    render();
-    $("#status").textContent = Object.keys(labels).length
-      ? `${Object.keys(labels).length} kayıt zaten etiketli — kaldığın yerden devam.` : "";
+    B = JSON.parse(r.result);
+    const p = loadLS(), ok = p.sig === sig();
+    labels = ok && p.labels ? p.labels : {};
+    notes  = ok && p.notes  ? p.notes  : {};
+    flags  = ok && p.flags  ? p.flags  : {};
+    times  = ok && p.times  ? p.times  : {};
+    buildPairIndex();
+    buildMini();
+    sessionStart = Date.now();
+    curIdx = firstMatch("unlabeled");
+    if(curIdx < 0) curIdx = 0;
+    $("#loadHint").hidden = true; $("#work").hidden = false; $("#kbar").hidden = false;
+    enterItem(); render();
   };
   r.readAsText(f);
 });
 
-function render(){
-  const total = batch.length, done = Object.keys(labels).length;
-  $("#pos").textContent = `${Math.min(cur+1,total)} / ${total}`;
-  $("#fill").style.width = (100*done/total) + "%";
-  const c = Counter();
-  $("#tD").textContent = c.D; $("#tN").textContent = c.N;
-  $("#tY").textContent = c.Y; $("#tS").textContent = c.S;
+window.addEventListener("load", () => {
+  const p = loadLS();
+  const n = p.labels ? Object.keys(p.labels).length : 0;
+  if(n) $("#lsHint").textContent = `tarayıcıda ${n} kayıtlık ilerleme var — aynı dosyayı yükle, devam eder.`;
+});
 
-  if(cur >= order.length){
-    $("#app").hidden = true; $("#done").hidden = false;
-    $("#doneStats").textContent = `D ${c.D} · N ${c.N} · Y ${c.Y} · atla ${c.S} · `
-      + `not ${Object.keys(notes).filter(k=>notes[k]&&notes[k].trim()).length} · toplam ${done}/${total}`;
-    saveLS(); return;
-  }
-  $("#app").hidden = false; $("#done").hidden = true;
-  const it = batch[order[cur]];
-  const w = it.words.map((x,i)=> (i>=it.s && i<it.e) ? `<mark>${esc(x)}</mark>` : esc(x));
-  $("#sent").innerHTML = w.join(" ");
-  $("#idiom").textContent = it.idiom;
-  $("#meaning").textContent = it.meaning || "";
-  $("#meaning").style.color = "var(--dim)";
-  $("#note").value = notes[order[cur]] || "";
-  const hv = $("#hintVal"); hv.hidden = true; $("#hintToggle").hidden = false;
-  hv.textContent = it.sonnet ? `🤖 ${it.sonnet}` : "yok";
-  const existing = labels[order[cur]];
-  $("#status").textContent = existing ? `(bu kayıt: ${existing} — değiştirebilirsin)` : "";
+/* ---------- minimal-pair index ---------- */
+let byIdiom = {};
+function buildPairIndex(){
+  byIdiom = {};
+  B.forEach((it,i) => (byIdiom[it.idiom] = byIdiom[it.idiom] || []).push(i));
 }
 
-function Counter(){
-  const c = {D:0,N:0,Y:0,S:0};
-  for(const k in labels) if(labels[k] in c) c[labels[k]]++;
-  return c;
+/* ---------- filtering / navigation ---------- */
+function matches(i, fl){
+  const l = labels[i];
+  if(fl === "all") return true;
+  if(fl === "unlabeled") return !l;
+  if(fl === "skipped") return l === "S";
+  if(fl === "wrong") return l === "Y";
+  if(fl === "flagged") return !!flags[i];
+  return true;
 }
-function esc(s){ return s.replace(/[&<>]/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m])); }
-
-function setLabel(l){
-  if(cur >= order.length) return;
-  labels[order[cur]] = l;
-  saveLS();
-  cur++;
+function firstMatch(fl){ for(let i=0;i<B.length;i++) if(matches(i,fl)) return i; return -1; }
+function step(dir){
+  for(let i = curIdx + dir; i >= 0 && i < B.length; i += dir)
+    if(matches(i, filter)) { curIdx = i; enterItem(); render(); return; }
+  // hiçbiri yok bu yönde
+  if(dir > 0){ curIdx = -1; render(); }
+}
+function setFilter(fl){
+  filter = fl;
+  const f = firstMatch(fl);
+  if(f >= 0){ curIdx = f; enterItem(); }
+  else curIdx = -1;
   render();
 }
-function back(){ if(cur>0){ cur--; render(); } }
 
-document.addEventListener("click", e=>{
-  const b = e.target.closest("button[data-l]");
-  if(b) setLabel(b.dataset.l);
+/* ---------- timing ---------- */
+function enterItem(){ enter = Date.now(); window._showHint = false; }
+function recordTime(){
+  if(curIdx < 0) return;
+  times[curIdx] = +( (times[curIdx]||0) + (Date.now()-enter)/1000 ).toFixed(1);
+}
+
+/* ---------- actions ---------- */
+function setLabel(l){
+  if(curIdx < 0) return;
+  recordTime();
+  labels[curIdx] = l;
+  save(); buildMini();
+  step(+1);
+}
+function toggleFlag(){
+  if(curIdx < 0) return;
+  flags[curIdx] = !flags[curIdx];
+  if(!flags[curIdx]) delete flags[curIdx];
+  save(); buildMini(); render();
+}
+function back(){ recordTime(); step(-1); }
+
+/* ---------- rendering ---------- */
+function counts(){
+  const c = {D:0,N:0,Y:0,S:0,F:0,done:0};
+  for(const k in labels){ if(labels[k] in c) c[labels[k]]++; c.done++; }
+  for(const k in flags) if(flags[k]) c.F++;
+  return c;
+}
+function fmt(s){ s=Math.round(s); const m=Math.floor(s/60); return m?`${m}dk ${s%60}sn`:`${s}sn`; }
+function esc(s){ return s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+
+function buildMini(){
+  const m = $("#mini");
+  if(m.children.length !== B.length){
+    m.innerHTML = "";
+    B.forEach((_,i) => { const s = document.createElement("span"); s.dataset.i = i; m.appendChild(s); });
+  }
+  [...m.children].forEach((el,i) => {
+    el.className = ""; const l = labels[i];
+    if(l === "D") el.classList.add("d"); else if(l === "N") el.classList.add("n");
+    else if(l === "Y") el.classList.add("y"); else if(l === "S") el.classList.add("s");
+    if(flags[i]) el.classList.add("fl");
+    if(i === curIdx) el.classList.add("cur");
+  });
+}
+$("#mini").addEventListener("click", e => {
+  const s = e.target.closest("span[data-i]"); if(!s) return;
+  recordTime(); filter = "all"; curIdx = +s.dataset.i; enterItem(); render();
+});
+
+function render(){
+  const c = counts(), total = B.length, pct = total ? Math.round(100*c.done/total) : 0;
+  const mins = (Date.now()-sessionStart)/60000;
+  const rate = mins > .3 ? c.done/(mins/60) : 0;
+  const eta = rate > 0 ? (total-c.done)/rate*60 : 0;
+
+  $("#statsRow").innerHTML = `
+    <span><span class="k">${c.done}</span> / ${total} (${pct}%)</span>
+    ${chip("all","tümü",total)} ${chip("unlabeled","etiketsiz",total-c.done)}
+    ${chip("skipped","atlanan",c.S)} ${chip("wrong","yanlış",c.Y)} ${chip("flagged","işaretli",c.F)}
+    <span class="cD">D <span class="k">${c.D}</span></span>
+    <span class="cN">N <span class="k">${c.N}</span></span>
+    <span class="cY">Y <span class="k">${c.Y}</span></span>
+    <span class="cS">S <span class="k">${c.S}</span></span>
+    <span>· hız <span class="k">${rate?rate.toFixed(0):"–"}</span>/sa</span>
+    <span>bitişe <span class="k">${eta?fmt(eta*60):"–"}</span></span>`;
+  $("#fill").style.width = pct + "%";
+  buildMini();
+
+  if(curIdx < 0){
+    $("#work").hidden = true; $("#end").hidden = false; $("#kbar").hidden = true;
+    $("#endTitle").textContent = c.done >= total ? "✓ tüm kayıtlar etiketli" : `“${filterName(filter)}” filtresinde başka yok`;
+    $("#endStats").textContent =
+      `D ${c.D} · N ${c.N} · Y ${c.Y} · atla ${c.S} · işaretli ${c.F} · not ${notesCount()} — `
+      + `toplam ${c.done}/${total} · oturum ${fmt(mins*60)}`;
+    return;
+  }
+  $("#work").hidden = false; $("#end").hidden = true; $("#kbar").hidden = false;
+
+  const it = B[curIdx];
+  $("#idiom").textContent = it.idiom;
+  $("#mean").textContent = it.meaning || "—";
+  $("#sent").innerHTML = it.words.map((w,i) =>
+    (i >= it.s && i < it.e) ? `<mark>${esc(w)}</mark>` : esc(w)).join(" ");
+
+  // minimal-çift tutarlılık ipucu
+  const sib = (byIdiom[it.idiom] || []).filter(j => j !== curIdx);
+  const done = sib.filter(j => labels[j] && labels[j] !== "S")
+    .map(j => `#${j+1}→${labels[j]}`);
+  $("#pair").innerHTML = sib.length
+    ? `aynı deyim bu batch'te ${sib.length+1} kez` + (done.length ? ` · senin: <b>${done.join(", ")}</b>` : ` · henüz biri etiketli değil`)
+    : "";
+
+  const l = labels[curIdx];
+  document.querySelectorAll(".acts button[data-l]").forEach(b =>
+    b.classList.toggle("sel", b.dataset.l === l));
+  $("#flagBtn").style.borderColor = flags[curIdx] ? "var(--flag)" : "";
+  $("#flagBtn").firstChild.textContent = flags[curIdx] ? "⚑ işaretli " : "⚑ işaretle ";
+
+  $("#note").value = notes[curIdx] || "";
+  const t = times[curIdx];
+  $("#hintline").innerHTML =
+    `<u id="hToggle">🤖 makine tahmini</u>` +
+    (window._showHint ? ` <span class="hv">${it.sonnet || "yok"}</span>` : "") +
+    (t ? ` &nbsp;·&nbsp; bu kayıtta ${fmt(t)}` : "") +
+    (l ? ` &nbsp;·&nbsp; <span style="color:var(--dim)">mevcut: ${l} (değiştirilebilir)</span>` : "");
+}
+function chip(fl,label,n){
+  return `<span class="chip ${filter===fl?'on':''}" data-fl="${fl}">${label} <span class="k">${n}</span></span>`;
+}
+function filterName(fl){ return {all:"tümü",unlabeled:"etiketsiz",skipped:"atlanan",wrong:"yanlış",flagged:"işaretli"}[fl]; }
+function notesCount(){ return Object.keys(notes).filter(k => (notes[k]||"").trim()).length; }
+
+$("#statsRow").addEventListener("click", e => {
+  const ch = e.target.closest(".chip"); if(ch) setFilter(ch.dataset.fl);
+});
+
+/* ---------- events ---------- */
+document.addEventListener("click", e => {
+  const b = e.target.closest(".acts button[data-l]");
+  if(b){ setLabel(b.dataset.l); return; }
+  if(e.target.closest("#flagBtn")) toggleFlag();
   if(e.target.id === "back") back();
-  if(e.target.id === "hintToggle"){ $("#hintVal").hidden = false; e.target.hidden = true; }
+  if(e.target.id === "hToggle"){ window._showHint = true; render(); }
 });
-
-$("#note").addEventListener("input", e=>{
-  if(cur < order.length){ notes[order[cur]] = e.target.value; saveLS(); }
+$("#note").addEventListener("input", e => {
+  if(curIdx >= 0){ notes[curIdx] = e.target.value; save(); }
 });
-$("#note").addEventListener("keydown", e=>{
-  if(e.key === "Escape"){ e.target.blur(); }
-  e.stopPropagation();   // not alanındayken D/N/Y kısayolları tetiklenmesin
+$("#note").addEventListener("keydown", e => {
+  e.stopPropagation();
+  if(e.key === "Escape") e.target.blur();
 });
-
-document.addEventListener("keydown", e=>{
-  if(e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+document.addEventListener("keydown", e => {
+  if(e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
+  if($("#guide").hidden === false){ if(e.key==="Escape"||e.key==="?") $("#guide").hidden=true; return; }
   const k = e.key.toLowerCase();
-  if(k === "d") setLabel("D");
-  else if(k === "n") setLabel("N");
-  else if(k === "y") setLabel("Y");
-  else if(k === "s" || e.key === " ") { e.preventDefault(); setLabel("S"); }
-  else if(e.key === "ArrowLeft" || e.key === "Backspace") { e.preventDefault(); back(); }
-  else if(k === "e") { e.preventDefault(); $("#note").focus(); }
-  else if(k === "h") { $("#hintVal").hidden = false; $("#hintToggle").hidden = true; }
-  else if(k === "g") { const d = document.querySelector("details"); d.open = !d.open; }
+  if(k==="d") setLabel("D");
+  else if(k==="n") setLabel("N");
+  else if(k==="y") setLabel("Y");
+  else if(k==="s"||e.key===" "){ e.preventDefault(); setLabel("S"); }
+  else if(k==="f") toggleFlag();
+  else if(e.key==="ArrowLeft"||e.key==="Backspace"){ e.preventDefault(); back(); }
+  else if(e.key==="ArrowRight"){ e.preventDefault(); recordTime(); step(+1); }
+  else if(k==="e"){ e.preventDefault(); $("#note").focus(); }
+  else if(k==="h"){ window._showHint = true; render(); }
+  else if(k==="?"||k==="g"){ $("#guide").hidden = !$("#guide").hidden; }
 });
+$("#guideBtn").addEventListener("click", () => $("#guide").hidden = false);
+$("#guideClose").addEventListener("click", () => $("#guide").hidden = true);
+$("#guide").addEventListener("click", e => { if(e.target.id === "guide") $("#guide").hidden = true; });
 
+$("#revFlag").addEventListener("click", () => setFilter("flagged"));
+$("#revSkip").addEventListener("click", () => setFilter("skipped"));
+$("#revAll").addEventListener("click", () => { filter="all"; curIdx=0; enterItem(); render(); });
+
+/* ---------- export ---------- */
 function download(){
-  const out = batch.map((it,i)=> ({
+  const out = B.map((it,i) => ({
     idx: it.idx, idiom: it.idiom, span: it.span, sentence: it.sentence,
-    label: labels[i] || null, note: (notes[i] || "").trim() || undefined
-  })).filter(r => r.label || r.note);
-  const blob = new Blob([JSON.stringify(out, null, 0)], {type:"application/json"});
+    label: labels[i] || null,
+    flag: flags[i] ? true : undefined,
+    note: (notes[i]||"").trim() || undefined,
+    sec: times[i] || undefined
+  })).filter(r => r.label || r.note || r.flag);
+  const blob = new Blob([JSON.stringify(out)], {type:"application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob); a.download = "gold_labels.json"; a.click();
 }
-$("#dlBtn").addEventListener("click", download);
-$("#dlBtn2").addEventListener("click", download);
-
-// batch yoksa bile önceki oturum uyarısı
-window.addEventListener("load", ()=>{
-  const prev = loadLS();
-  if(prev.labels && Object.keys(prev.labels).length)
-    $("#status").textContent = `Tarayıcıda ${Object.keys(prev.labels).length} kayıtlık kaydedilmiş ilerleme var — aynı batch dosyasını yükle.`;
-});
+$("#dl").addEventListener("click", download);
+$("#dl2").addEventListener("click", download);
 </script>
 </body>
 </html>
