@@ -101,24 +101,25 @@ def main() -> None:
         span_rows.append({"idiom": idiom, "words": words, "tags": bio(len(words), spans),
                           "spans": spans})
 
-        # aday öbeğin stage-2 etiketi
+        # aday öbeğin stage-2 etiketi (cand None = madenlenen öbek düzenlemede kayboldu → spurious)
         best, bscore = None, 0.35
-        for sp in spans:
-            sc = covers(sp, cand)
-            if sc >= bscore:
-                best, bscore = sp, sc
-        if best and best.get("sense") == "idio":
-            lab, tags = "D", bio(len(words), [{**best, "s": cand["s"], "e": cand["e"], "cat": "VID"}])
+        if cand:
+            for sp in spans:
+                sc = covers(sp, cand)
+                if sc >= bscore:
+                    best, bscore = sp, sc
+        if cand and best and best.get("sense") == "idio":
+            lab, tags = "D", bio(len(words), [{"s": cand["s"], "e": cand["e"], "cat": "VID", "sense": "idio"}])
             kd += 1
         else:
-            lab, tags = "L", ["O"] * len(words)     # literal ya da silinmiş aday
+            lab, tags = "L", ["O"] * len(words)     # literal, silinmiş ya da düzenlemede kaybolmuş aday
             kl += 1
         if " ".join(words) not in frozen_txt:
             s2_rows.append((idiom, words, tags, lab))
 
         # cand dışı literal öbekler → ek L kayıtları
         for sp in spans:
-            if sp.get("sense") == "lit" and covers(sp, cand) < 0.35:
+            if sp.get("sense") == "lit" and (not cand or covers(sp, cand) < 0.35):
                 s2_rows.append((idiom, words, ["O"] * len(words), "L"))
                 k_new_lit += 1
 

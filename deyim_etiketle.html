@@ -95,6 +95,19 @@
   .tok.sel{background:color-mix(in srgb,var(--vid) 26%,transparent)}
   .tok.sel.inM{background:color-mix(in srgb,var(--lvc) 26%,transparent)}
 
+  .stools{display:block;margin-top:12px;font-family:var(--sans);font-size:11.5px;line-height:1}
+  .stools button{color:var(--faint);padding:3px 7px;border-radius:5px}
+  .stools button:hover{color:var(--ink);background:color-mix(in srgb,var(--ink) 6%,transparent)}
+  .stools .edited{color:var(--lvc);font-size:11px;margin-left:4px}
+  #sentEdit{width:100%;font:19px/1.6 var(--serif);color:var(--ink);background:var(--paper);
+    border:1px solid var(--vid);border-radius:6px;padding:10px 12px;resize:vertical}
+  #sentEdit:focus{outline:none}
+  .editctl{margin-top:8px;display:flex;align-items:center;gap:8px;font-size:12px}
+  .editctl button{border:1px solid var(--ink);border-radius:6px;padding:6px 12px;font-size:12.5px;font-weight:500}
+  .editctl button:hover{background:var(--ink);color:var(--paper)}
+  .editctl .ghost2{border-color:var(--rule2);color:var(--soft)}
+  .editctl .ghost2:hover{background:none;color:var(--ink);border-color:var(--soft)}
+  .editctl .tip{color:var(--faint)}
   .hint{margin-top:14px;font-size:12px;color:var(--faint);min-height:1.3em}
   .hint b{color:var(--soft);font-weight:600}
   .pair{margin-top:8px;font-size:12.5px;color:var(--soft);font-style:italic;font-family:var(--serif);min-height:1.2em}
@@ -193,7 +206,7 @@
     <main>
       <div class="card">
         <div class="entry"><span class="hw" id="hw"></span> <span class="def" id="def"></span></div>
-        <p class="sentence" id="sent"></p>
+        <div class="sentence" id="sent"></div>
         <div class="hint" id="hint"></div>
         <div class="pair" id="pair"></div>
 
@@ -227,6 +240,7 @@
       <span>kelimeye tıkla: öbek başlat/seç</span><span>2. tıkla: bitir</span>
       <span><kbd>1</kbd> VID <kbd>2</kbd> LVC</span><span><kbd>D</kbd> deyim <kbd>L</kbd> literal</span>
       <span><kbd>C</kbd> tür <kbd>X</kbd> sil</span><span><kbd>↵</kbd> <kbd>→</kbd> sonraki <kbd>←</kbd> önceki</span>
+      <span><kbd>W</kbd> cümleyi düzenle <kbd>Y</kbd> kopyala</span>
       <span><kbd>F</kbd> işaretle <kbd>E</kbd> not <kbd>Z</kbd> sıfırla</span><span><kbd>H</kbd> makine <kbd>G</kbd> kılavuz</span>
     </div>
   </footer>
@@ -247,6 +261,8 @@
       <li><b>Tespit edilmemiş başka deyim/eşdizim varsa</b> kelimelerine tıkla, yeni öbek kur.
         Eşdizim (karar vermek, görüş almak) için <kbd>2</kbd> ile LVC seç.</li>
       <li>“X gibi” anlık benzetme → öbek değil, sil.</li>
+      <li><b>Cümlede yazım hatası / bozuk kelime / fazla simge</b> varsa <kbd>W</kbd> ile
+        metni düzelt; öbekler yeniden eşlenir. <kbd>Y</kbd> cümleyi panoya kopyalar.</li>
     </ol>
     <p class="k">
       <kbd>1</kbd><kbd>2</kbd> yeni öbek türü &nbsp; <kbd>D</kbd><kbd>L</kbd> seçili öbeğin kullanımı &nbsp;
@@ -283,16 +299,54 @@ function resetAll(){
 }
 
 /* ---------- annotation model ---------- */
-function defSpans(it){ return [{s:it.s, e:it.e, cat:"VID", sense:"idio"}]; }
+function wordsOf(i){ return (anno[i] && anno[i].words) || B[i].words; }
+function findSurf(words, surf){
+  for(let i = 0; i + surf.length <= words.length; i++)
+    if(surf.every((w,j) => words[i+j] === w)) return {s:i, e:i+surf.length};
+  return null;
+}
+function candOf(i){
+  if(anno[i] && anno[i].words){                       // cümle düzenlendi → yüzeyden bul
+    const c = findSurf(anno[i].words, (B[i].span || "").split(/\s+/).filter(Boolean));
+    return c || null;
+  }
+  return {s:B[i].s, e:B[i].e};
+}
+function defSpans(i){
+  const c = candOf(i);
+  return c ? [{s:c.s, e:c.e, cat:"VID", sense:"idio"}] : [];
+}
 function getA(i){
-  if(!anno[i]) anno[i] = {spans: defSpans(B[i]), visited:false, touched:false};
+  if(!anno[i]) anno[i] = {spans: defSpans(i), visited:false, touched:false};
   return anno[i];
 }
 function isDefault(i){
   const a = anno[i]; if(!a) return true;
-  const d = defSpans(B[i]);
-  return !a.touched && a.spans.length === 1 && a.spans[0].s === d[0].s && a.spans[0].e === d[0].e
-    && a.spans[0].cat === "VID" && a.spans[0].sense === "idio";
+  if(a.words) return false;
+  const d = defSpans(i);
+  return !a.touched && a.spans.length === d.length
+    && a.spans.every((s,k) => d[k] && s.s === d[k].s && s.e === d[k].e && s.cat === "VID" && s.sense === "idio");
+}
+
+function editSentence(text){
+  const a = getA(curIdx), old = wordsOf(curIdx);
+  const nw = text.trim().split(/\s+/).filter(Boolean);
+  if(!nw.length) return;
+  a.spans = a.spans.map(sp => {
+    const hit = findSurf(nw, old.slice(sp.s, sp.e));
+    return hit ? {...sp, s:hit.s, e:hit.e} : null;
+  }).filter(Boolean);
+  a.words = nw; a.touched = true;
+  anchor = -1; sel = -1; window._edit = false;
+  save(); buildMini(); render();
+}
+function copySentence(){
+  const t = wordsOf(curIdx).join(" ");
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(
+    () => { $("#hint").innerHTML = "<b>cümle kopyalandı</b>"; },
+    () => { const ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta);
+            ta.select(); try{ document.execCommand("copy"); }catch(e){} ta.remove();
+            $("#hint").innerHTML = "<b>cümle kopyalandı</b>"; });
 }
 
 /* ---------- load ---------- */
@@ -380,17 +434,18 @@ function delSpan(k){
   save(); buildMini(); render();
 }
 function resetOne(){
-  anno[curIdx] = {spans: defSpans(B[curIdx]), visited: seen(curIdx), touched:false};
-  anchor = -1; sel = -1; save(); buildMini(); render();
+  delete anno[curIdx];
+  const a = getA(curIdx); a.visited = seen(curIdx);
+  anchor = -1; sel = -1; window._edit = false; save(); buildMini(); render();
 }
 
 /* ---------- render ---------- */
 function stats(){
-  const c = {seen:0, mod:0, spanAdd:0, lit:0, flag:0};
+  const c = {seen:0, mod:0, spanAdd:0, lit:0, flag:0, edit:0};
   B.forEach((_,i) => {
     if(!anno[i]) return;
     if(anno[i].visited){ c.seen++; if(!isDefault(i)) c.mod++; }
-    const d = defSpans(B[i]);
+    if(anno[i].words) c.edit++;
     c.spanAdd += Math.max(0, anno[i].spans.length - 1);
     c.lit += anno[i].spans.filter(s => s.sense === "lit").length;
   });
@@ -460,26 +515,39 @@ function render(){
   }
   $("#work").hidden = false; $("#end").hidden = true; $("#foot").hidden = false;
 
-  const it = B[curIdx], a = getA(curIdx);
+  const it = B[curIdx], a = getA(curIdx), words = wordsOf(curIdx);
   $("#hw").textContent = it.idiom;
   $("#def").textContent = gloss(it.meaning);
 
-  $("#sent").innerHTML = it.words.map((w,i) => {
-    const k = a.spans.findIndex(sp => i >= sp.s && i < sp.e);
-    let cls = "tok";
-    if(k >= 0){
-      const sp = a.spans[k];
-      cls += sp.cat === "VID" ? " inV" : " inM";
-      if(sp.sense === "lit") cls += " lit";
-      if(i === sp.s) cls += " b";
-      if(i === sp.e - 1) cls += " e";
-      if(k === sel) cls += " sel";
-    }
-    if(i === anchor) cls += " anchor";
-    return `<span class="${cls}" data-i="${i}">${esc(w)}</span>`;
-  }).join(" ");
+  if(window._edit){
+    $("#sent").innerHTML = `<textarea id="sentEdit" rows="2">${esc(words.join(" "))}</textarea>`
+      + `<div class="editctl"><button id="sentSave">kaydet</button>`
+      + `<button id="sentCancel" class="ghost2">vazgeç</button>`
+      + `<span class="tip">Enter kaydeder, Esc vazgeçer · öbekler yeniden eşlenir</span></div>`;
+    const t = $("#sentEdit"); t.focus(); t.setSelectionRange(t.value.length, t.value.length);
+  } else {
+    $("#sent").innerHTML = words.map((w,i) => {
+      const k = a.spans.findIndex(sp => i >= sp.s && i < sp.e);
+      let cls = "tok";
+      if(k >= 0){
+        const sp = a.spans[k];
+        cls += sp.cat === "VID" ? " inV" : " inM";
+        if(sp.sense === "lit") cls += " lit";
+        if(i === sp.s) cls += " b";
+        if(i === sp.e - 1) cls += " e";
+        if(k === sel) cls += " sel";
+      }
+      if(i === anchor) cls += " anchor";
+      return `<span class="${cls}" data-i="${i}">${esc(w)}</span>`;
+    }).join(" ")
+      + ` <span class="stools"><button id="editS" title="cümleyi düzenle (W)">düzenle</button>`
+      + `<button id="copyS" title="cümleyi kopyala (Y)">kopyala</button>`
+      + (a.words ? `<span class="edited">düzenlendi</span>` : "") + `</span>`;
+  }
 
-  $("#hint").innerHTML = anchor >= 0
+  $("#hint").innerHTML = window._edit
+    ? `<b>cümle düzenleniyor</b>`
+    : anchor >= 0
     ? `<b>başlangıç seçildi</b> — bitiş kelimesine tıkla (Esc ile bırak)`
     : (sel >= 0
         ? `seçili öbek — <kbd>D</kbd> deyim · <kbd>L</kbd> literal · <kbd>C</kbd> tür · <kbd>X</kbd> sil`
@@ -496,7 +564,7 @@ function render(){
 
   const newCls = activeCat === "VID" ? "" : "M";
   $("#spanList").innerHTML = a.spans.map((sp,k) => {
-    const txt = it.words.slice(sp.s, sp.e).join(" ");
+    const txt = words.slice(sp.s, sp.e).join(" ");
     return `<div class="srow ${k===sel?'on':''}" data-si="${k}">
       <button class="cat ${catCls(sp.cat)}" data-act="cat">${sp.cat}</button>
       <span class="txt">${esc(txt)}</span>
@@ -514,7 +582,17 @@ function render(){
 
 /* ---------- events ---------- */
 $("#sent").addEventListener("click", e => {
+  if(e.target.id === "editS"){ window._edit = true; render(); return; }
+  if(e.target.id === "copyS"){ copySentence(); return; }
+  if(e.target.id === "sentSave"){ editSentence($("#sentEdit").value); return; }
+  if(e.target.id === "sentCancel"){ window._edit = false; render(); return; }
   const t = e.target.closest(".tok"); if(t) clickTok(+t.dataset.i);
+});
+$("#sent").addEventListener("keydown", e => {
+  if(e.target.id !== "sentEdit") return;
+  e.stopPropagation();
+  if(e.key === "Escape"){ window._edit = false; render(); }
+  else if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); editSentence(e.target.value); }
 });
 $("#spanList").addEventListener("click", e => {
   const row = e.target.closest(".srow"); const act = e.target.dataset.act;
@@ -552,6 +630,8 @@ document.addEventListener("keydown", e => {
   else if(k === "c") toggleCat();
   else if(k === "x"){ if(sel >= 0) delSpan(sel); }
   else if(k === "z") resetOne();
+  else if(k === "w"){ e.preventDefault(); window._edit = true; render(); }
+  else if(k === "y") copySentence();
   else if(k === "f"){ flags[curIdx] = !flags[curIdx]; if(!flags[curIdx]) delete flags[curIdx]; save(); buildMini(); render(); }
   else if(k === "e"){ e.preventDefault(); $("#note").focus(); }
   else if(k === "h"){ showGuess = true; render(); }
@@ -570,11 +650,15 @@ function download(){
   const out = B.map((it,i) => {
     const a = anno[i];
     if(!a || (!a.visited && !flags[i] && !(notes[i]||"").trim())) return null;
+    const w = wordsOf(i);
+    const cand = candOf(i);   // düzenlenmiş cümlede yüzeyden bulunur, yoksa null
     return {
-      idx: it.idx, idiom: it.idiom, sentence: it.sentence, words: it.words,
-      cand: {s: it.s, e: it.e},
-      spans: a ? a.spans.map(s => ({s:s.s, e:s.e, cat:s.cat, sense:s.sense})) : [],
-      visited: !!(a && a.visited),
+      idx: it.idx, idiom: it.idiom, sentence: w.join(" "), words: w,
+      orig_words: a.words ? it.words : undefined,
+      cand: cand ? {s: cand.s, e: cand.e} : null,
+      spans: a.spans.map(s => ({s:s.s, e:s.e, cat:s.cat, sense:s.sense})),
+      visited: !!a.visited,
+      edited: a.words ? true : undefined,
       flag: flags[i] ? true : undefined,
       note: (notes[i]||"").trim() || undefined,
       sec: times[i] || undefined
