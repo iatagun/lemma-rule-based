@@ -97,9 +97,16 @@ anthropic.com uçları: `temperature` at + `thinking:{type:disabled}` (yoksa bo�
   (span tek başına / "cümlede X var" şablonu) ile eşik. Bare-span prior'ı per-deyim
   midpoint'le sadece r≈0.30 korele → per-deyim eşik %60.9, global-en-iyi eşik %60.3'ün
   üstünde değil. Mutlak kayma çıkarım-zamanı sentetik referanstan kestirilemiyor.
-- Denenmemiş: **adversarial deyim-kimliği silme** (GRL head — span rep'inden deyim ID'si
-  tahmin edilemesin → model bağlama dayansın, per-deyim offset düzleşsin) tek kalan gerçek
-  stage-2 kaldıracı, belirsiz. contrastive margin muhtemelen marjinal (sıralama zaten %93).
+- **adversarial deyim-kimliği silme (GRL) — DENENDİ, ZARARLI (2026-09-10).** GRL head span
+  rep'inden deyim ID tahmin ediyor, ters-gradyan. λ 0.5/1.0, freeze 8. Sonuç: **çift-içi
+  sıralama 93→91/87 DÜŞTÜ**, literal-cümle p(idyo) 0.28→0.37/0.44 YÜKSELDİ (model literali
+  daha az tanıyor), doğru-ayırt @0.5 58.7→53.6/45.8. Deyim kimliğini silmek meşru sinyali
+  de siliyor ("kafayı yemek"in mecazi kullanımını tanımak için deyim olduğunu bilmek şart).
+  Ayrıca adversary seyrek (91 sınıf, ~2 örnek) → GRL gürültü enjeksiyonu gibi. 7. negatif.
+  Geri alındı.
+- **STAGE-2 KALDIRAÇLARI TÜKENDİ (7 negatif).** Kalan tek gerçek kazanç pipeline'ın
+  stage-1 tarafında (~17p span-recall, stage-2'den bağımsız). Stage-2 ~%93 sıralama /
+  ~%59 eşikli = tek-örnek çıkarımın yapısal sınırı. v3 kanonik, yayında kalır.
 - **`--mode stage2-iso`** (`benchmark/eval_idiom.py`) = güvenilir izole stage-2 tabanı
   (179 çift). 11-çift "sıkı" metriği ve 9-çift GLU minimal-çift ±gürültülüydü; bunu kullan.
 - **Minimal çiftler / hard negative** (GLU `glu_karar_cercevesi.md`) hâlâ keskin eval sinyali.
