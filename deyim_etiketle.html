@@ -3,202 +3,263 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Deyim Etiketleme</title>
+<title>Deyim etiketleme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
   :root{
-    --bg:#0e1014; --bg2:#151821; --panel:#1a1e28; --line:#282d3a; --line2:#333a49;
-    --fg:#e8eaee; --dim:#8a92a4; --dim2:#5b6373;
-    --acc:#5b8def;
-    --d:#2fbf6b; --n:#f59e42; --y:#ef4b6b; --s:#6b7688; --flag:#c084fc;
+    --paper:#efece4; --card:#faf8f3; --ink:#232019; --soft:#6c6459; --faint:#938a7c;
+    --rule:#ddd6c8; --rule2:#c9beac;
+    --accent:#3b4272;                 /* ink indigo — the one bold color */
+    --fig:#5a6b3d;                    /* deyim: moss, the figurative sense is "live" */
+    --lit:#8a7a62;                    /* literal: plain stone */
+    --wrong:#8c3a33;                  /* yanlış öbek: editor's correction */
+    --flag:#7a5a86;
+    --serif:"Newsreader",Georgia,"Iowan Old Style","Times New Roman",serif;
+    --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
   }
-  @media (prefers-color-scheme: light){
+  @media (prefers-color-scheme:dark){
     :root{
-      --bg:#eef0f3; --bg2:#e6e9ee; --panel:#ffffff; --line:#dfe3ea; --line2:#cdd3dd;
-      --fg:#1b1e24; --dim:#5f6875; --dim2:#8b93a1; --acc:#2f6fe0;
-      --d:#12a150; --n:#d97917; --y:#dc2647; --s:#67707f; --flag:#9333ea;
+      --paper:#1c1a17; --card:#252119; --ink:#ece7db; --soft:#a49a89; --faint:#7c7466;
+      --rule:#39332a; --rule2:#48402f;
+      --accent:#9aa2df; --fig:#9fb271; --lit:#b7a58a; --wrong:#d98a80; --flag:#c4a3cf;
     }
   }
   *{box-sizing:border-box}
   [hidden]{display:none!important}
   html,body{height:100%}
-  body{margin:0;background:var(--bg);color:var(--fg);
-    font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif}
-  button,textarea,input{font:inherit;color:inherit}
-  .app{max-width:1080px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding:0 18px}
+  body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 var(--sans);
+    -webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;cursor:pointer}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+  ::selection{background:color-mix(in srgb,var(--accent) 22%,transparent)}
 
-  /* ---- header ---- */
-  header{display:flex;align-items:center;gap:14px;padding:14px 0 10px;flex-wrap:wrap}
-  .logo{font-weight:650;letter-spacing:.2px}
-  .logo b{color:var(--acc)}
-  .file{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--dim)}
-  input[type=file]{max-width:210px;color:var(--dim);font-size:12px}
-  .save{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim2)}
-  .dot{width:7px;height:7px;border-radius:50%;background:var(--d);box-shadow:0 0 0 0 var(--d)}
-  .dot.pulse{animation:p .6s ease}
-  @keyframes p{0%{box-shadow:0 0 0 0 rgba(47,191,107,.5)}100%{box-shadow:0 0 0 8px rgba(47,191,107,0)}}
-  .btn{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:7px 13px;
-    cursor:pointer;font-weight:550;font-size:13px}
-  .btn:hover{border-color:var(--line2)}
+  .page{max-width:660px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding:0 24px}
 
-  /* ---- stats ---- */
-  .stats{display:flex;gap:8px 18px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--dim);
-    padding:8px 0}
-  .stats .k{color:var(--fg);font-weight:600;font-variant-numeric:tabular-nums}
-  .chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;
-    border:1px solid var(--line);cursor:pointer;user-select:none}
-  .chip:hover{border-color:var(--line2)}
-  .chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
-  .chip.on .k{color:#fff}
-  .cD{color:var(--d)} .cN{color:var(--n)} .cY{color:var(--y)} .cS{color:var(--s)} .cF{color:var(--flag)}
+  /* ── header ── */
+  header{display:flex;align-items:baseline;gap:12px;padding:20px 0 14px;border-bottom:1px solid var(--rule)}
+  .title{font-family:var(--serif);font-size:19px;font-weight:500;letter-spacing:.01em}
+  .sub{font-size:12px;color:var(--faint)}
+  .tools{margin-left:auto;display:flex;align-items:center;gap:4px}
+  .lnk{background:none;border:0;padding:6px 9px;font-size:13px;color:var(--soft);border-radius:6px}
+  .lnk:hover{color:var(--ink);background:color-mix(in srgb,var(--ink) 6%,transparent)}
+  .saved{font-size:11.5px;color:var(--faint);display:inline-flex;align-items:center;gap:6px;margin-right:6px}
+  .pip{width:6px;height:6px;border-radius:50%;background:var(--fig)}
+  @media (prefers-reduced-motion:no-preference){
+    .pip.beat{animation:beat .55s ease}
+    @keyframes beat{from{box-shadow:0 0 0 0 color-mix(in srgb,var(--fig) 60%,transparent)}
+      to{box-shadow:0 0 0 7px transparent}}
+  }
 
-  /* ---- progress + minimap ---- */
-  .bar{height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin:2px 0 8px}
-  .bar>i{display:block;height:100%;background:var(--acc);transition:width .2s}
-  .mini{display:flex;flex-wrap:wrap;gap:2px;padding:6px;background:var(--bg2);
-    border:1px solid var(--line);border-radius:8px;margin-bottom:14px;cursor:pointer}
-  .mini>span{flex:1 0 5px;height:10px;border-radius:2px;background:var(--dim2);opacity:.3}
-  .mini>span.d{background:var(--d);opacity:1} .mini>span.n{background:var(--n);opacity:1}
-  .mini>span.y{background:var(--y);opacity:1} .mini>span.s{background:var(--s);opacity:.75}
-  .mini>span.cur{outline:2px solid var(--fg);outline-offset:1px;opacity:1;position:relative;z-index:2}
-  .mini>span.fl{box-shadow:inset 0 0 0 2px var(--flag)}
+  /* ── load screen ── */
+  .load{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:14px;
+    padding-bottom:60px}
+  .load p{font-family:var(--serif);font-size:18px;margin:0;max-width:34ch;line-height:1.5}
+  .load small{color:var(--faint);font-size:13px}
+  .filebtn{border:1px solid var(--ink);background:none;padding:9px 16px;border-radius:7px;font-size:13.5px;
+    font-weight:500}
+  .filebtn:hover{background:var(--ink);color:var(--paper)}
 
-  /* ---- card ---- */
-  main{flex:1;display:flex;flex-direction:column;justify-content:center;padding:6px 0 18px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px 28px 22px}
-  .ctx{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;color:var(--dim);font-size:13px}
-  .ctx .idiom{font-size:17px;font-weight:650;color:var(--fg)}
-  .ctx .tag{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--dim2);
-    border:1px solid var(--line);border-radius:5px;padding:1px 6px}
-  .mean{color:var(--dim);font-size:13.5px;margin:6px 0 0}
-  .pair{margin-top:8px;font-size:12.5px;color:var(--dim2)}
-  .pair b{color:var(--fg)}
-  .sent{font-size:22px;line-height:1.65;margin:20px 0 4px;letter-spacing:.1px}
-  mark{background:rgba(91,141,239,.22);background:color-mix(in srgb,var(--acc) 26%,transparent);
-    color:var(--fg);padding:2px 6px;border-radius:6px;box-decoration-break:clone;
-    -webkit-box-decoration-break:clone;font-weight:600;border-bottom:2px solid var(--acc)}
-  .hintline{margin-top:12px;font-size:12.5px;color:var(--dim2);min-height:20px}
-  .hintline u{cursor:pointer}
-  .hintline .hv{background:var(--line);color:var(--fg);border-radius:6px;padding:1px 8px;font-weight:600}
+  /* ── tally (progress + label balance in one bar) ── */
+  .tally{padding:16px 0 4px}
+  .track{display:flex;height:8px;border-radius:5px;overflow:hidden;background:var(--rule)}
+  .track>span{transition:flex-grow .35s ease}
+  .segD{background:var(--fig)} .segN{background:var(--lit)} .segY{background:var(--wrong)}
+  .segS{background:var(--faint);opacity:.55} .segU{background:transparent}
+  .nums{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px;margin-top:9px;font-size:12px;color:var(--soft)}
+  .nums .done{font-family:var(--mono);font-size:12.5px;color:var(--ink)}
+  .nums i{width:7px;height:7px;border-radius:2px;display:inline-block;margin-right:5px;vertical-align:1px}
+  .nums .pace{color:var(--faint);margin-left:auto}
+  .filters{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .chip{border:1px solid var(--rule2);background:none;border-radius:20px;padding:3px 11px;font-size:12px;
+    color:var(--soft)}
+  .chip:hover{border-color:var(--soft)}
+  .chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+  @media (prefers-color-scheme:dark){.chip[aria-pressed=true]{color:var(--paper)}}
+  .chip b{font-family:var(--mono);font-weight:500}
 
-  .acts{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}
-  .acts button{border:1px solid var(--line);background:var(--bg2);border-radius:10px;
-    padding:11px 15px;cursor:pointer;font-weight:600;font-size:13.5px;display:flex;gap:8px;align-items:center}
-  .acts button:hover{border-color:var(--line2)}
-  .acts .aD{border-color:color-mix(in srgb,var(--d) 55%,var(--line))} .acts .aD:hover{background:color-mix(in srgb,var(--d) 12%,var(--bg2))}
-  .acts .aN{border-color:color-mix(in srgb,var(--n) 55%,var(--line))}
-  .acts .aY{border-color:color-mix(in srgb,var(--y) 55%,var(--line))}
-  .acts .sel{outline:2px solid var(--fg);outline-offset:1px}
-  kbd{font-family:ui-monospace,"SF Mono",monospace;font-size:11px;background:var(--line);
-    border:1px solid var(--line2);border-bottom-width:2px;border-radius:4px;padding:0 5px;color:var(--dim)}
-  textarea{width:100%;margin-top:14px;background:var(--bg2);border:1px solid var(--line);
-    border-radius:9px;padding:9px 11px;font-size:13.5px;line-height:1.5;resize:vertical;min-height:44px}
-  textarea:focus{outline:none;border-color:var(--acc)}
+  /* ── the reading card ── */
+  main{flex:1;display:flex;flex-direction:column;justify-content:center;padding:14px 0 22px}
+  .card{background:var(--card);border:1px solid var(--rule);border-radius:5px;padding:30px 32px 26px;
+    box-shadow:0 1px 2px rgba(0,0,0,.03),0 14px 30px -20px rgba(0,0,0,.14)}
+  .read{min-height:150px}
 
-  /* ---- keyboard bar ---- */
-  .kbar{position:sticky;bottom:0;background:linear-gradient(transparent,var(--bg) 30%);
-    padding:12px 0 14px;display:flex;gap:6px 12px;flex-wrap:wrap;font-size:12px;color:var(--dim2)}
-  .kbar span{display:inline-flex;gap:5px;align-items:center;white-space:nowrap}
+  .entry{font-size:13px;line-height:1.55;padding-bottom:14px;border-bottom:1px solid var(--rule);
+    margin-bottom:24px;color:var(--faint)}
+  .entry .hw{font-weight:600;color:var(--soft)}
+  .entry .def{font-family:var(--serif);font-style:italic}
 
-  /* ---- overlays ---- */
-  .veil{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;
-    justify-content:center;padding:20px;z-index:10}
-  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;
-    max-width:560px;width:100%;padding:24px 26px;max-height:85vh;overflow:auto}
-  .modal h3{margin:0 0 12px;font-size:15px}
-  .modal ol{padding-left:20px;margin:0} .modal li{margin:9px 0;font-size:13.5px;line-height:1.55}
-  .modal .warn{color:var(--y)} .modal small{color:var(--dim2)}
-  .center{text-align:center;padding:50px 0}
-  .center h2{font-weight:650;font-size:20px;margin:0 0 6px}
-  .big{font-size:13px;color:var(--dim);margin:14px 0}
-  a{color:var(--acc)}
-  .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+  .sentence{font-family:var(--serif);font-size:21px;line-height:1.78;letter-spacing:.005em;
+    color:var(--ink);margin:0}
+  @media (prefers-reduced-motion:no-preference){.sentence{transition:opacity .09s linear}}
+  .sentence mark{background:color-mix(in srgb,var(--accent) 14%,transparent);color:inherit;
+    padding:.08em .1em;border-radius:2px;box-decoration-break:clone;-webkit-box-decoration-break:clone;
+    box-shadow:0 2px 0 -.5px var(--accent)}
+  @media (prefers-color-scheme:dark){.sentence mark{background:color-mix(in srgb,var(--accent) 22%,transparent)}}
+
+  .aside{margin-top:18px;font-size:12px;color:var(--faint);min-height:1.4em;display:flex;gap:14px;
+    flex-wrap:wrap;align-items:baseline}
+  .aside u{cursor:pointer;text-underline-offset:2px}
+  .aside u:hover{color:var(--soft)}
+  .aside .guess{font-family:var(--mono);color:var(--ink)}
+  .pair{margin-top:14px;font-size:12.5px;color:var(--soft);font-style:italic;font-family:var(--serif);
+    min-height:1.3em}
+  .pair b{font-style:normal;font-family:var(--sans);font-weight:600;color:var(--ink)}
+
+  .decide{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:22px;padding-top:18px;
+    border-top:1px solid var(--rule)}
+  .sec{display:flex;flex-wrap:wrap;gap:4px;margin-left:10px}
+  .opt{border:1px solid var(--rule2);background:none;border-radius:7px;padding:9px 12px;font-size:13.5px;
+    display:inline-flex;align-items:center;gap:7px;color:var(--ink)}
+  .opt:hover{border-color:var(--soft)}
+  .opt .sw{width:8px;height:8px;border-radius:2px;background:var(--faint)}
+  .sec .ghost{padding:9px 8px;color:var(--soft)}
+  .opt[data-l=D] .sw{background:var(--fig)}
+  .opt[data-l=N] .sw{background:var(--lit)}
+  .opt[data-l=Y] .sw{background:var(--wrong)}
+  .opt.on{border-color:currentColor}
+  .opt.on[data-l=D]{color:var(--fig);background:color-mix(in srgb,var(--fig) 9%,transparent)}
+  .opt.on[data-l=N]{color:var(--lit);background:color-mix(in srgb,var(--lit) 9%,transparent)}
+  .opt.on[data-l=Y]{color:var(--wrong);background:color-mix(in srgb,var(--wrong) 9%,transparent)}
+  .opt.on[data-l=S]{color:var(--soft)}
+  .ghost{border-color:transparent;color:var(--soft);padding-left:6px;padding-right:6px}
+  .ghost:hover{color:var(--ink);border-color:transparent}
+  .ghost.flagged{color:var(--flag)}
+  kbd{font-family:var(--mono);font-size:10.5px;line-height:1;padding:2px 4px 3px;border-radius:3px;
+    background:color-mix(in srgb,var(--ink) 8%,transparent);color:var(--soft)}
+
+  textarea{width:100%;margin-top:16px;background:var(--paper);border:1px solid var(--rule);
+    border-radius:6px;padding:9px 11px;font:13.5px/1.5 var(--sans);color:var(--ink);resize:vertical;
+    min-height:42px}
+  textarea::placeholder{color:var(--faint)}
+  textarea:focus{outline:none;border-color:var(--accent)}
+
+  /* ── footer: minimap + key legend ── */
+  footer{border-top:1px solid var(--rule);padding:12px 0 18px;margin-top:8px}
+  .mini{display:flex;flex-wrap:wrap;gap:2px;cursor:pointer;margin-bottom:11px}
+  .mini>span{flex:1 0 4px;height:9px;border-radius:1.5px;background:var(--faint);opacity:.28}
+  .mini>span.d{background:var(--fig);opacity:1} .mini>span.n{background:var(--lit);opacity:1}
+  .mini>span.y{background:var(--wrong);opacity:1} .mini>span.s{background:var(--faint);opacity:.7}
+  .mini>span.cur{outline:1.5px solid var(--ink);outline-offset:1px;opacity:1;z-index:1;position:relative}
+  .mini>span.fl{box-shadow:inset 0 0 0 1.5px var(--flag)}
+  .keys{display:flex;flex-wrap:wrap;gap:5px 14px;font-size:11.5px;color:var(--faint)}
+  .keys span{white-space:nowrap;display:inline-flex;gap:5px;align-items:center}
+
+  /* ── end state ── */
+  .end{flex:1;display:flex;flex-direction:column;justify-content:center;gap:12px;padding-bottom:60px}
+  .end h2{font-family:var(--serif);font-weight:500;font-size:22px;margin:0}
+  .end p{font-family:var(--serif);font-size:16px;line-height:1.6;color:var(--soft);margin:0;max-width:46ch}
+  .end .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .end .lnk{border:1px solid var(--rule2);border-radius:7px}
+
+  /* ── guide overlay ── */
+  .veil{position:fixed;inset:0;background:color-mix(in srgb,var(--ink) 45%,transparent);
+    display:flex;align-items:center;justify-content:center;padding:22px;z-index:20;backdrop-filter:blur(2px)}
+  .sheet{background:var(--card);border:1px solid var(--rule);border-radius:8px;max-width:540px;width:100%;
+    padding:26px 28px;max-height:86vh;overflow:auto}
+  .sheet h3{font-family:var(--serif);font-weight:500;font-size:17px;margin:0 0 14px}
+  .sheet ol{margin:0;padding-left:20px}
+  .sheet li{margin:11px 0;font-size:13.5px;line-height:1.6}
+  .sheet li b.w{color:var(--wrong)}
+  .sheet .fine{margin:16px 0 0;font-size:12.5px;color:var(--faint);line-height:1.6}
+  .sheet .row{margin-top:18px}
+
+  @media (max-width:560px){
+    .card{padding:24px 20px}
+    .sentence{font-size:19px}
+    .nums .pace{margin-left:0;width:100%}
+  }
 </style>
 </head>
 <body>
-<div class="app">
+<div class="page">
   <header>
-    <span class="logo">Dizge<b>BERT</b>-Idiom · stage-2 altın set</span>
-    <div class="file">
-      <input type="file" id="file" accept=".json" title="annotation_batch.json">
-      <span class="save" id="save" hidden><span class="dot" id="dot"></span> kaydedildi</span>
-      <button class="btn" id="dl">💾 indir</button>
-      <button class="btn" id="guideBtn" title="kılavuz (?)">kılavuz</button>
+    <span class="title">Deyim etiketleme</span>
+    <span class="sub">stage-2 altın set</span>
+    <div class="tools">
+      <span class="saved" id="saved" hidden><span class="pip" id="pip"></span>kaydedildi</span>
+      <button class="lnk" id="dl">indir</button>
+      <button class="lnk" id="guideBtn">kılavuz</button>
     </div>
   </header>
 
-  <div id="loadHint" class="big" style="text-align:center;padding:40px 0">
-    <b>annotation_batch.json</b> dosyasını yükle.<br>
-    <small id="lsHint" style="color:var(--dim2)"></small>
+  <div class="load" id="load">
+    <p>Başlamak için etiketleme dosyasını seç.</p>
+    <label class="filebtn">annotation_batch.json seç<input type="file" id="file" accept=".json" hidden></label>
+    <small id="lsHint"></small>
   </div>
 
   <div id="work" hidden>
-    <div class="stats" id="statsRow"></div>
-    <div class="bar"><i id="fill"></i></div>
-    <div class="mini" id="mini"></div>
+    <div class="tally">
+      <div class="track" id="track"></div>
+      <div class="nums" id="nums"></div>
+      <div class="filters" id="filters"></div>
+    </div>
 
     <main>
-      <div class="card" id="card">
-        <div class="ctx">
-          <span class="tag">sözlük biçimi</span>
-          <span class="idiom" id="idiom"></span>
+      <div class="card">
+        <div class="read">
+          <div class="entry"><span class="hw" id="hw"></span> <span class="def" id="def"></span></div>
+          <p class="sentence" id="sent"></p>
+          <div class="pair" id="pair"></div>
+          <div class="aside" id="aside"></div>
         </div>
-        <div class="mean" id="mean"></div>
-        <div class="pair" id="pair"></div>
-        <div class="sent" id="sent"></div>
-        <div class="hintline" id="hintline"></div>
 
-        <div class="acts">
-          <button class="aD" data-l="D">D <small>mecazi deyim</small> <kbd>D</kbd></button>
-          <button class="aN" data-l="N">N <small>literal / terim / benzetme</small> <kbd>N</kbd></button>
-          <button class="aY" data-l="Y">Y <small>öbek yanlış</small> <kbd>Y</kbd></button>
-          <button data-l="S">atla <kbd>S</kbd></button>
-          <button id="flagBtn">⚑ işaretle <kbd>F</kbd></button>
-          <button id="back">← <kbd>←</kbd></button>
+        <div class="decide">
+          <button class="opt" data-l="D"><i class="sw"></i>deyim <kbd>D</kbd></button>
+          <button class="opt" data-l="N"><i class="sw"></i>literal <kbd>N</kbd></button>
+          <button class="opt" data-l="Y"><i class="sw"></i>yanlış öbek <kbd>Y</kbd></button>
+          <span class="sec">
+            <button class="opt ghost" data-l="S">atla <kbd>S</kbd></button>
+            <button class="opt ghost" id="flagBtn">işaretle <kbd>F</kbd></button>
+            <button class="opt ghost" id="back">geri <kbd>←</kbd></button>
+          </span>
         </div>
-        <textarea id="note" placeholder="bu cümledeki diğer deyim(ler) / not — odak: E · çık: Esc"></textarea>
+        <textarea id="note" placeholder="Bu cümlede tespit edilmemiş başka deyim varsa yaz — E ile aç, Esc ile çık"></textarea>
       </div>
     </main>
   </div>
 
-  <div id="end" hidden>
-    <div class="center">
-      <h2 id="endTitle">✓ bitti</h2>
-      <p class="big" id="endStats"></p>
-      <div class="row">
-        <button class="btn" id="revFlag">⚑ işaretlileri gözden geçir</button>
-        <button class="btn" id="revSkip">atlananları gözden geçir</button>
-        <button class="btn" id="revAll">baştan gez</button>
-        <button class="btn" id="dl2">💾 indir</button>
-      </div>
+  <div class="end" id="end" hidden>
+    <h2 id="endTitle">Bitti</h2>
+    <p id="endStats"></p>
+    <div class="row">
+      <button class="lnk" id="revFlag">işaretlilere dön</button>
+      <button class="lnk" id="revSkip">atlananlara dön</button>
+      <button class="lnk" id="revAll">baştan gez</button>
+      <button class="lnk" id="dl2">indir</button>
     </div>
   </div>
 
-  <div class="kbar" id="kbar" hidden>
-    <span><kbd>D</kbd> deyim</span><span><kbd>N</kbd> literal</span><span><kbd>Y</kbd> yanlış</span>
-    <span><kbd>S</kbd> atla</span><span><kbd>F</kbd> işaretle</span><span><kbd>E</kbd> not</span>
-    <span><kbd>←</kbd> / <kbd>→</kbd> gez</span><span><kbd>H</kbd> makine</span><span><kbd>?</kbd> kılavuz</span>
-  </div>
+  <footer id="foot" hidden>
+    <div class="mini" id="mini"></div>
+    <div class="keys">
+      <span><kbd>D</kbd> deyim</span><span><kbd>N</kbd> literal</span><span><kbd>Y</kbd> yanlış öbek</span>
+      <span><kbd>S</kbd> atla</span><span><kbd>F</kbd> işaretle</span><span><kbd>E</kbd> not</span>
+      <span><kbd>←</kbd> <kbd>→</kbd> gez</span><span><kbd>H</kbd> makine tahmini</span><span><kbd>G</kbd> kılavuz</span>
+    </div>
+  </footer>
 </div>
 
 <div class="veil" id="guide" hidden>
-  <div class="modal">
-    <h3>Karar prosedürü</h3>
+  <div class="sheet">
+    <h3>Karar sırası</h3>
     <ol>
-      <li><b>Vurgulanan kelimeler doğru öbeği gösteriyor mu?</b> Yanlış kelime / kaymış sınır
-        (bir kelime bile) / o deyim bu cümlede yok → <b class="warn">Y</b>.</li>
-      <li><b>Öbek doğru ama aslında o deyim değil</b> — terim, bitki-canlı adı ("aslan
-        ağzı"=çiçek), özel ad, kelimeler rastlantısal yan yana → <b class="warn">N</b>.</li>
-      <li><b>Öbek doğru ve deyim: mecazi mi, literal mi?</b><br>
-        Test: öbeği <b>temel/sözlük anlamıyla</b> düz oku. Cümle olduğu gibi tutarlı mı?
-        → <b class="warn">N</b> ("otobüs yol aldı", "altını kısıp pişirin").<br>
-        Mecazi sıçrama gerekiyor mu? → <b>D</b> ("projede yol aldık", "patron gözden düştü").</li>
-      <li><b>"X gibi"</b> anlık/yaratıcı benzetme ("internet bomba gibi") → <b class="warn">N</b>.</li>
-      <li><b>Kararsızsan → <kbd>S</kbd> atla.</b> Zorlama. Sonra bakmak istersen <kbd>F</kbd> işaretle.</li>
-      <li><b>Cümlede başka deyim varsa</b> → <kbd>E</kbd> ile nota yaz (sözlük biçimiyle, virgülle).</li>
+      <li>Vurgulanan kelimeler doğru öbeği mi gösteriyor? Yanlış kelime, kaymış sınır (bir kelime
+        bile), ya da o deyim bu cümlede yoksa → <b class="w">yanlış öbek</b>.</li>
+      <li>Öbek doğru ama aslında o deyim değil — terim, bitki-canlı adı (aslan ağzı = çiçek),
+        özel ad, kelimeler rastlantısal yan yana → <b class="w">literal</b>.</li>
+      <li>Öbek doğru ve deyim: öbeği temel/sözlük anlamıyla düz oku. Cümle olduğu gibi tutarlı
+        kalıyorsa → <b class="w">literal</b> (otobüs yol aldı; altını kısıp pişirin). Anlamak için
+        mecazi sıçrama gerekiyorsa → <b>deyim</b> (projede yol aldık; patron gözden düştü).</li>
+      <li>“X gibi” anlık benzetme (internet bomba gibi) → <b class="w">literal</b>.</li>
+      <li>Kararsızsan atla. Sonra dönmek istersen işaretle.</li>
+      <li>Cümlede başka deyim varsa nota yaz — sözlük biçimiyle, virgülle.</li>
     </ol>
-    <p><small>Makine tahmini <kbd>H</kbd> ile görünür — <b>önce kendin karar ver</b>, sonra
-      merak edersen bak. Tahmin gürültülü, ölçüt değil.</small></p>
-    <div class="row"><button class="btn" id="guideClose">kapat</button></div>
+    <p class="fine">Makine tahmini H ile görünür. Önce kendin karar ver; tahmin gürültülü, ölçüt değil.</p>
+    <div class="row"><button class="lnk filebtn" id="guideClose" style="border-radius:7px">kapat</button></div>
   </div>
 </div>
 
@@ -207,14 +268,15 @@ const LS = "deyim_gold_v1";
 let B = [], labels = {}, notes = {}, flags = {}, times = {};
 let curIdx = 0, filter = "all", enter = 0, sessionStart = 0;
 const $ = s => document.querySelector(s);
+const LBL = {D:"deyim", N:"literal", Y:"yanlış öbek", S:"atlandı"};
 
 /* ---------- storage ---------- */
 function sig(){ return B.length + "|" + (B[0] ? B[0].sentence.slice(0,40) : ""); }
 function loadLS(){ try{ return JSON.parse(localStorage.getItem(LS)) || {}; }catch(e){ return {}; } }
 function save(){
   try{ localStorage.setItem(LS, JSON.stringify({sig:sig(), labels, notes, flags, times})); }catch(e){}
-  const s = $("#save"); s.hidden = false;
-  $("#dot").classList.remove("pulse"); void $("#dot").offsetWidth; $("#dot").classList.add("pulse");
+  const s = $("#saved"); s.hidden = false;
+  const p = $("#pip"); p.classList.remove("beat"); void p.offsetWidth; p.classList.add("beat");
 }
 
 /* ---------- load ---------- */
@@ -228,31 +290,26 @@ $("#file").addEventListener("change", e => {
     notes  = ok && p.notes  ? p.notes  : {};
     flags  = ok && p.flags  ? p.flags  : {};
     times  = ok && p.times  ? p.times  : {};
-    buildPairIndex();
-    buildMini();
+    buildPairIndex(); buildMini();
     sessionStart = Date.now();
     curIdx = firstMatch("unlabeled");
     if(curIdx < 0) curIdx = 0;
-    $("#loadHint").hidden = true; $("#work").hidden = false; $("#kbar").hidden = false;
+    $("#load").hidden = true; $("#work").hidden = false; $("#foot").hidden = false;
     enterItem(); render();
   };
   r.readAsText(f);
 });
 
 window.addEventListener("load", () => {
-  const p = loadLS();
-  const n = p.labels ? Object.keys(p.labels).length : 0;
-  if(n) $("#lsHint").textContent = `tarayıcıda ${n} kayıtlık ilerleme var — aynı dosyayı yükle, devam eder.`;
+  const n = loadLS().labels ? Object.keys(loadLS().labels).length : 0;
+  if(n) $("#lsHint").textContent = `Tarayıcıda ${n} kayıtlık ilerleme var — aynı dosyayı seç, devam eder.`;
 });
 
 /* ---------- minimal-pair index ---------- */
 let byIdiom = {};
-function buildPairIndex(){
-  byIdiom = {};
-  B.forEach((it,i) => (byIdiom[it.idiom] = byIdiom[it.idiom] || []).push(i));
-}
+function buildPairIndex(){ byIdiom = {}; B.forEach((it,i) => (byIdiom[it.idiom] = byIdiom[it.idiom] || []).push(i)); }
 
-/* ---------- filtering / navigation ---------- */
+/* ---------- navigation ---------- */
 function matches(i, fl){
   const l = labels[i];
   if(fl === "all") return true;
@@ -265,20 +322,19 @@ function matches(i, fl){
 function firstMatch(fl){ for(let i=0;i<B.length;i++) if(matches(i,fl)) return i; return -1; }
 function step(dir){
   for(let i = curIdx + dir; i >= 0 && i < B.length; i += dir)
-    if(matches(i, filter)) { curIdx = i; enterItem(); render(); return; }
-  // hiçbiri yok bu yönde
+    if(matches(i, filter)){ curIdx = i; enterItem(); render(); return; }
   if(dir > 0){ curIdx = -1; render(); }
 }
 function setFilter(fl){
   filter = fl;
   const f = firstMatch(fl);
-  if(f >= 0){ curIdx = f; enterItem(); }
-  else curIdx = -1;
+  curIdx = f;
+  if(f >= 0) enterItem();
   render();
 }
 
 /* ---------- timing ---------- */
-function enterItem(){ enter = Date.now(); window._showHint = false; }
+function enterItem(){ enter = Date.now(); window._guess = false; }
 function recordTime(){
   if(curIdx < 0) return;
   times[curIdx] = +( (times[curIdx]||0) + (Date.now()-enter)/1000 ).toFixed(1);
@@ -287,10 +343,7 @@ function recordTime(){
 /* ---------- actions ---------- */
 function setLabel(l){
   if(curIdx < 0) return;
-  recordTime();
-  labels[curIdx] = l;
-  save(); buildMini();
-  step(+1);
+  recordTime(); labels[curIdx] = l; save(); buildMini(); step(+1);
 }
 function toggleFlag(){
   if(curIdx < 0) return;
@@ -300,15 +353,22 @@ function toggleFlag(){
 }
 function back(){ recordTime(); step(-1); }
 
-/* ---------- rendering ---------- */
+/* ---------- render ---------- */
 function counts(){
   const c = {D:0,N:0,Y:0,S:0,F:0,done:0};
   for(const k in labels){ if(labels[k] in c) c[labels[k]]++; c.done++; }
   for(const k in flags) if(flags[k]) c.F++;
   return c;
 }
-function fmt(s){ s=Math.round(s); const m=Math.floor(s/60); return m?`${m}dk ${s%60}sn`:`${s}sn`; }
+function fmt(s){ s = Math.round(s); const m = Math.floor(s/60); return m ? `${m} dk` : `${s} sn`; }
 function esc(s){ return s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+function notesCount(){ return Object.keys(notes).filter(k => (notes[k]||"").trim()).length; }
+function gloss(m){                       // TDK "tanım: örnek — yazar" → sadece tanım
+  if(!m) return "";
+  let g = m.split(/:\s/)[0].replace(/\s*[-–—]\s*[A-ZĞÜŞİÖÇ]\.?\s*[A-ZĞÜŞİÖÇ].*$/,"").trim();
+  if(g.length > 130) g = g.slice(0,127).replace(/[\s,;]+\S*$/,"") + "…";
+  return g.replace(/[.;,]\s*$/,"");
+}
 
 function buildMini(){
   const m = $("#mini");
@@ -329,115 +389,112 @@ $("#mini").addEventListener("click", e => {
   recordTime(); filter = "all"; curIdx = +s.dataset.i; enterItem(); render();
 });
 
+function chip(fl, label, n){
+  return `<button class="chip" data-fl="${fl}" aria-pressed="${filter===fl}">${label} <b>${n}</b></button>`;
+}
+
 function render(){
-  const c = counts(), total = B.length, pct = total ? Math.round(100*c.done/total) : 0;
+  const c = counts(), total = B.length;
   const mins = (Date.now()-sessionStart)/60000;
   const rate = mins > .3 ? c.done/(mins/60) : 0;
-  const eta = rate > 0 ? (total-c.done)/rate*60 : 0;
+  const eta  = rate > 0 ? (total-c.done)/rate*60 : 0;
+  const u = total - c.done;
 
-  $("#statsRow").innerHTML = `
-    <span><span class="k">${c.done}</span> / ${total} (${pct}%)</span>
-    ${chip("all","tümü",total)} ${chip("unlabeled","etiketsiz",total-c.done)}
-    ${chip("skipped","atlanan",c.S)} ${chip("wrong","yanlış",c.Y)} ${chip("flagged","işaretli",c.F)}
-    <span class="cD">D <span class="k">${c.D}</span></span>
-    <span class="cN">N <span class="k">${c.N}</span></span>
-    <span class="cY">Y <span class="k">${c.Y}</span></span>
-    <span class="cS">S <span class="k">${c.S}</span></span>
-    <span>· hız <span class="k">${rate?rate.toFixed(0):"–"}</span>/sa</span>
-    <span>bitişe <span class="k">${eta?fmt(eta*60):"–"}</span></span>`;
-  $("#fill").style.width = pct + "%";
+  $("#track").innerHTML =
+    `<span class="segD" style="flex-grow:${c.D}"></span><span class="segN" style="flex-grow:${c.N}"></span>`
+    + `<span class="segY" style="flex-grow:${c.Y}"></span><span class="segS" style="flex-grow:${c.S}"></span>`
+    + `<span class="segU" style="flex-grow:${u}"></span>`;
+  $("#nums").innerHTML =
+    `<span class="done">${c.done}/${total}</span>`
+    + `<span><i style="background:var(--fig)"></i>${c.D} deyim</span>`
+    + `<span><i style="background:var(--lit)"></i>${c.N} literal</span>`
+    + `<span><i style="background:var(--wrong)"></i>${c.Y} yanlış</span>`
+    + `<span><i style="background:var(--faint)"></i>${c.S} atlandı</span>`
+    + (rate ? `<span class="pace">${rate.toFixed(0)} kayıt/saat &nbsp; ~${fmt(eta*60)} kaldı</span>` : "");
+  $("#filters").innerHTML =
+    chip("all","tümü",total) + chip("unlabeled","kalan",u)
+    + chip("skipped","atlanan",c.S) + chip("wrong","yanlış",c.Y) + chip("flagged","işaretli",c.F);
   buildMini();
 
   if(curIdx < 0){
-    $("#work").hidden = true; $("#end").hidden = false; $("#kbar").hidden = true;
-    $("#endTitle").textContent = c.done >= total ? "✓ tüm kayıtlar etiketli" : `“${filterName(filter)}” filtresinde başka yok`;
+    $("#work").hidden = true; $("#end").hidden = false; $("#foot").hidden = true;
+    $("#endTitle").textContent = c.done >= total ? "Hepsi bitti" : "Bu görünümde kayıt yok";
     $("#endStats").textContent =
-      `D ${c.D} · N ${c.N} · Y ${c.Y} · atla ${c.S} · işaretli ${c.F} · not ${notesCount()} — `
-      + `toplam ${c.done}/${total} · oturum ${fmt(mins*60)}`;
+      `${c.D} deyim, ${c.N} literal, ${c.Y} yanlış öbek, ${c.S} atlandı. `
+      + `${c.F} işaretli, ${notesCount()} notlu. Toplam ${c.done}/${total}, oturum ${fmt(mins*60)}.`;
     return;
   }
-  $("#work").hidden = false; $("#end").hidden = true; $("#kbar").hidden = false;
+  $("#work").hidden = false; $("#end").hidden = true; $("#foot").hidden = false;
 
   const it = B[curIdx];
-  $("#idiom").textContent = it.idiom;
-  $("#mean").textContent = it.meaning || "—";
-  $("#sent").innerHTML = it.words.map((w,i) =>
-    (i >= it.s && i < it.e) ? `<mark>${esc(w)}</mark>` : esc(w)).join(" ");
+  $("#hw").textContent = it.idiom;
+  $("#def").textContent = gloss(it.meaning);
+  const pre = it.words.slice(0, it.s).map(esc).join(" ");
+  const span = it.words.slice(it.s, it.e).map(esc).join(" ");
+  const post = it.words.slice(it.e).map(esc).join(" ");
+  $("#sent").innerHTML = (pre ? pre + " " : "") + `<mark>${span}</mark>` + (post ? " " + post : "");
 
-  // minimal-çift tutarlılık ipucu
   const sib = (byIdiom[it.idiom] || []).filter(j => j !== curIdx);
-  const done = sib.filter(j => labels[j] && labels[j] !== "S")
-    .map(j => `#${j+1}→${labels[j]}`);
-  $("#pair").innerHTML = sib.length
-    ? `aynı deyim bu batch'te ${sib.length+1} kez` + (done.length ? ` · senin: <b>${done.join(", ")}</b>` : ` · henüz biri etiketli değil`)
-    : "";
+  const seen = sib.filter(j => labels[j] && labels[j] !== "S").map(j => ({j, l:labels[j]}));
+  $("#pair").innerHTML = seen.length
+    ? (seen.length === 1
+        ? `Bu deyimi <b>#${seen[0].j+1}</b>’de <b>${LBL[seen[0].l]}</b> işaretledin — tutarlı ol.`
+        : `Aynı deyim: ` + seen.map(s => `#${s.j+1} ${LBL[s.l]}`).join(", ") + ".")
+    : (sib.length ? `Aynı deyim bu sette ${sib.length+1} kez geçiyor.` : "");
 
   const l = labels[curIdx];
-  document.querySelectorAll(".acts button[data-l]").forEach(b =>
-    b.classList.toggle("sel", b.dataset.l === l));
-  $("#flagBtn").style.borderColor = flags[curIdx] ? "var(--flag)" : "";
-  $("#flagBtn").firstChild.textContent = flags[curIdx] ? "⚑ işaretli " : "⚑ işaretle ";
-
+  document.querySelectorAll(".opt[data-l]").forEach(b => b.classList.toggle("on", b.dataset.l === l));
+  $("#flagBtn").classList.toggle("flagged", !!flags[curIdx]);
+  $("#flagBtn").firstChild.textContent = flags[curIdx] ? "işaretli " : "işaretle ";
   $("#note").value = notes[curIdx] || "";
-  const t = times[curIdx];
-  $("#hintline").innerHTML =
-    `<u id="hToggle">🤖 makine tahmini</u>` +
-    (window._showHint ? ` <span class="hv">${it.sonnet || "yok"}</span>` : "") +
-    (t ? ` &nbsp;·&nbsp; bu kayıtta ${fmt(t)}` : "") +
-    (l ? ` &nbsp;·&nbsp; <span style="color:var(--dim)">mevcut: ${l} (değiştirilebilir)</span>` : "");
-}
-function chip(fl,label,n){
-  return `<span class="chip ${filter===fl?'on':''}" data-fl="${fl}">${label} <span class="k">${n}</span></span>`;
-}
-function filterName(fl){ return {all:"tümü",unlabeled:"etiketsiz",skipped:"atlanan",wrong:"yanlış",flagged:"işaretli"}[fl]; }
-function notesCount(){ return Object.keys(notes).filter(k => (notes[k]||"").trim()).length; }
 
-$("#statsRow").addEventListener("click", e => {
-  const ch = e.target.closest(".chip"); if(ch) setFilter(ch.dataset.fl);
-});
+  const t = times[curIdx];
+  $("#aside").innerHTML =
+    `<u id="reveal">makine tahmini</u>`
+    + (window._guess ? `<span class="guess">${it.sonnet || "yok"}</span>` : "")
+    + (t ? `<span>bu kayıtta ${fmt(t)}</span>` : "")
+    + (l ? `<span>şu an: ${LBL[l]}</span>` : "");
+}
 
 /* ---------- events ---------- */
+$("#filters").addEventListener("click", e => {
+  const ch = e.target.closest(".chip"); if(ch) setFilter(ch.dataset.fl);
+});
 document.addEventListener("click", e => {
-  const btn = e.target.closest("button");
-  if(btn) btn.blur();                       // odak butonda kalmasın (boşluk tuşu tekrar tetiklemesin)
-  const b = e.target.closest(".acts button[data-l]");
-  if(b){ setLabel(b.dataset.l); return; }
+  const btn = e.target.closest("button"); if(btn) btn.blur();
+  const o = e.target.closest(".opt[data-l]");
+  if(o){ setLabel(o.dataset.l); return; }
   if(e.target.closest("#flagBtn")) toggleFlag();
   if(e.target.id === "back") back();
-  if(e.target.id === "hToggle"){ window._showHint = true; render(); }
+  if(e.target.id === "reveal"){ window._guess = true; render(); }
 });
-$("#note").addEventListener("input", e => {
-  if(curIdx >= 0){ notes[curIdx] = e.target.value; save(); }
-});
-$("#note").addEventListener("keydown", e => {
-  e.stopPropagation();
-  if(e.key === "Escape") e.target.blur();
-});
+$("#note").addEventListener("input", e => { if(curIdx >= 0){ notes[curIdx] = e.target.value; save(); } });
+$("#note").addEventListener("keydown", e => { e.stopPropagation(); if(e.key === "Escape") e.target.blur(); });
+
 document.addEventListener("keydown", e => {
   if(e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
-  if($("#guide").hidden === false){
-    if(e.key==="Escape"||e.key==="?"||e.key.toLowerCase()==="g") $("#guide").hidden=true;
+  if(!$("#guide").hidden){
+    if(["escape","?","g"].includes(e.key.toLowerCase())) $("#guide").hidden = true;
     return;
   }
   const k = e.key.toLowerCase();
-  if(k==="d") setLabel("D");
-  else if(k==="n") setLabel("N");
-  else if(k==="y") setLabel("Y");
-  else if(k==="s"||e.key===" "){ e.preventDefault(); setLabel("S"); }
-  else if(k==="f") toggleFlag();
-  else if(e.key==="ArrowLeft"||e.key==="Backspace"){ e.preventDefault(); back(); }
-  else if(e.key==="ArrowRight"){ e.preventDefault(); recordTime(); step(+1); }
-  else if(k==="e"){ e.preventDefault(); $("#note").focus(); }
-  else if(k==="h"){ window._showHint = true; render(); }
-  else if(k==="?"||k==="g"){ $("#guide").hidden = !$("#guide").hidden; }
+  if(k === "d") setLabel("D");
+  else if(k === "n") setLabel("N");
+  else if(k === "y") setLabel("Y");
+  else if(k === "s" || e.key === " "){ e.preventDefault(); setLabel("S"); }
+  else if(k === "f") toggleFlag();
+  else if(e.key === "ArrowLeft" || e.key === "Backspace"){ e.preventDefault(); back(); }
+  else if(e.key === "ArrowRight"){ e.preventDefault(); recordTime(); step(+1); }
+  else if(k === "e"){ e.preventDefault(); $("#note").focus(); }
+  else if(k === "h"){ window._guess = true; render(); }
+  else if(k === "?" || k === "g"){ $("#guide").hidden = !$("#guide").hidden; }
 });
 $("#guideBtn").addEventListener("click", () => $("#guide").hidden = false);
 $("#guideClose").addEventListener("click", () => $("#guide").hidden = true);
 $("#guide").addEventListener("click", e => { if(e.target.id === "guide") $("#guide").hidden = true; });
-
 $("#revFlag").addEventListener("click", () => setFilter("flagged"));
 $("#revSkip").addEventListener("click", () => setFilter("skipped"));
-$("#revAll").addEventListener("click", () => { filter="all"; curIdx=0; enterItem(); render(); });
+$("#revAll").addEventListener("click", () => { filter = "all"; curIdx = 0; enterItem(); render(); });
 
 /* ---------- export ---------- */
 function download(){
@@ -448,9 +505,9 @@ function download(){
     note: (notes[i]||"").trim() || undefined,
     sec: times[i] || undefined
   })).filter(r => r.label || r.note || r.flag);
-  const blob = new Blob([JSON.stringify(out)], {type:"application/json"});
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob); a.download = "gold_labels.json"; a.click();
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(out)], {type:"application/json"}));
+  a.download = "gold_labels.json"; a.click();
 }
 $("#dl").addEventListener("click", download);
 $("#dl2").addEventListener("click", download);
