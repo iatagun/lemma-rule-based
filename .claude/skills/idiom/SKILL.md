@@ -71,9 +71,20 @@ pooling → {literal, idyomatik}; bitişik VID adaylarını süzer (LVC + gap'li
 | **v4 / v4b** | LLM-ölçekli GLU etiketi (Sonnet-5 ikili D/N, 8k cümle / 3980 yeni deyim, `--new-idioms-only`), freeze 8/10 | PARSEME ALL −2.2/−2.9 (VID aşırı filtre), Çavuşoğlu doğru-ayırt düz/−1.5, GLU −3. Model temiz held-out'ta epoch ilerledikçe kötüleşiyor → LLM etiketleri ~%20 sınır gürültüsü (κ 0.57). **Kapsam per-etiket gürültüsünü yenmedi.** |
 | **v5ctx** | stage-2 mimarisi: span ilk⊕son → `[CLS] ⊕ span-ortalama ⊕ ilk ⊕ son`, `Linear(4H,2)`; 8k LLM veri | Çavuşoğlu **birebir v3** — mimari ayrım ekseninde sıfır fark, darboğaz etiket kalitesi |
 | **v5ctx_clean** | aynı bağlam mimarisi + orijinal ~975 temiz etiket | GLU minimal-çift ayırt 33→44 (ama 9-çift = gürültü), Çavuşoğlu yanlış-poz 16.2→13.6 AMA **doğru-ayırt her eşikte ~41'de sabit**, duyarlılık −3. Wash. |
+| **gold f8/f10** (2026-09-10) | 601-kayıt elle GLU altın set (D/V/L/X yargı, `data/verdicts_to_gold.py`→`ingest_gold.py`, stage-2 1081D/968L) | Çavuşoğlu doğru-ayırt 41.9→40.9/40.4, yanlış-poz 16.2→18.2/17.2, PARSEME/CASES/GLU düz. **5. bağımsız doğrulama: elle titiz etiket de tavanı kırmıyor.** |
+| **ctx f8/f10** (2026-09-10) | v5ctx tekrarı: head `+[CLS]+span-dışı ortalama` → `Linear(4H,2)`, altın veri | izole metrikte **birebir düz** (aşağı bak). v5ctx negatifini doğruladı, geri alındı. |
 
-**Ders:** stage-2 tavanı (a) daha çok veri, (b) ikili çerçeve, (c) cümle-bağlamı mimarisi ile
-kırılmıyor — tek-model tavanının (v6-v14) stage-2 karşılığı. Mimari değişikliği geri alındı.
+**Ders:** stage-2 tavanı (a) daha çok veri, (b) ikili çerçeve, (c) cümle-bağlamı mimarisi,
+(d) elle titiz GLU etiketi ile kırılmıyor — tek-model tavanının (v6-v14) stage-2 karşılığı.
+
+**Tavanın anatomisi (2026-09-10, `--mode stage2-iso` ile):** stage-2'yi pipeline'sız,
+Çavuşoğlu 179 altın-span çiftinde skorla → **çift-içi sıralama %93** (v3/gold/ctx hepsi):
+temsil, deyimsel kullanıma literalden yüksek idyomatiklik veriyor. Ama tek global eşikle
+doğru-ayırt sadece ~%59 (@0.5 58.7). Pipeline ~%42 = üç kayıp: stage-1 span-recall (~17p,
+görülmemiş deyimde bulamıyor) + eşik kalibrasyonu (%93 sıralama → %59 eşikli) + gerçek
+stage-2 hatası (~7p). **Darboğaz "head bağlamı görmüyor" DEĞİL** (ctx eklemek düz) —
+göreli sinyal güvenilir, mutlak eşik deyim-kimliğine göre kayıyor. Kaldıraç sırası:
+(1) per-deyim/uyarlanır eşik (göreli %93'ü kullan, retrain yok), (2) stage-1 recall (ayrı).
 
 `data/filter_corpus_idiomaticity.py` yeni bayraklar (`stage2-llm-labels` dalı, main'e merge
 kararı açık): `--gate` (LLM'i frozen sette kıyasla), `--new-idioms-only` (kapsam örneklemesi),
@@ -82,9 +93,15 @@ anthropic.com uçları: `temperature` at + `thinking:{type:disabled}` (yoksa bo�
 
 ### Hâlâ açık (düşük beklenen değer)
 - Stage-2 ~1k elle-etiketli örnekte overfit; literal kullanımların ~%16-18'i geçiyor.
-- Denenmemiş: contrastive margin kaybı, elle/LLM etiket karışım ağırlığı, stage-1 p(literal)
-  özelliği. Meta-örüntü net — tavan yapısal.
-- **Minimal çiftler / hard negative** (GLU `glu_karar_cercevesi.md`) hâlâ en keskin eval sinyali.
+- **En umut verici (denenmemiş): per-deyim uyarlanır eşik** — izole ölçüm çift-içi
+  sıralamanın %93 olduğunu ama tek global eşiğin bunu %59'a düşürdüğünü gösterdi.
+  Çıkarımda çift yok; ama deyimi nötr/şablon bağlamda skorlayıp o deyime özgü referans
+  noktası türetmek göreli sinyali kullanır. Retrain yok.
+- Denenmemiş: contrastive margin kaybı (muhtemelen marjinal — sıralama zaten %93, sorun
+  mutlak kalibrasyon), stage-1 p(literal) özelliği, adversarial deyim-kimliği silme.
+- **`--mode stage2-iso`** (`benchmark/eval_idiom.py`) = güvenilir izole stage-2 tabanı
+  (179 çift). 11-çift "sıkı" metriği ve 9-çift GLU minimal-çift ±gürültülüydü; bunu kullan.
+- **Minimal çiftler / hard negative** (GLU `glu_karar_cercevesi.md`) hâlâ keskin eval sinyali.
 
 ## Kritik teknik notlar
 
