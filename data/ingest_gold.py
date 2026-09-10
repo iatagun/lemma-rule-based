@@ -102,7 +102,7 @@ def main() -> None:
     s2_rows: list[tuple] = []      # (idiom, words, tags, "D"/"L")
     span_rows: list[dict] = []     # BIO altın
     missed: list[tuple] = []
-    kd = kl = k_new_lit = 0
+    kd = kl = k_new_lit = k_lvc = 0
 
     for g in gold:
         words, spans, cand = g["words"], g.get("spans", []), g["cand"]
@@ -120,13 +120,16 @@ def main() -> None:
                 sc = covers(sp, cand)
                 if sc >= bscore:
                     best, bscore = sp, sc
-        if cand and best and best.get("sense") == "idio":
+        if cand and best and best.get("sense") == "idio" and best.get("cat") == "VID":
             lab, tags = "D", contig(len(words), cand["s"], cand["e"])
             kd += 1
+        elif cand and best and best.get("cat") == "LVC":
+            lab = None                              # LVC aday → stage-2'ye katma (BIO'da LVC var)
+            k_lvc += 1
         else:
-            lab, tags = "L", ["O"] * len(words)     # literal, silinmiş ya da düzenlemede kaybolmuş aday
+            lab, tags = "L", ["O"] * len(words)     # literal, silinmiş ya da bozuk aday
             kl += 1
-        if " ".join(words) not in frozen_txt:
+        if lab and " ".join(words) not in frozen_txt:
             s2_rows.append((idiom, words, tags, lab))
 
         # cand dışı literal öbekler → ek L kayıtları
@@ -140,7 +143,7 @@ def main() -> None:
     n_eval = round(len(idioms) * args.eval_frac)
     eval_idioms = set(idioms[:n_eval])
 
-    print(f"gezilen cümle: {len(gold)}  →  stage-2: {kd} D / {kl} L (+{k_new_lit} literal öbek)")
+    print(f"gezilen cümle: {len(gold)}  →  stage-2: {kd} D / {kl} L  ({k_lvc} LVC aday atlandı, +{k_new_lit} literal öbek)")
     print(f"BIO altın: {len(span_rows)} cümle, "
           f"{sum(1 for r in span_rows for t in r['tags'] if t.startswith('B-'))} idio öbek")
     print(f"bölme: {len(eval_idioms)} deyim eval / {len(idioms)-len(eval_idioms)} train  "
