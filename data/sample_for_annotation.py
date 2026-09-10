@@ -52,6 +52,16 @@ def span_range(tags: list[str]) -> tuple[int, int] | None:
     return (idx[0], idx[-1] + 1) if idx else None
 
 
+_MOJI = str.maketrans("ýþðÝÞÐ", "ışğIŞĞ")   # Latin-1 ↔ Latin-5 (ISO-8859-9) karışması
+
+def demoji(s: str) -> str:
+    return s.translate(_MOJI)
+
+def looks_broken(s: str) -> bool:
+    # onarımdan sonra hâlâ Türkçe olmayan tuhaf karakterler → cümleyi ele
+    return bool(re.search(r"[Ã‚Â€™“”�]|â€", s))
+
+
 def load_meanings() -> dict[str, str]:
     """TDK sözlük biçimi → tanım (varsa örnek cümleyle). Anahtar normalize edilir."""
     out: dict[str, str] = {}
@@ -83,12 +93,22 @@ def main() -> None:
 
     items = json.loads(CORPUS.read_text(encoding="utf-8"))
     by_idiom: dict[str, list[dict]] = defaultdict(list)
+    n_broken = n_fixed = 0
     for it in items:
         sr = span_range(it["tags"])
         if sr is None or not (MIN_W <= len(it["words"]) <= MAX_W):
             continue
-        it = {**it, "s": sr[0], "e": sr[1], "text": " ".join(it["words"])}
+        words = [demoji(w) for w in it["words"]]
+        text = " ".join(words)
+        if demoji(" ".join(it["words"])) != " ".join(it["words"]):
+            n_fixed += 1
+        if looks_broken(text):
+            n_broken += 1
+            continue
+        it = {**it, "words": words, "span": demoji(it["span"]), "idiom": demoji(it["idiom"]),
+              "s": sr[0], "e": sr[1], "text": text}
         by_idiom[it["idiom"]].append(it)
+    print(f"kodlama: {n_fixed} cümle onarıldı, {n_broken} elenmiş")
 
     # Sonnet ipuçları: cümle metni → D/N, ve deyim → {D:n, N:n}
     hint: dict[str, str] = {}
@@ -128,7 +148,7 @@ def main() -> None:
         picked.append({
             "idx": len(picked),
             "idiom": idiom,
-            "meaning": meanings.get(_norm(idiom), ""),
+            "meaning": demoji(meanings.get(_norm(idiom), "")),
             "span": it["span"],
             "words": it["words"],
             "tags": it["tags"],
