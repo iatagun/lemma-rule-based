@@ -460,6 +460,11 @@ function matches(i, fl){
   if(fl === "modified") return seen(i) && !isDefault(i);
   if(fl === "suspect") return anno[i] && isSuspect(anno[i], i);
   if(fl === "noted") return !!(notes[i] && notes[i].trim());
+  if(fl === "added"){                                   // aday dışı öbek eklenmiş
+    if(!anno[i]) return false;
+    const c = candOf(i);
+    return anno[i].spans.some(sp => !c || covers2(sp, c) < 0.5);
+  }
   return true;
 }
 function firstMatch(fl){ for(let i=0;i<B.length;i++) if(matches(i,fl)) return i; return -1; }
@@ -494,6 +499,11 @@ function trimPunct(s, e){
   return e > s ? [s, e] : null;
 }
 function inSpan(sp, i){ return (i >= sp.s && i < sp.e) || (sp.s2 != null && i >= sp.s2 && i < sp.e2); }
+function covers2(sp, c){                                 // öbek ↔ aday IoU (1. parça)
+  const lo = Math.max(sp.s, c.s), hi = Math.min(sp.e, c.e), inter = Math.max(0, hi - lo);
+  const uni = (sp.e - sp.s) + (c.e - c.s) - inter;
+  return uni ? inter / uni : 0;
+}
 function spanAt(i){ const a = getA(curIdx); for(let k=0;k<a.spans.length;k++) if(inSpan(a.spans[k], i)) return k; return -1; }
 
 function flash(msg){ window._flash = {msg, t: Date.now()}; setTimeout(render, 2600); }
@@ -610,8 +620,9 @@ function render(){
     + (rate ? `<span class="pace">${rate.toFixed(0)} kayıt/saat &nbsp; ~${fmt(eta*60)} kaldı</span>` : "");
   const nSus = B.reduce((n,_,i) => n + (anno[i] && isSuspect(anno[i], i) ? 1 : 0), 0);
   const nNote = Object.keys(notes).filter(k => (notes[k]||"").trim()).length;
+  const nAdd = B.reduce((n,_,i) => n + (matches(i,"added") ? 1 : 0), 0);
   $("#filters").innerHTML = window.review
-    ? chip("all","tümü",total) + chip("suspect","şüpheli",nSus)
+    ? chip("all","tümü",total) + chip("suspect","şüpheli",nSus) + chip("added","eklenmiş öbek",nAdd)
       + chip("noted","notlu",nNote) + chip("flagged","işaretli",c.flag)
     : chip("all","tümü",total) + chip("unseen","gezilmemiş",total-c.seen)
       + chip("modified","düzeltilmiş",c.mod) + chip("flagged","işaretli",c.flag);
