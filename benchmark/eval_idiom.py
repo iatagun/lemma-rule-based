@@ -10,6 +10,9 @@ Kullanım:
     python benchmark/eval_idiom.py --local --checkpoint idiom_data/best_idiom_tagger.pt
     python benchmark/eval_idiom.py --mode cases                       # yalnız nokta-atışı
     python benchmark/eval_idiom.py --mode neural                      # yalnız PARSEME test
+    python benchmark/eval_idiom.py --mode stage2-iso --stage2 idiom_data/best_idiomaticity_clf_v3.pt
+        # stage-2'yi pipeline'sız, Çavuşoğlu altın-span'lerinde ikili sınıflandırıcı olarak skorla
+        # (stage-1 recall'ı denklemden çıkarır — tavan temsilde mi span-bulmada mı?)
 """
 from __future__ import annotations
 
@@ -298,9 +301,108 @@ def run_glu(predict) -> None:
               f"doğru-ayırt %{100*pair_both/pair_total:.0f}")
 
 
+# ═══════════════════════════════════════════════════════════════════════
+#  Mod 5: stage-2 İZOLE — pipeline'ı atla, idyomatiklik sınıflandırıcısını
+#  Çavuşoğlu çiftlerinde ALTIN span üzerinde ikili sınıflandırıcı olarak skorla.
+#  stage-1 recall'ı denklemden çıkarır: tavan stage-2 temsilinde mi, span-bulmada mı?
+#  run_external'ın katı gövde-eşleşmesi (11/198) yerine fuzzy içerik-sözcük penceresi.
+# ═══════════════════════════════════════════════════════════════════════
+_ISO_STOP = {"bir", "bu", "o", "şey", "veya", "ya", "da", "de", "ile", "gibi", "için",
+             "birine", "birini", "birinin", "biri", "birşey"}
+
+
+def _iso_content_stems(idiom: str, _stem) -> list[str]:
+    import re
+    idiom = re.sub(r"\([^)]*\)", " ", idiom)                      # parantezli varyant at
+    ws = [w for w in re.sub(r"[.,!?;:\"'’]", "", idiom.lower()).split() if w]
+    return [_stem(w) for w in ws if w not in _ISO_STOP and len(w) > 2]
+
+
+def _iso_locate(idiom: str, words: list[str], _stem) -> tuple[int, int] | None:
+    need = _iso_content_stems(idiom, _stem)
+    if not need:
+        return None
+    sstem = [_stem(w.lower()) for w in words]
+    hits = [i for i, s in enumerate(sstem) if s in set(need)]
+    if not hits or len({sstem[i] for i in hits}) < max(1, round(0.6 * len(set(need)))):
+        return None
+    lo, hi = min(hits), max(hits) + 1
+    return (lo, hi) if hi - lo <= len(need) + 4 else None         # çok dağınıksa güvenme
+
+
+def run_stage2_iso(clf_ckpt: str, thresh: float = 0.5) -> None:
+    import csv
+    import statistics as st
+    import torch
+    from transformers import AutoTokenizer
+    from dizgebert_idiom.modeling_dizgebert_idiom import align_words, span_p_literal
+    from training.train_idiomaticity_clf import IdiomaticityClf, MAX_LEN
+    from data.prepare_tdk_idiom_examples import stem
+
+    tsv_path = _PROJECT / "idiom_data" / "raw" / "turkish_idioms_benchmark.tsv"
+    if not tsv_path.exists():
+        print(f"\nUYARI: {tsv_path} yok — `python data/fetch_turkish_idioms_benchmark.py`. Atlanıyor.")
+        return
+    rows = [r for r in csv.DictReader(tsv_path.open(encoding="utf-8"), delimiter="\t")
+            if r.get("sample", "").strip() and r.get("literal", "").strip()]
+
+    ck = torch.load(clf_ckpt, map_location="cpu")
+    enc_name = ck.get("encoder", "dbmdz/electra-base-turkish-cased-discriminator")
+    dev = "cuda" if torch.cuda.is_available() else "cpu"
+    tok = AutoTokenizer.from_pretrained(enc_name)
+    clf = IdiomaticityClf(enc_name).to(dev).eval()
+    clf.load_state_dict(ck["model"])
+
+    @torch.no_grad()
+    def p_idio(words, s, e):
+        enc, kept, fp, lp = align_words(tok, words, MAX_LEN, dev)
+        if s >= len(kept) or (e - 1) >= len(kept):
+            return None
+        hs = clf.encoder(input_ids=enc["input_ids"],
+                         attention_mask=enc["attention_mask"]).last_hidden_state[0]
+        return 1.0 - span_p_literal(hs, fp[0, s].item(), lp[0, e - 1].item(), clf.head)
+
+    print(f"\n=== stage-2 İZOLE — Çavuşoğlu altın-span, {clf_ckpt} ===")
+    pi_l, pl_l = [], []
+    idi = lit = both = 0
+    for r in rows:
+        sw, lw = r["sample"].split(), r["literal"].split()
+        if len(sw) < 2 or len(lw) < 2:
+            continue
+        sr, lr = _iso_locate(r["idiom"], sw, stem), _iso_locate(r["idiom"], lw, stem)
+        if not sr or not lr:
+            continue
+        pi, pl = p_idio(sw, *sr), p_idio(lw, *lr)
+        if pi is None or pl is None:
+            continue
+        pi_l.append(pi); pl_l.append(pl)
+        a, b = pi > thresh, pl <= thresh
+        idi += a; lit += b; both += a and b
+    n = len(pi_l)
+    if n == 0:
+        print("  UYARI: hiç çift konumlanamadı.")
+        return
+    same = sum(x > y for x, y in zip(pi_l, pl_l)) / n
+    best = (0, thresh)
+    for k in range(3, 98):
+        t = k / 100
+        bo = sum((x > t) and (y <= t) for x, y in zip(pi_l, pl_l))
+        if bo > best[0]:
+            best = (bo, t)
+    print(f"  konumlanan çift: {n}/{len(rows)}")
+    print(f"  altın span p(idyomatik) ORT:  idyomatik-cümle {st.mean(pi_l):.3f} | "
+          f"literal-cümle {st.mean(pl_l):.3f}  (ayrım {st.mean(pi_l) - st.mean(pl_l):+.3f})")
+    print(f"  @thr {thresh:.2f}:  idyom-recall %{100*idi/n:.1f}  |  "
+          f"literal-eleme %{100*lit/n:.1f}  |  doğru-ayırt %{100*both/n:.1f}")
+    print(f"  en iyi eşik {best[1]:.2f}:  doğru-ayırt %{100*best[0]/n:.1f}")
+    print(f"  çift-içi sıralama (p_idyo > p_lit): %{100*same:.1f}  "
+          f"← eşikten bağımsız saf ayırt gücü")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mode", choices=["all", "neural", "cases", "external", "glu"], default="all")
+    ap.add_argument("--mode", choices=["all", "neural", "cases", "external", "glu", "stage2-iso"],
+                    default="all")
     ap.add_argument("--local", action="store_true", help="HF yerine yerel .pt")
     ap.add_argument("--checkpoint", default=str(_PROJECT / "idiom_data" / "best_idiom_tagger.pt"))
     ap.add_argument("--hf-repo", default="iatagun/DizgeBERT-Idiom")
@@ -310,6 +412,12 @@ def main() -> None:
     ap.add_argument("--stage2-thresh", type=float, default=0.5,
                     help="span yalnız p(literal) > bu değer ise elenir (yüksek → recall korunur)")
     args = ap.parse_args()
+
+    if args.mode == "stage2-iso":
+        if not args.stage2:
+            ap.error("--mode stage2-iso için --stage2 <clf checkpoint> gerekli")
+        run_stage2_iso(args.stage2, args.stage2_thresh)
+        return
 
     predict = make_predictor(args.local, args.checkpoint, args.hf_repo)
     if args.stage2:
