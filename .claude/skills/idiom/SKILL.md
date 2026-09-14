@@ -10,8 +10,12 @@ user-invokable: true
 `lemma-rule-based` reposunda ELECTRA tabanlı Türkçe deyim (VID) / eşdizim (LVC.full)
 BIO span etiketleyici. **Yayınlandı** (`huggingface.co/iatagun/DizgeBERT-Idiom`).
 
-- **Stage-1 (span modeli) = v5**, değişmedi: `idiom_data/best_idiom_tagger_v5_bigappy.pt`,
-  ELECTRA (`dbmdz/electra-base-turkish-cased-discriminator`), bigappy-unicrossy 2-katman + Viterbi.
+- **Stage-1 (span modeli) = v5, DEĞİŞMEDİ**: `idiom_data/best_idiom_tagger_v5_bigappy.pt` =
+  `best_idiom_tagger.pt` ile aynı, ELECTRA (`dbmdz/electra-base-turkish-cased-discriminator`),
+  bigappy-unicrossy 2-katman + Viterbi. `idiom_data/best_idiom_tagger_vB_gap2.pt` = Deney B
+  (bounded-gap matcher) sonucu — PARSEME/TDK-test'te net kazanç AMA tam boru hattında
+  (değişmemiş stage-2 v3'le) Çavuşoğlu doğru-ayırt %41.9→%39.9 GERİLEDİ → **PROMOTE EDİLMEDİ**,
+  kullanıcı kararıyla v5 yayında kaldı. Detay: aşağıdaki "2026-09-14 turu".
 - **Yayınlanan HF sürümü = v3 (iki aşamalı):** v5 span'leri + gömülü stage-2 idyomatiklik
   sınıflandırıcısı (`idiom_data/best_idiomaticity_clf_v3.pt`, ~880MB bundle, `config.stage2=True`).
   `predict_spans()` bitişik VID adaylarını süzer, güvenli literal'i eler; `stage2=False` ile kapatılır.
@@ -104,12 +108,77 @@ anthropic.com uçları: `temperature` at + `thinking:{type:disabled}` (yoksa bo�
   de siliyor ("kafayı yemek"in mecazi kullanımını tanımak için deyim olduğunu bilmek şart).
   Ayrıca adversary seyrek (91 sınıf, ~2 örnek) → GRL gürültü enjeksiyonu gibi. 7. negatif.
   Geri alındı.
-- **STAGE-2 KALDIRAÇLARI TÜKENDİ (7 negatif).** Kalan tek gerçek kazanç pipeline'ın
-  stage-1 tarafında (~17p span-recall, stage-2'den bağımsız). Stage-2 ~%93 sıralama /
+- **STAGE-2 KALDIRAÇLARI TÜKENDİ (7 negatif + 2 pilot, toplam 9).** Kalan tek gerçek kazanç
+  pipeline'ın stage-1 tarafında (~17p span-recall, stage-2'den bağımsız). Stage-2 ~%93 sıralama /
   ~%59 eşikli = tek-örnek çıkarımın yapısal sınırı. v3 kanonik, yayında kalır.
+- **2026-09-14 pilot turu — "neden başarılı, nasıl ölçeklenir" (gerçek API ile test edildi):**
+  (a) **Kendinden-tutarlılık oylaması** (`filter_corpus_idiomaticity.py --votes N`): κ 0.581→0.606
+  (n=150, gerçek ama mütevazı) — %90 oybirliği, hata çoğunlukla SİSTEMATİK (rastgele değil),
+  oylama bunu çözemiyor. (b) **Hedefli-derin etiketleme** (`data/deep_label_idioms.py`, 25 deyim
+  × 10 cümle, votes=3): kalibre edilebilir deyim 87→106, dış-benchmarkla örtüşen **3→22 (7 kat)**
+  — veri-açlığı sorunu ÇÖZÜLDÜ. AMA per-deyim kalibrasyon hipotezi artık İSTATİSTİKSEL GÜÇLE
+  REDDEDİLDİ: r(kalibrasyon,altın)=0.026/−0.241, `stage2-iso` doğru-ayırt global-eşik %81.8 >
+  per-deyim %72.7 (n=22). **Deney F artık "yetersiz veri" değil "test edildi, çürütüldü"
+  statüsünde.** Ayrıntı: proje hafızası.
 - **`--mode stage2-iso`** (`benchmark/eval_idiom.py`) = güvenilir izole stage-2 tabanı
   (179 çift). 11-çift "sıkı" metriği ve 9-çift GLU minimal-çift ±gürültülüydü; bunu kullan.
 - **Minimal çiftler / hard negative** (GLU `glu_karar_cercevesi.md`) hâlâ keskin eval sinyali.
+
+## 2026-09-14 turu — stage-1 recall'a odaklan, sonuç: İLK gerçek kazanç (Deney B)
+
+Plan: `~/.claude/plans/en-son-deyim-ve-clever-crab.md`. Önceki turun "stage-1 recall ~17p,
+görülmemiş deyim" iddiası hiç doğrudan ÖLÇÜLMEMİŞTİ — bunu ölçüp hedefli yeni kaldıraçlar
+denendi (sentetik-değil, gerçek-veri kalibrasyonu; katı-eşleştirme yerine sınırlı gevşetme).
+
+| deney | ne | sonuç |
+|---|---|---|
+| **A** | seen/unseen deyim-kimliği ayrımı (`run_external --seen-idioms-file`) | **DOĞRULANDI, büyüdü**: doğru-ayırt seen %66.7 vs unseen %39.0 (~28p, tahmin edilen 17p'den büyük) |
+| **C** | TDK sözlük-aday-fallback (`inference/lexicon_candidates.py`, `--lexicon`) | **REDDEDİLDİ — v8 deseni tekrarı.** Muhafazakâr varyantta bile PARSEME F1 −2.4, fp/tp oranı kötü. 9. tek-model tipi negatif. |
+| **F** | gerçek-etiketli per-deyim eşik kalibrasyonu (`benchmark/calibrate_stage2.py`) | **İlk turda "veri-açlığı" (n=3, anlamsız) → hedefli-derin etiketleme pilotuyla (aşağı) n=22'ye çıkarıldı → hipotez GÜÇLE REDDEDİLDİ (r≈0, global eşik per-deyimden iyi).** 8. stage-2 negatifi, kesin. |
+| **B** | sınırlı-boşluklu `find_span` (`max_gap` parametresi, permütasyon DEĞİL — sıralı + ara-söz toleransı) | **KARMAŞIK — PARSEME/TDK-test'te net kazanç ama tam boru hattında Çavuşoğlu %41.9→%39.9 geriledi → PROMOTE EDİLMEDİ.** Aşağıda detay. |
+| **D** | katman-2 (bigappy gap-parçası) ağırlık ayarı (`--span-weight-mult2`) | **REDDEDİLDİ**: GAPLI F1 32.10→22.78 (−9.3) — ağırlık artışı seyrek sınıfı istikrarsızlaştırdı, recall bile DÜŞTÜ |
+
+**Deney B detayı:** `find_span(seq, sent_stems, max_gap=0)` — `max_gap=0` ORİJİNAL katı-bitişik
+davranışla bire bir aynı (geriye uyumlu varsayılan). `max_gap>0`: deyim gövdeleri SIRALI
+kalır ama aralarına toplam `max_gap` kadar eşleşmeyen sözcük girebilir — **permütasyon değil**,
+yalnız ara-söz toleransı (v7/v8'in "veri ekle" veya "fuzzy eşiği gevşet" desenlerinden farklı:
+tek, dar, prensipli bir eşleştirme-kuralı değişikliği). Ham verim gap=0 %26.9→gap=2 %28.8
+(gap=3'te doygun). **Tek-değişken kıyas (aynı güncel CSV/kod, yalnız max_gap farklı, aynı
+dondurulmuş test dosyası):** TDK-test F1 52.94→**59.81 (+6.87)**, precision de YUKARI
+(55.10→59.26) — v6/v7/v8/v10'un "recall için precision feda" deseni YOK. Mevcut stage-2 v3'le
+(yeniden eğitilmeden) PARSEME ALL F1 67.60→**68.82 (+1.22)**, precision düz, recall +3.05 —
+**dağılım-kayması riski gerçekleşmedi**. `find_span` hem TDK eğitim-verisi üretiminde hem
+`run_external` eval'inde AYNI fonksiyon olduğundan bu tek değişiklik iki yeri birden düzeltiyor.
+**Önceki "eşleştirme kuralı ASLA gevşetilmez, v7/v8 dersi" kuralı YANLIŞ genellenmişti** — o
+ders "kontrolsüz veri/eşik gevşetmesi" içindi, PRENSİPLİ sınırlı-pencere gevşetmesi (tek
+değişken, aynı frozen test'te ölçülen) PARSEME/TDK-test'te net kazanç verdi.
+
+**AMA — kritik düzeltme: tam boru hattında PROMOTE EDİLMEDİ.** İlk değerlendirme (yalnız
+PARSEME+TDK-test+vA0-tabanlı dış-benchmark kıyası) yanıltıcıydı — gerçek karar ölçütü
+YAYINDAKİ v5 ile aday vB'nin ikisinin de DEĞİŞMEMİŞ stage-2 v3 ile FULL 198-çift Çavuşoğlu
+sonucudur:
+
+| metrik | v5+s2 (yayında) | vB+s2 (aday) |
+|---|---|---|
+| PARSEME ALL F1 | 67.60 | 68.82 (+1.22) |
+| **Çavuşoğlu doğru-ayırt** | **41.9%** | **39.9% (−2.0, GERİLEME)** |
+| Çavuşoğlu duyarlılık | 55.6% | 52.5% (−3.1) |
+
+Stage-1-tek (stage2'siz) Çavuşoğlu'nda vB gerçekten iyiydi (aynı-CSV tabana göre +3.5) ama bu
+DEĞİŞMEMİŞ stage-2 filtresinden geçince tersine döndü — **dağılım-kayması gerçekleşti**, ilk
+turda "geçti" denen risk yanlış metrikte (PARSEME) test edilmişti. **Kullanıcı kararı
+(2026-09-14): PUSH ETME.** `best_idiom_tagger.pt` v5'e geri yüklendi (hash doğrulandı),
+`dizgebert_idiom_hf/` (push edilmemiş yerel export) silindi. Checkpoint'ler arşivde:
+`best_idiom_tagger_vB_gap2.pt` (aday, promote edilmedi), `best_idiom_tagger_vA0_gap0.pt`
+(temiz gap=0 taban). **Denendi (2026-09-14) — stage-2'yi vB'nin GERÇEK adaylarıyla yeniden eğitmek: DAHA KÖTÜ,
+kapandı.** `train_idiomaticity_clf.py --align-stage1 <ckpt>` eklendi (altın span yerine o
+checkpoint'in önerdiği en-çok-örtüşen adayı kullanır, önermezse örneği atar). vB, bu gold-
+etiketli (Leipzig-madenli) havuzda örneklerin %66-76'sında HİÇ aday önermedi — TDK-test'teki
+iyi recall bu cümle türüne genellemiyor. Kalan çok küçük/çarpık veriyle (363/184) yeniden
+eğitilen stage-2: Çavuşoğlu doğru-ayırt 39.9%→**34.8%**, yanlış-poz **15.7%→25.3% (ikiye
+katlandı)** — PARSEME F1 68.82→70.20 YÜKSELDİ ama YANILTICI (PARSEME'de literal karşı-örnek
+yok, gevşek/az-filtreleyen stage-2 orada iyi görünür). Checkpoint `best_idiomaticity_clf_vB.pt`
+arşivde, reddedildi. **Kanonik: v5 + stage-2 v3, DEĞİŞMEDİ, yayında.**
 
 ## Kritik teknik notlar
 
@@ -123,9 +192,15 @@ anthropic.com uçları: `temperature` at + `thinking:{type:disabled}` (yoksa bo�
   hemen `cp best_idiom_tagger.pt best_idiom_tagger_vN_*.pt`, gerekirse v5'i geri yükle.
 - `train_idiom_bert.py` bayrakları: `--class-weights --tdk-examples` (v5 reçetesi),
   `--corpus-examples` (Leipzig madenciliği), `--encoder <hf-id>` (encoder A/B override).
-- Eşleştirme kuralı her yerde AYNI olmalı: sıkı ardışık GÖVDE alt-dizisi (`find_span`,
-  `data/prepare_tdk_idiom_examples.py`; `stem()` artık snowballstemmer). Gevşetme
-  (fuzzy/threshold) DENEME — v7/v8 dersi.
+- Eşleştirme kuralı her yerde AYNI olmalı: `find_span` (`data/prepare_tdk_idiom_examples.py`;
+  `stem()` snowballstemmer) hem TDK eğitim-verisi üretiminde hem `run_external` eval'inde
+  kullanılıyor — biri değişirse diğeri de değişmeli. **Güncelleme (2026-09-14, Deney B):**
+  "asla gevşetme" kuralı yanlış genellenmişti. `find_span(..., max_gap=N)` — SIRALI kalan ama
+  aralarına sınırlı ara-söz toleransı olan (permütasyon DEĞİL) bounded-gap eşleştirme — TDK-test
+  F1 +6.87 verdi, precision-korumalı. v7/v8 dersi hâlâ geçerli AMA dar kapsamı var: "kontrolsüz
+  veri hacmi ekleme" veya "sınırsız fuzzy/threshold gevşetme" için — TEK, dar, prensipli bir
+  eşleştirme-kuralı parametresini (max_gap, varsayılan 0 = eski davranış) tek-değişken olarak
+  denemek FARKLI ve işe yaradı. `max_gap=2` şu an önerilen değer (gap=3'te getiri doygunlaşıyor).
 - **Stage-2:** `modeling_dizgebert_idiom.py` içinde `config.stage2` ise `stage2_encoder` +
   `stage2_head` kurulur; `predict_spans(stage2=, stage2_thresh=, keep_literal=)`. Yalnız
   bitişik VID süzülür. `_LIT` kategorisi (Fikir 4 kalıntısı, inert) gerçek span sayılmaz.
@@ -167,12 +242,17 @@ python inference/push_idiom_hf.py
 ## Dosya envanteri
 
 `data/fetch_parseme_tr.py`, `data/prepare_idiom_data.py`, `data/fetch_tdk_deyim.mjs`,
-`data/prepare_tdk_idiom_examples.py` (+frozen-split, snowball stemmer),
+`data/prepare_tdk_idiom_examples.py` (+frozen-split, snowball stemmer, `--max-gap`, `tdk_idioms_by_split.json` dump),
 `data/fetch_leipzig_tr.py`, `data/prepare_tdk_corpus_examples.py` (stem-map cache + sıkı eşleşme),
 `data/filter_corpus_idiomaticity.py`, `data/prepare_glu_examples.py`,
-`training/train_idiom_bert.py`, `training/train_idiomaticity_clf.py`,
+`training/train_idiom_bert.py` (+`--span-weight-mult2`), `training/train_idiomaticity_clf.py`
+(+`--align-stage1`, `align_to_stage1()`),
 `dizgebert_idiom/` (config+modeling+MODEL_CARD, kökte),
-`benchmark/eval_idiom.py`, `inference/predict_idiom.py`, `inference/push_idiom_hf.py`,
+`benchmark/eval_idiom.py` (+`--seen-idioms-file`, `--lexicon`, `--gap`, `--per-idiom-thresh-file`),
+`benchmark/calibrate_stage2.py` (Deney F, gerçek-veri per-deyim kalibrasyon + korelasyon raporu),
+`data/deep_label_idioms.py` (hedefli-derin deyim etiketleme pilotu, `--votes` ile),
+`inference/predict_idiom.py`, `inference/lexicon_candidates.py` (Deney C, TDK sözlük-fallback —
+önerilmiyor ama altyapı kalıyor), `inference/push_idiom_hf.py`,
 `tests/test_idiom_labelspace.py`. **Arşiv/kullanılmıyor**: `data/prepare_idiom_arc_data.py`,
 `training/train_idiom_arc_bert.py` (reddedilen arc-classification).
 

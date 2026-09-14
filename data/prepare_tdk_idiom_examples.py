@@ -120,17 +120,46 @@ def idiom_stems(text: str) -> list[str]:
     return [_idiom_word_stem(w, i == len(words) - 1) for i, w in enumerate(words)]
 
 
-def find_span(idiom_seq: list[str], sent_stems: list[str]) -> tuple[int, int] | None:
+def find_span(idiom_seq: list[str], sent_stems: list[str], max_gap: int = 0) -> tuple[int, int] | None:
+    """Deney B: `max_gap=0` (varsayılan) ORİJİNAL katı-bitişik davranışla bire bir aynı.
+    `max_gap>0`: deyim gövdeleri SIRALI ama aralarına toplam en fazla `max_gap` eşleşmeyen
+    cümle-kelimesi girebilir (permütasyon DEĞİL — sıra korunur, yalnız ara söz toleransı).
+    Türkçe'de yardımcı-fiil deyimlerinin arasına zarf/nesne girmesi gibi durumları kurtarır
+    (ör. "gözünü açıp kapayıncaya kadar" değişkenleri)."""
     n = len(idiom_seq)
     if n == 0:
         return None
-    for i in range(len(sent_stems) - n + 1):
-        if sent_stems[i:i + n] == idiom_seq:
-            return i, i + n
+    if max_gap <= 0:
+        for i in range(len(sent_stems) - n + 1):
+            if sent_stems[i:i + n] == idiom_seq:
+                return i, i + n
+        return None
+    L = len(sent_stems)
+    for start in range(L):
+        if sent_stems[start] != idiom_seq[0]:
+            continue
+        pos, matched, j, gaps_used = start, 1, 1, 0
+        while j < n and pos + 1 < L:
+            pos += 1
+            if sent_stems[pos] == idiom_seq[j]:
+                matched += 1
+                j += 1
+            else:
+                gaps_used += 1
+                if gaps_used > max_gap:
+                    break
+        if matched == n:
+            return start, pos + 1
     return None
 
 
 def main() -> None:
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--max-gap", type=int, default=0,
+                     help="Deney B: find_span'a sınırlı ara-söz toleransı (0=orijinal katı-bitişik)")
+    args = ap.parse_args()
+
     if not IN_CSV.exists():
         sys.exit(f"{IN_CSV} yok — önce: node fetch_tdk_deyim.mjs")
 
@@ -155,7 +184,7 @@ def main() -> None:
                 stats["cümle_kısa_atlandı"] += 1
                 continue
             sent_stems = [stem(tr_lower(w)) for w in words]
-            span = find_span(idiom_seq, sent_stems)
+            span = find_span(idiom_seq, sent_stems, max_gap=args.max_gap)
             if span is None:
                 stats["eşleşme_bulunamadı"] += 1
                 continue
@@ -234,6 +263,15 @@ def main() -> None:
         path.write_text(json.dumps(recs, ensure_ascii=False), encoding="utf-8")
         print(f"  yazıldı: {path.relative_to(PROJECT_ROOT)}  ({len(recs)} kayıt, "
               f"{len(split_keys[name])} deyim)")
+
+    # deyim-kimliği split dökümü — dış-benchmark eval'inde seen/unseen ayrımı için
+    # (eval_idiom.py --seen-idioms-file / --unseen-idioms-file bu dosyayı okur)
+    by_split_path = PROJECT_ROOT / "idiom_data" / "tdk_idioms_by_split.json"
+    by_split_path.write_text(
+        json.dumps({name: sorted(keys) for name, keys in split_keys.items()}, ensure_ascii=False, indent=1),
+        encoding="utf-8",
+    )
+    print(f"  yazıldı: {by_split_path.relative_to(PROJECT_ROOT)}")
 
     records = splits["train"]  # geriye dönük uyumluluk: tdk_examples.json = yalnız train parçası
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)

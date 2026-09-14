@@ -205,17 +205,24 @@ def build_class_weights(train_jsons: list[Path], ls: IdiomLabelSpace, device,
     return w
 
 
-def build_class_weights2(train_jsons: list[Path], ls: IdiomLabelSpace, device) -> torch.Tensor:
+def build_class_weights2(train_jsons: list[Path], ls: IdiomLabelSpace, device,
+                         span_mult2: float = 1.0) -> torch.Tensor:
     """Katman 2 için aynı ağırlıklandırma — dengesizlik katman 1'den çok daha aşırı (~326k
     tokenden ~300'ü non-'o') → `--class-weights` bayrağından BAĞIMSIZ her zaman uygulanır,
-    aksi halde ağ muhtemelen hep 'o' tahmin etmeyi öğrenir (gradyan sinyali neredeyse sıfır)."""
+    aksi halde ağ muhtemelen hep 'o' tahmin etmeyi öğrenir (gradyan sinyali neredeyse sıfır).
+    Deney D: `span_mult2` — `--span-weight-mult` katman-1'i etkiler, katman-2 (gap/boşluk
+    parçası) hep sabit ağırlıklıydı; bu, GAPLI kategorisini bağımsız ayarlamayı sağlar."""
     counts = np.zeros(len(ls.tags2))
     for train_json in train_jsons:
         data = json.loads(train_json.read_text(encoding="utf-8"))
         for rec in data:
             for t in rec.get("tags2", []):
                 counts[ls.tag2_to_id.get(t, 0)] += 1
-    return _class_weights(counts, device)
+    w = _class_weights(counts, device)
+    if span_mult2 != 1.0:
+        w[1:] *= span_mult2         # o (index 0) hariç tüm b/i-* sınıfları
+        w = torch.clamp(w, 0.3, 8.0)
+    return w
 
 
 def compute_loss(logits: dict, batch: dict, weights: torch.Tensor | None = None,
@@ -402,6 +409,9 @@ def main() -> None:
                     help="O sınıfı baskınlığına karşı ters-frekans ağırlıklandırma")
     ap.add_argument("--span-weight-mult", type=float, default=1.0,
                     help="B/I-* sınıf ağırlıklarını bununla çarp (>1 → recall↑; iki-aşama stage-1)")
+    ap.add_argument("--span-weight-mult2", type=float, default=1.0,
+                    help="Deney D: katman-2 (gap/boşluk parçası) b/i-* ağırlıklarını bununla "
+                         "çarp — --span-weight-mult'tan BAĞIMSIZ, yalnız GAPLI kategorisini etkiler")
     ap.add_argument("--tdk-examples", action="store_true",
                     help="idiom_data/tdk_examples.json'u (TDK sözlüğü gömülü örnekleri, "
                          "isim/sıfat deyimler dahil) train'e ekle")
@@ -490,7 +500,7 @@ def main() -> None:
     if weights is not None:
         print(f"class-weighting açık (katman 1): {dict(zip(ls.tags, weights.tolist()))}")
     # katman 2 (gap'li 2. parça) ağırlıklandırması her zaman açık — bkz. build_class_weights2 docstring.
-    weights2 = build_class_weights2(weight_sources, ls, device)
+    weights2 = build_class_weights2(weight_sources, ls, device, args.span_weight_mult2)
     print(f"class-weighting (katman 2, her zaman açık): {dict(zip(ls.tags2, weights2.tolist()))}")
 
     train_dl = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, collate_fn=collate)

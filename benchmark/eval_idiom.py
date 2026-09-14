@@ -141,7 +141,8 @@ def run_cases(predict) -> None:
 #  CASES'in (16 elle-seçilmiş vaka) aksine büyük ölçekli, bağımsız bir bağlam-
 #  bağımlılık (idyomatik/literal ayrımı) testi.
 # ═══════════════════════════════════════════════════════════════════════
-def run_external(predict) -> None:
+def run_external(predict, idiom_filter: set[tuple[str, ...]] | None = None, label: str = "",
+                  max_gap: int = 0) -> None:
     import csv
 
     tsv_path = _PROJECT / "idiom_data" / "raw" / "turkish_idioms_benchmark.tsv"
@@ -149,16 +150,21 @@ def run_external(predict) -> None:
         print(f"\nUYARI: {tsv_path} yok — önce `python fetch_turkish_idioms_benchmark.py`. Atlanıyor.")
         return
 
+    from data.prepare_tdk_idiom_examples import idiom_stems, find_span, stem
+
     rows = [r for r in csv.DictReader(tsv_path.open(encoding="utf-8"), delimiter="\t")
             if r.get("sample", "").strip() and r.get("literal", "").strip()]
-    print(f"\n=== Dış kaynak: Çavuşoğlu & Çöltekin (MWE 2026), {len(rows)} deyim çifti ===")
-
-    from data.prepare_tdk_idiom_examples import idiom_stems, find_span, stem
+    if idiom_filter is not None:
+        rows = [r for r in rows if tuple(idiom_stems(r["idiom"])) in idiom_filter]
+    tag = f" [{label}]" if label else ""
+    if max_gap:
+        tag += f" [gap={max_gap}]"
+    print(f"\n=== Dış kaynak: Çavuşoğlu & Çöltekin (MWE 2026){tag}, {len(rows)} deyim çifti ===")
 
     def target_range(idiom: str, words: list[str]) -> tuple[int, int] | None:
         """Hedef deyimin cümledeki kelime aralığı (gövde-eşleştirme) — bulunamazsa None."""
         seq = idiom_stems(idiom)
-        return find_span(seq, [stem(w.lower()) for w in words]) if seq else None
+        return find_span(seq, [stem(w.lower()) for w in words], max_gap=max_gap) if seq else None
 
     def hit_at_target(spans: list[dict], rng: tuple[int, int] | None) -> bool:
         """rng=None → 'cümlede herhangi bir span' (gevşek). Aksi halde span hedefle çakışmalı."""
@@ -330,14 +336,14 @@ def _iso_locate(idiom: str, words: list[str], _stem) -> tuple[int, int] | None:
     return (lo, hi) if hi - lo <= len(need) + 4 else None         # çok dağınıksa güvenme
 
 
-def run_stage2_iso(clf_ckpt: str, thresh: float = 0.5) -> None:
+def run_stage2_iso(clf_ckpt: str, thresh: float = 0.5, per_idiom_thresh: dict | None = None) -> None:
     import csv
     import statistics as st
     import torch
     from transformers import AutoTokenizer
     from dizgebert_idiom.modeling_dizgebert_idiom import align_words, span_p_literal
     from training.train_idiomaticity_clf import IdiomaticityClf, MAX_LEN
-    from data.prepare_tdk_idiom_examples import stem
+    from data.prepare_tdk_idiom_examples import stem, idiom_stems
 
     tsv_path = _PROJECT / "idiom_data" / "raw" / "turkish_idioms_benchmark.tsv"
     if not tsv_path.exists():
@@ -363,8 +369,9 @@ def run_stage2_iso(clf_ckpt: str, thresh: float = 0.5) -> None:
         return 1.0 - span_p_literal(hs, fp[0, s].item(), lp[0, e - 1].item(), clf.head)
 
     print(f"\n=== stage-2 İZOLE — Çavuşoğlu altın-span, {clf_ckpt} ===")
-    pi_l, pl_l = [], []
+    pi_l, pl_l, keys = [], [], []
     idi = lit = both = 0
+    cal_idi = cal_lit = cal_both = cal_n = 0
     for r in rows:
         sw, lw = r["sample"].split(), r["literal"].split()
         if len(sw) < 2 or len(lw) < 2:
@@ -378,6 +385,12 @@ def run_stage2_iso(clf_ckpt: str, thresh: float = 0.5) -> None:
         pi_l.append(pi); pl_l.append(pl)
         a, b = pi > thresh, pl <= thresh
         idi += a; lit += b; both += a and b
+        key = " ".join(idiom_stems(r["idiom"]))
+        keys.append(key)
+        if per_idiom_thresh is not None and key in per_idiom_thresh:
+            t = per_idiom_thresh[key]
+            ca, cb = pi > t, pl <= t
+            cal_idi += ca; cal_lit += cb; cal_both += ca and cb; cal_n += 1
     n = len(pi_l)
     if n == 0:
         print("  UYARI: hiç çift konumlanamadı.")
@@ -397,6 +410,17 @@ def run_stage2_iso(clf_ckpt: str, thresh: float = 0.5) -> None:
     print(f"  en iyi eşik {best[1]:.2f}:  doğru-ayırt %{100*best[0]/n:.1f}")
     print(f"  çift-içi sıralama (p_idyo > p_lit): %{100*same:.1f}  "
           f"← eşikten bağımsız saf ayırt gücü")
+    if per_idiom_thresh is not None:
+        if cal_n == 0:
+            print("  [per-deyim eşik] UYARI: hiçbir konumlanan çift kalibre deyim kümesiyle örtüşmüyor.")
+        else:
+            glob_both_cov = sum((pi_l[i] > thresh) and (pl_l[i] <= thresh)
+                                 for i in range(n) if keys[i] in per_idiom_thresh)
+            print(f"  [per-deyim eşik] kapsanan çift: {cal_n}/{n}")
+            print(f"    global eşik {thresh:.2f} (aynı kapsanan alt-kümede):  doğru-ayırt "
+                  f"%{100*glob_both_cov/cal_n:.1f}")
+            print(f"    per-deyim eşik:                                   doğru-ayırt "
+                  f"%{100*cal_both/cal_n:.1f}")
 
 
 def main() -> None:
@@ -411,15 +435,49 @@ def main() -> None:
                          "aşama-1 VID span'leri bundan geçirilip literal olanlar elenir")
     ap.add_argument("--stage2-thresh", type=float, default=0.5,
                     help="span yalnız p(literal) > bu değer ise elenir (yüksek → recall korunur)")
+    ap.add_argument("--seen-idioms-file", default=None,
+                    help="run_external'ı yalnız bu JSON listesindeki (TDK deyim-metni) deyimlerle "
+                         "sınırla — seen/unseen ayrımı için idiom_data/_bench_seen.json ya da "
+                         "_bench_unseen.json ver (yalnız --mode external/all etkilenir)")
+    ap.add_argument("--lexicon", action="store_true",
+                    help="TDK sözlük-biçimi deyim listesiyle aday-üretimi ekle (Deney C)")
+    ap.add_argument("--lexicon-only-if-empty", action="store_true",
+                    help="--lexicon ile: yalnız nöral tagger cümlede hiç span bulamadıysa "
+                         "lexicon adayı ekle (muhafazakâr varyant, precision çöküşünü sınırlar)")
+    ap.add_argument("--gap", type=int, default=0,
+                    help="run_external strict-mode konumlamada find_span'a ara-söz toleransı "
+                         "(Deney B — eğitimde kullanılan --max-gap ile AYNI değer verilmeli)")
+    ap.add_argument("--per-idiom-thresh-file", default=None,
+                    help="--mode stage2-iso için: benchmark/calibrate_stage2.py çıktısı "
+                         "(idiom_data/_stage2_per_idiom_thresh.json) — global --stage2-thresh "
+                         "yerine kapsanan deyimlerde per-deyim eşik kullan (Deney F)")
     args = ap.parse_args()
+
+    idiom_filter = None
+    filter_label = ""
+    if args.seen_idioms_file:
+        import json as _json
+        from data.prepare_tdk_idiom_examples import idiom_stems as _stems
+        names = _json.loads(Path(args.seen_idioms_file).read_text(encoding="utf-8"))
+        idiom_filter = {tuple(_stems(nm)) for nm in names}
+        filter_label = Path(args.seen_idioms_file).stem
 
     if args.mode == "stage2-iso":
         if not args.stage2:
             ap.error("--mode stage2-iso için --stage2 <clf checkpoint> gerekli")
-        run_stage2_iso(args.stage2, args.stage2_thresh)
+        per_idiom_thresh = None
+        if args.per_idiom_thresh_file:
+            import json as _json
+            per_idiom_thresh = _json.loads(Path(args.per_idiom_thresh_file).read_text(encoding="utf-8"))
+        run_stage2_iso(args.stage2, args.stage2_thresh, per_idiom_thresh)
         return
 
     predict = make_predictor(args.local, args.checkpoint, args.hf_repo)
+    if args.lexicon:
+        from inference.lexicon_candidates import make_lexicon_predict
+        predict = make_lexicon_predict(predict, only_if_empty=args.lexicon_only_if_empty)
+        mode_tag = " [yalnız-boşsa]" if args.lexicon_only_if_empty else ""
+        print(f"[lexicon] TDK sözlük aday-üretimi aktif ({predict.lexicon_size} deyim){mode_tag}")
     if args.stage2:
         # tek kaynak — modeling.predict_spans(stage2=True) ile aynı mantık
         from training.train_idiomaticity_clf import wrap_stage2
@@ -431,7 +489,7 @@ def main() -> None:
     if args.mode in ("all", "cases"):
         run_cases(predict)
     if args.mode in ("all", "external"):
-        run_external(predict)
+        run_external(predict, idiom_filter, filter_label, args.gap)
     if args.mode in ("all", "glu"):
         run_glu(predict)
 

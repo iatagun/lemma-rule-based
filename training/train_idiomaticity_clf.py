@@ -244,6 +244,31 @@ def evaluate(model, dl, device) -> dict:
             "literal_eleme": round(100 * lit_acc, 1), "tp": tp, "fp": fp, "fn": fn, "tn": tn}
 
 
+def align_to_stage1(pairs: list[dict], predict) -> list[dict]:
+    """Deney B takibi (2026-09-14): stage-2'yi altın span yerine YENİ stage-1 checkpoint'inin
+    (`--align-stage1`) GERÇEKTEN önerdiği aday span'lerle eğit — train/inference aday
+    dağılımını eşitler. Her örnek için `predict(words)` çağrılır, altın (s,e) ile en çok
+    örtüşen bitişik VID adayı bulunur; bulunamazsa örnek ATLANIR (gerçek çıkarımda da
+    stage-2 bu örneği hiç görmeyecekti — stage-1 hiç önermedi)."""
+    out, dropped = [], 0
+    for r in pairs:
+        spans = predict(r["words"])
+        best, best_ov = None, 0
+        for sp in spans:
+            if sp.get("category") != "VID" or sp.get("gappy"):
+                continue
+            ov = max(0, min(sp["end"], r["e"]) - max(sp["start"], r["s"]))
+            if ov > best_ov:
+                best, best_ov = sp, ov
+        if best is None:
+            dropped += 1
+            continue
+        out.append({**r, "s": best["start"], "e": best["end"]})
+    print(f"align-to-stage1: {dropped}/{len(pairs)} örnek stage-1 hiç aday önermedi, atlandı "
+          f"→ {len(out)} kaldı")
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--eval", action="store_true")
@@ -256,6 +281,9 @@ def main() -> None:
     ap.add_argument("--lr", type=float, default=LR)
     ap.add_argument("--weight-decay", type=float, default=0.01)
     ap.add_argument("--out", default=str(CKPT), help="checkpoint çıktı yolu")
+    ap.add_argument("--align-stage1", default=None,
+                    help="Deney B takibi: altın span yerine bu stage-1 checkpoint'inin "
+                         "önerdiği aday span'lerle eğit (train/inference aday dağılımını eşitler)")
     args = ap.parse_args()
     out_ckpt = Path(args.out)
 
@@ -267,6 +295,13 @@ def main() -> None:
     train_rows, test_rows = load_pairs()
     print(f"train {len(train_rows)} ({Counter(r['y'] for r in train_rows)})  "
           f"test {len(test_rows)} ({Counter(r['y'] for r in test_rows)})")
+
+    if args.align_stage1:
+        from benchmark.eval_idiom import make_predictor
+        predict = make_predictor(True, args.align_stage1, "")
+        print(f"[align-stage1] {args.align_stage1} ile aday span'ler yeniden hesaplanıyor...")
+        train_rows = align_to_stage1(train_rows, predict)
+        test_rows = align_to_stage1(test_rows, predict)
 
     test_ds = ClfDS(test_rows, tok, "held-out")
     test_dl = DataLoader(test_ds, batch_size=BATCH, collate_fn=collate(pad_id))

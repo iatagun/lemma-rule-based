@@ -154,6 +154,32 @@ def call_llm(base_url: str, model: str, api_key: str, batch: list[dict], timeout
     return out
 
 
+def call_llm_voted(base_url: str, model: str, api_key: str, batch: list[dict], timeout: int,
+                    n_votes: int) -> tuple[dict[int, str], dict[int, float]]:
+    """Deney: kendinden-tutarlılık (self-consistency) — `call_llm`'i AYNI batch'e `n_votes`
+    kez çağırır (anthropic.com uçlarında `temperature` zaten atılıyor → sabit-sıcaklık DEĞİL,
+    sağlayıcı varsayılanı kullanılır, tekrar çağrılar gerçekten farklı örnekleyebilir), çoğunluk
+    oyu alır. v4'ün asıl başarısızlık nedenini (κ=0.57, ~%20 sınır gürültüsü, TEK-geçişli
+    etiketleme) hedefler — n_votes=1 iken `call_llm`'le BİREBİR AYNI (geriye uyumlu).
+    → (label_dict, agreement_dict) — agreement = çoğunluğun oy payı (1.0 = oybirliği)."""
+    if n_votes <= 1:
+        res = call_llm(base_url, model, api_key, batch, timeout)
+        return res, {k: 1.0 for k in res}
+    votes: dict[int, list[str]] = {}
+    for _ in range(n_votes):
+        res = call_llm(base_url, model, api_key, batch, timeout)
+        for k, v in res.items():
+            votes.setdefault(k, []).append(v)
+    out: dict[int, str] = {}
+    agree: dict[int, float] = {}
+    for k, vs in votes.items():
+        c = Counter(vs)
+        lab, n = c.most_common(1)[0]
+        out[k] = lab
+        agree[k] = n / len(vs)
+    return out, agree
+
+
 def _write_recs(recs: list[dict], mode: str = "w") -> None:
     with SAMPLE_RECS.open(mode, encoding="utf-8") as f:
         for r in recs:
@@ -374,42 +400,61 @@ def _gate_report(gold: dict[int, str], pred: dict[int, str]) -> None:
     print(f"\n  SONUÇ: {overall}  — asıl yargıç uçtan uca stage-2 v4 vs v3 kıyası")
 
 
-def gate(base_url: str, model: str, api_key: str, batch_size: int, timeout: int, restart: bool) -> None:
-    """LLM'i frozen elle-etiketli sette koştur, altın D/L/E ile kıyasla → etiket kalitesi kapısı."""
+def gate(base_url: str, model: str, api_key: str, batch_size: int, timeout: int, restart: bool,
+         n_votes: int = 1, limit: int | None = None) -> None:
+    """LLM'i frozen elle-etiketli sette koştur, altın D/L/E ile kıyasla → etiket kalitesi kapısı.
+    `n_votes>1`: Deney (2026-09-14) — kendinden-tutarlılık oylaması, ayrı çıktı dosyasına yazar
+    (tek-geçişli sonuçla karışmasın). `limit`: yalnız ilk N altın örnekte dene (ucuz pilot)."""
     if not SAMPLE_RECS.exists() or not MANUAL_LABELS.exists():
         sys.exit("frozen etiket seti yok (_corpus_sample_records.jsonl / _corpus_sample_labels.tsv)")
     recs = {json.loads(l)["idx"]: json.loads(l)
             for l in SAMPLE_RECS.read_text(encoding="utf-8").splitlines() if l.strip()}
     gold = _read_gold()
+    if limit:
+        import random
+        keys = sorted(gold)
+        random.Random(7).shuffle(keys)
+        gold = {k: gold[k] for k in keys[:limit]}
+    out_path = GATE_LABELS if n_votes <= 1 else GATE_LABELS.with_name(f"_gate_llm_labels_v{n_votes}.jsonl")
     if restart:
-        GATE_LABELS.unlink(missing_ok=True)
+        out_path.unlink(missing_ok=True)
     done: dict[int, str] = {}
-    if GATE_LABELS.exists():
-        for line in GATE_LABELS.read_text(encoding="utf-8").splitlines():
+    agreement: dict[int, float] = {}
+    if out_path.exists():
+        for line in out_path.read_text(encoding="utf-8").splitlines():
             if line.strip():
                 d = json.loads(line)
                 done[int(d["idx"])] = d["label"]
+                agreement[int(d["idx"])] = d.get("agreement", 1.0)
     todo = [i for i in sorted(gold) if i in recs and i not in done]
-    print(f"gate: {len(gold)} altın · {len(done)} etiketli · {len(todo)} kalan  (model={model})")
+    print(f"gate: {len(gold)} altın · {len(done)} etiketli · {len(todo)} kalan  "
+          f"(model={model}, oy={n_votes}) → {out_path.name}")
     t = time.time()
-    with GATE_LABELS.open("a", encoding="utf-8") as gf:
+    with out_path.open("a", encoding="utf-8") as gf:
         for b0 in range(0, len(todo), batch_size):
             idxs = todo[b0:b0 + batch_size]
             batch = [recs[i] for i in idxs]
             try:
-                res = call_llm(base_url, model, api_key, batch, timeout)
+                res, agr = call_llm_voted(base_url, model, api_key, batch, timeout, n_votes)
             except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
                 print(f"  LLM hatası ({e}) — 10s bekle, tekrar dene")
                 time.sleep(10)
-                res = call_llm(base_url, model, api_key, batch, timeout)
+                res, agr = call_llm_voted(base_url, model, api_key, batch, timeout, n_votes)
             for pos, i in enumerate(idxs):
                 lb = res.get(pos + 1, "N")
-                gf.write(json.dumps({"idx": i, "label": lb}) + "\n")
+                a = agr.get(pos + 1, 1.0)
+                gf.write(json.dumps({"idx": i, "label": lb, "agreement": a}) + "\n")
                 done[i] = lb
+                agreement[i] = a
             gf.flush()
             if (b0 // batch_size) % 10 == 0:
                 print(f"  {len(done):,}/{len(gold):,}  {time.time() - t:.0f}s")
     _gate_report(gold, done)
+    if n_votes > 1:
+        vals = [agreement[i] for i in gold if i in agreement]
+        unanimous = sum(1 for v in vals if v >= 0.999)
+        print(f"\noy-birliği: {unanimous}/{len(vals)} (%{100*unanimous/len(vals):.1f}) tam oybirliği "
+              f"({n_votes} oydan); anlaşmazlık oranı düşükse gürültü azalmış demektir")
 
 
 def ingest_llm(items: list[dict]) -> None:
@@ -507,12 +552,18 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--timeout", type=int, default=120)
     ap.add_argument("--restart", action="store_true")
+    ap.add_argument("--votes", type=int, default=1,
+                    help="Deney (2026-09-14): kendinden-tutarlılık oylaması — aynı örneği N kez "
+                         "sor, çoğunluk oyu al (--gate ile birlikte kullan, κ/gürültü ölçmek için)")
+    ap.add_argument("--gate-limit", type=int, default=None,
+                    help="--gate: yalnız ilk N altın örnekte dene (ucuz pilot)")
     args = ap.parse_args()
 
     items = load_items()
 
     if args.gate:
-        return gate(args.base_url, args.model, args.api_key, args.batch, args.timeout, args.restart)
+        return gate(args.base_url, args.model, args.api_key, args.batch, args.timeout, args.restart,
+                    args.votes, args.gate_limit)
     if args.ingest_llm:
         return ingest_llm(items)
 

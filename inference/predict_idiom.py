@@ -54,6 +54,9 @@ def main() -> None:
     ap.add_argument("--stage2", default=None,
                     help="yerel yolda idyomatiklik sınıflandırıcı checkpoint'i (stage-2 filtresi)")
     ap.add_argument("--stage2-thresh", type=float, default=0.5)
+    ap.add_argument("--lexicon", action="store_true",
+                    help="TDK sözlük-biçimi deyim listesiyle aday-üretimi ekle (Deney C — "
+                         "nöral tagger'ın kaçırdığı görülmemiş deyimleri kurtarmayı dener)")
     args = ap.parse_args()
 
     if not args.demo and not args.inp:
@@ -86,6 +89,11 @@ def main() -> None:
             tags1 = viterbi_decode(out["tags"][0], ls.tags)
             tags2 = viterbi_decode(out["tags2"][0], ls.tags2)
             return spans_from_bigappy(decode_bigappy_spans(tags1, tags2), ws)
+
+        if args.lexicon:
+            from inference.lexicon_candidates import make_lexicon_predict
+            predict_spans = make_lexicon_predict(predict_spans)
+            print(f"[lexicon] TDK sözlük aday-üretimi aktif ({predict_spans.lexicon_size} deyim)")
 
         if args.stage2:
             from training.train_idiomaticity_clf import wrap_stage2
