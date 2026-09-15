@@ -344,6 +344,57 @@ gibi tekli modları ayrı ayrı çalıştırmak daha güvenli.
 `idiom_data/upos_labels.json`, tüm idiom JSON'larına eklenmiş `"upos"` alanı,
 `IdiomLabelSpace`/`IdiomTagger`'daki `--pos-features` altyapısı.
 
+## Deney J (2026-09-15, DEVAM EDİYOR) — vE'nin hacmini vF'in D+L dengesiyle birleştir
+
+Fikir: vE'nin +13.7pp kazancının ~%70'i "hacim" kaynaklıydı (Deney H), ama vE'nin verisi
+D-only'ydi (literal negatif yoktu, stale 8k LLM turundan). Zaten diskte, hiç kullanılmamış
+`idiom_data/_corpus_idiomaticity_labels.jsonl` (8000 kayıt: 4622 D + 3378 N) içindeki **N**
+kısmı `filter_corpus_idiomaticity.py`'nin ana etiketleme döngüsünde sessizce atılıyordu (yalnız
+D tutulurdu). `--ingest-llm` ile bu havuz frozen sete katıldı — **ücretsiz** (yeni LLM çağrısı
+yok): **7358 kayıt / 3742 yeni deyim eklendi, {D: 4289, L: 3069}**, 640 zaten-frozen-deyim
+atlandı. `_corpus_sample_labels.tsv` artık idx 10169'a kadar; **idx <2173 elle, ≥2173 bu
+LLM-turundan** (ingest'ten önceki insan-etiketli hâl `_corpus_sample_labels_HUMAN2811.tsv`
+olarak yedekli — dosya adındaki "2811" değil, gerçek kesim noktası **idx 2173**'tür).
+
+`--apply` çalıştırıldı (`--balance` KULLANILMADI): `corpus_examples_glu.json` **7222 kayda**
+büyüdü (4369 D-span + 2853 L→hepO; beklenen 8000-8600'ün biraz altı — script'in kendi
+örnekleme sınırı "deyim başına ≤3, toplam ≤6000" ham havuzdan seçim yapıyor, 10169 etiketli
+kaydın tümünü değil). `corpus_minpair_test.json`/`_holdout_idioms.json` yedekleri:
+`_corpus_minpair_test_vF.json` / `_holdout_idioms_vF.json` (vF hâli `_corpus_examples_glu_vF1337.json`).
+
+**vJ eğitildi ve ölçüldü — SONUÇ: PARTIAL.**
+`train_idiom_bert.py --class-weights --tdk-examples --corpus-glu --epochs 10` (best epoch 5,
+span F1 ALL 67.18) → `best_idiom_tagger_vJ_llmbalanced.pt`. Stage-2 v3 DEĞİŞMEDEN, dondurulmuş
+takımda:
+
+| metrik | vF (taban) | **vJ** | vE (referans, yayında) |
+|---|---|---|---|
+| PARSEME ALL F1 | 65.46 | **65.50 (düz)** | 66.16 |
+| Çavuşoğlu doğru-ayırt (tam, 198 çift) | 46.0% | **54.0%** | 55.6% |
+| Çavuşoğlu doğru-ayırt (**unseen, 177 çift**) | 46.0%* | **51.4%** | 54.2% |
+| Çavuşoğlu doğru-ayırt (seen, 21 çift) | — | **76.2%** (n=21, gürültülü) | 66.7% |
+| CASES (16) | 13/16 | 11/16 | 14/16 |
+| GLU vaka (35) | 22/35 | 22/35 (düz) | 20/35 |
+| stage2-iso (sızıntı kontrolü) | — | **93.3% sıralama, %58.7/59.2 eşikli — v3 ile birebir, değişmedi** | aynı |
+
+*vF'in ayrı seen/unseen kırılımı önceki turda ölçülmemişti; 46.0% tam-boru-hattı rakamı.
+
+**Ön-kayıtlı karar** (unseen doğru-ayırt ≥%54.2 VE PARSEME F1 düşüşü ≤3pp → PROMOTE):
+unseen **%51.4**, eşiğin **2.8pp altında** → **PROMOTE değil, PARTIAL.** PARSEME F1 pratikte
+düz (+0.04), o kısım geçti; tek-değişkenli karar unseen eşiğinde takıldı.
+
+**Önemli nüans — tam-198 rakamı yanıltıcı olabilirdi:** tam-boru-hattı (198 çift) doğru-ayırt
+%54.0 — vE'nin %55.6'sına neredeyse eşit, yüzeysel bakışta PROMOTE gibi görünür. Ama bu,
+seen dilimdeki büyük sıçramanın (66.7%→76.2%, n=21'de gürültülü olabilir) unseen dilimdeki
+daha mütevazı kazancı (46.0%→51.4%) maskelemesinden kaynaklanıyor — tam olarak seen/unseen
+ayrımının var olma nedeni. Ön-kayıtlı kural bu yüzden tam-198 değil unseen dilimi esas aldı.
+
+**Sonraki adım: Aşama 2 (`--votes`) tetiklendi**, `C:\Users\user\.claude\plans\en-son-ba-ms-z-bir-ethereal-wall.md`
+uyarınca — önce ucuz kaçış (`--gate --votes 3 --gate-limit 200`, κ pilotun 0.606'sını
+geçmezse 3x harcama boşuna, Aşama 3'e geç), geçerse ana döngüye `call_llm_voted` kablola ve
+46606 kalan etiketsiz havuzdan yeni ~6000 cümleyi votes=3 ile etiket. `best_idiom_tagger.pt`
+vF'e geri yüklendi (vJ promote edilmedi, `best_idiom_tagger_vJ_llmbalanced.pt` arşivde).
+
 ## Kritik teknik notlar
 
 - **`prepare_tdk_idiom_examples.py` split'i shuffle-slice** (per-key hash DEĞİL). Deyim sayısı
