@@ -10,8 +10,22 @@ user-invokable: true
 `lemma-rule-based` reposunda ELECTRA tabanlı Türkçe deyim (VID) / eşdizim (LVC.full)
 BIO span etiketleyici. **Yayınlandı** (`huggingface.co/iatagun/DizgeBERT-Idiom`).
 
-- **Stage-1 (span modeli) = v5, DEĞİŞMEDİ**: `idiom_data/best_idiom_tagger_v5_bigappy.pt` =
-  `best_idiom_tagger.pt` ile aynı, ELECTRA (`dbmdz/electra-base-turkish-cased-discriminator`),
+- **DİKKAT — YEREL ≠ YAYINDAKİ (2026-09-15 itibariyle):** `idiom_data/best_idiom_tagger.pt`
+  şu an **vF** (temiz-only corpus-glu ablasyonu, aşağıdaki "Deney H"). **HF'de yayında olan
+  hâlâ vE** (`iatagun/DizgeBERT-Idiom`, Space dahil) — kullanıcı isteğiyle vF şimdilik yalnız
+  yerel/arşiv güvencesinde tutuluyor, push edilmedi. Bir sonraki oturumda `best_idiom_tagger.pt`
+  ile push edilmiş HF sürümünü KARIŞTIRMA — hangisinin yayında olduğunu önce kontrol et.
+- **YAYINLANDI v4 (2026-09-14): vE (gap=2 + corpus_examples_glu.json) — Çavuşoğlu
+  doğru-ayırt %41.9→%55.6, TÜMÜYLE unseen-deyim diliminde (+15.2pp), seen diliminde birebir
+  aynı — 9 stage-2 negatifinin sonunda ilk gerçek kaldıraç, ama stage-1 tarafında. Kullanıcı
+  onayladı, HF'ye push edildi (`iatagun/DizgeBERT-Idiom`), Space (`iatagun/dizge-demo`)
+  restart edilip smoke-test doğrulandı. **NOT: vE'nin veri kaynağı iddiası (aşağıda "zaten
+  vetted") sonradan YANLIŞ çıktı — bkz. "Deney H" bölümü, düzeltme + takip deneyi.** Detay:
+  aşağıdaki "2026-09-14 turu — TDK-stil vs Leipzig-stil" bölümü.**
+- **Stage-1 checkpoint envanteri**: `best_idiom_tagger_v5_bigappy.pt` (kanonik-öncesi, arşivde
+  güvende), `best_idiom_tagger_vE_leipzigglu.pt` (YAYINDA, HF), `best_idiom_tagger_vF_cleanglu.pt`
+  (YEREL en güncel, temiz-only, henüz push edilmedi — şu an `best_idiom_tagger.pt` bu).
+  ELECTRA (`dbmdz/electra-base-turkish-cased-discriminator`),
   bigappy-unicrossy 2-katman + Viterbi. `idiom_data/best_idiom_tagger_vB_gap2.pt` = Deney B
   (bounded-gap matcher) sonucu — PARSEME/TDK-test'te net kazanç AMA tam boru hattında
   (değişmemiş stage-2 v3'le) Çavuşoğlu doğru-ayırt %41.9→%39.9 GERİLEDİ → **PROMOTE EDİLMEDİ**,
@@ -179,6 +193,156 @@ eğitilen stage-2: Çavuşoğlu doğru-ayırt 39.9%→**34.8%**, yanlış-poz **
 katlandı)** — PARSEME F1 68.82→70.20 YÜKSELDİ ama YANILTICI (PARSEME'de literal karşı-örnek
 yok, gevşek/az-filtreleyen stage-2 orada iyi görünür). Checkpoint `best_idiomaticity_clf_vB.pt`
 arşivde, reddedildi. **Kanonik: v5 + stage-2 v3, DEĞİŞMEDİ, yayında.**
+
+## 2026-09-14 turu (devam) — TDK-stil vs Leipzig-stil dengesizliği: POZİTİF, 9 stage-2
+## negatifinden sonra İLK gerçek kaldıraç (stage-1 tarafında)
+
+**Hipotez:** Deney B'nin takip denemesinde ortaya çıkan bulgu — vB (gap=2) stage-1, gold
+Leipzig-madenli havuzda örneklerin %65-76'sında HİÇ aday önermiyor — stage-1'in TDK'nin
+kendine özgü (sözlük/edebi) cümle üslubuna aşırı uyum sağlamış olabileceğini düşündürdü.
+
+**Veri denetimi (önce):** Pozitif span sayısında TDK aslında AZINLIK (1394/6319 = %22),
+PARSEME baskın (%78) — "TDK ağırlıklı" varsayımı ham sayıda yanlış. Ama bu, PARSEME'nin
+Leipzig-tarzı doğal metne ne kadar benzediğini göstermiyor; asıl kanıt aşağıdaki ölçüm.
+
+**Yeni ölçüm (ilk kez yapıldı):** `align_to_stage1()` ile v5'in KENDİSİNİN de aynı gold
+havuzda aday-önerme oranı ölçüldü (önceden yalnız vB için biliniyordu): v5 train %59.4,
+**test (görülmemiş deyim) %71.2** — vB'ninkine (%76.3) çok yakın. Yani sorun `--gap`
+parametresinden bağımsız, v5'te de var, gerçek ve büyük.
+
+**Tek-değişken deney (vE):** vB tabanına (gap=2 TDK verisi + PARSEME, `--class-weights
+--tdk-examples`) tek şey eklendi: `--corpus-glu` (`idiom_data/corpus_examples_glu.json`,
+4622 kayıt, YALNIZ idyomatik-D span'ler; `apply_manual()` held-out deyimleri bu dosyadan
+HARİÇ TUTUYOR, o yüzden aşağıdaki held-out ölçümlerde sızıntı yok). Ön-kayıtlı eşik:
+aday-yok oranı held-out'ta ≥15pp düşerse BAŞARI, PARSEME F1 >3p düşerse RED.
+
+**DÜZELTME (2026-09-15, kritik):** bu 4622 kaydın "zaten elle-vetted GLU verisi" olduğu
+iddiası YANLIŞTI. Dosyanın mtime'ı, STAGE-2 İÇİN REDDEDİLMİŞ 8k LLM-etiketleme çıktısıyla
+birebir aynı — `corpus_examples_glu.json` o turda üretilmiş ve stage-2 v4/v4b reddedilip
+"frozen veri geri yüklendi"ğinde YENİDEN ÜRETİLMEMİŞ, stale kalmış. 30-kayıtlık örneklemde
+29/30'u güncel etiket havuzunda hiç yok. **Gerçek: kullanılan verinin ezici çoğunluğu
+stage-2 için gürültülü sayılıp reddedilen LLM etiketiydi.** Bu vE'nin ÖLÇÜLEN sonuçlarını
+geçersiz kılmıyor (bağımsız dondurulmuş setlerde ölçüldü) ama mekanizma açıklamasını
+değiştiriyor — bkz. aşağıdaki Deney H.
+
+**Sonuç — held-out (deyim düzeyinde tutulan, sızıntısız) gold havuz, vB→vE:**
+aday-yok oranı **%76.3→%40.4 (−35.9pp)** — eşiğin çok üstünde.
+
+**Tam boru hattı (vE + DEĞİŞMEMİŞ stage-2 v3), Çavuşoğlu 198 çift — Deney B'nin düştüğü
+tuzağa (stage-1-tek iyi görünüp tam boru hattında geri dönme) burada düşülmedi:**
+
+| metrik | v5+s2 (yayında) | vB+s2 (Deney B, red) | **vE+s2 (yeni)** |
+|---|---|---|---|
+| PARSEME ALL F1 | 67.60 | 68.82 | 66.16 |
+| Çavuşoğlu duyarlılık | 55.6% | 52.5% | **78.8%** |
+| Çavuşoğlu yanlış-poz | 16.2% | 15.7% | 26.3% |
+| **Çavuşoğlu doğru-ayırt** | **41.9%** | **39.9%** | **55.6% (+13.7pp)** |
+| CASES (16 vaka) | 11/16 | — | **14/16** |
+| GLU vaka (35) | 21/35 | — | 20/35 (düz) |
+
+**Kesin kanıt — seen/unseen kırılımı (Deney A'nın dondurulmuş `_bench_seen/unseen.json`
+ile), asıl kazancın nereden geldiğini gösteriyor:**
+
+| dilim | v5+s2 doğru-ayırt | vE+s2 doğru-ayırt |
+|---|---|---|
+| seen (21 çift) | 66.7% | **66.7% (birebir aynı)** |
+| unseen (177 çift) | 39.0% | **54.2% (+15.2pp)** |
+
+Kazanç **TÜMÜYLE unseen dilimde** — seen'de hiç değişim yok. Bu, ezber değil gerçek
+genelleme: corpus-glu deyim-KİMLİĞİ kapsamını genişletmiyor (aynı TDK sözlük-deyim havuzundan
+madenlendi), yalnız zaten bilinen deyimlere DOĞAL cümle-üslubu ÇEŞİTLİLİĞİ ekliyor — ve bu,
+model hiç görmediği deyimlerde bile stage-1'in aday önerme davranışını genelleştiriyor.
+~15pp'lik kazanç, 2026-09-10 tavan-anatomisi analizinin öngördüğü "~17p stage-1 recall" payına
+neredeyse birebir denk düşüyor.
+
+**PARSEME −1.44 (67.60→66.16) kabul edilebilir görülüyor**: PARSEME literal karşı-örnek
+içermiyor (tüm span'ler idyomatik sayılıyor), o yüzden bu eksende ufak bir kayıp — CASES ve
+Çavuşoğlu'ndaki büyük, bağımsız kazançla dengede. Precision tarafında gerçek bir maliyet var
+(stage-1 raw PARSEME P 63.80→58.22, v6-v13'ün "recall-skew" desenine benziyor) ama F1/CASES/
+Çavuşoğlu üçü de net pozitif.
+
+**Durum: 9 bağımsız stage-2 negatifinden sonra ilk gerçek kaldıraç — ama stage-2'de DEĞİL,
+stage-1'de. YAYINLANDI v4 (2026-09-14).** `idiom_data/best_idiom_tagger.pt` = vE (kanonik,
+`best_idiom_tagger_vE_leipzigglu.pt` olarak da yedekli); v5 arşivde
+(`best_idiom_tagger_v5_bigappy.pt`). MODEL_CARD.md v3→v4 güncellendi (yeni tablo, dürüst
+precision/yanlış-poz notu), `dizgebert_idiom_hf/` yeniden export edilip round-trip doğrulandı
+(yerel `.pt` sayılarıyla birebir), `push_idiom_hf.py` ile `iatagun/DizgeBERT-Idiom`'a push
+edildi (440MB delta upload, content-addressed). Space (`iatagun/dizge-demo`) restart edildi
+(`HfApi().restart_space`, `RUNNING_APP_STARTING`→`RUNNING`), `gradio_client` ile smoke-test:
+"Çocuğu kaldırmak için el verdi" hâlâ doğru filtreleniyor (stage-2 sağlam), "Otobüs ... yol
+aldı" artık YANLIŞ-POZİTİF olarak geçiyor — bu v4'ün ölçülmüş/açıklanmış yanlış-poz artışının
+(%16→%26) canlıda doğrulanması, bir deploy hatası değil.
+
+## Deney H (2026-09-15) — temiz-only ablasyon: mekanizma doğrulandı, büyüklük HACME bağımlı
+
+vE'nin veri kaynağı hatası fark edilince (yukarı), ücretsiz bir ablasyon yapıldı: GÜNCEL
+temiz etiket havuzundan (`_corpus_sample_labels.tsv`: 1237 D / 1062 L, LLM'siz)
+`filter_corpus_idiomaticity.py --apply` ile `corpus_examples_glu.json` YENİDEN üretildi
+(stale hâli `_corpus_examples_glu_STALE_llm8k.json` olarak yedeklendi) → **1337 kayıt
+(826 D-span + 511 L→hepO)**. vF = vB tabanı + bu temiz veri, aynı reçete.
+
+| metrik | v5+s2 | vB+s2 | vE+s2 (LLM-ağırlıklı, yayında) | **vF+s2 (temiz-only)** |
+|---|---|---|---|---|
+| PARSEME ALL F1 | 67.60 | 68.82 | 66.16 | 65.46 |
+| Çavuşoğlu duyarlılık | 55.6% | 52.5% | 78.8% | 61.1% |
+| Çavuşoğlu yanlış-poz | 16.2% | 15.7% | 26.3% | **18.7%** |
+| **Çavuşoğlu doğru-ayırt** | **41.9%** | **39.9%** | **55.6%** | **46.0%** |
+| CASES (16) | 11/16 | — | 14/16 | 13/16 |
+| GLU vaka (35) | 21/35 | — | 20/35 | 22/35 |
+
+**Mekanizma bağımsız doğrulandı:** temiz-only 1337 kayıt bile gerçek kazanç veriyor
+(+4.1p doğru-ayırt) ve v6-v13'ün precision-feda desenini tekrarlamıyor (yanlış-poz yalnız
++2.5p — vF'te L-negatifleri de var, vE'nin D-only stale dosyasında yoktu). **Ama vE'nin
++13.7p kazancının yalnız ~%30'unu yakalıyor.** Sonuç: **LLM-ölçekli etiketleme stage-2 için
+işe yaramasa da (κ~0.57-0.61 sınır gürültüsü idyomatiklik kararını bozuyor) stage-1 için
+gerçek bir kaldıraç** — çünkü stage-1'in ihtiyacı yalnız "öbek nerede", LLM'in D/N kararı
+yanlış olsa da öbek SINIRI genelde doğru kalıyor. "LLM etiketleme işe yaramıyor" genellemesi
+stage-2'ye özeldi, stage-1'e yanlış taşınmıştı.
+
+**Durum (2026-09-15):** `best_idiom_tagger.pt` şu an vF (`best_idiom_tagger_vF_cleanglu.pt`
+olarak da yedekli, dürüst/temiz kaynaklı, daha dengeli FP). HF/Space ŞİMDİLİK vE'de kalıyor
+(dokunulmadı) — kullanıcı kararı, vF yalnız yerel güvence. Sıradaki adım (ayrı plan): kasıtlı,
+`--votes` ile kendinden-tutarlılık oylamalı, daha büyük ölçekli bir LLM etiketleme turu ile
+vE'nin hacmini vF'in D+L dengesiyle birleştirmek.
+
+## Deney I (2026-09-15) — DizgeBERT-Morph UPOS özellik enjeksiyonu (precision) — REDDEDİLDİ
+
+Proje boyunca (v5→vF) hiç kıpırdamayan precision (~%58-71) için, erken literatür taramasının
+önerdiği ama hiç denenmemiş "POS-özellik enjeksiyonu" fikri, ailenin yayında olan
+`iatagun/DizgeBERT-Morph`'u kullanarak test edildi. **Reddedilen "arc-classification"dan
+FARKLI**: Dep/Joint'e karar DEVREDİLMİYOR, yalnız Morph'un UPOS'u ELECTRA temsiline EK
+özellik (`nn.Embedding(18,32)`, first⊕last'a concat) olarak ekleniyor — karar yine idiom
+modelinin kendi temsilinden.
+
+Tutarlılık ilkesi: UPOS her zaman Morph ÇIKARIMINDAN (altın değil, çünkü Space'te de yalnız
+tahmin var) — `data/tag_idiom_upos.py` + paylaşılan `load_morph_upos_fn()` (hem toplu
+etiketleme hem `eval_idiom.py::make_predictor`'ın çıkarım-zamanı desteği aynı fonksiyonu
+kullanır). `--pos-features` bayrağı kapalıyken kod bit-birebir eski davranış (doğrulandı).
+
+vH = vF + `--pos-features`, tek değişken:
+
+| metrik | vF | vH | Δ |
+|---|---|---|---|
+| PARSEME F1 (raw) | 67.59 | 68.89 | +1.30 |
+| PARSEME precision | 62.05 | 63.82 | +1.77 (eşik ≥+3) |
+| TDK-test F1 | 65.38 | 59.62 | **−5.76** |
+| Çavuşoğlu doğru-ayırt (tam, +s2 v3) | 46.0% | 46.0% | **0** |
+| Çavuşoğlu doğru-ayırt (unseen, n=177) | 43.5% | 42.4% | −1.1 (gürültü) |
+
+**RED.** PARSEME'de küçük gerçek kazanç (F1 de yükseldi, saf takas değil) ama asıl karar
+metriği (Çavuşoğlu tam boru hattı) sıfır değişti, TDK-test gerçek gerileme verdi. UPOS
+düzeyi muhtemelen deyim/düz ayrımı için çok kaba (aynı isim+fiil ikilisi idyomatik ve literal
+kullanımda AYNI POS dizisine sahip). Literatür notu artık kapandı. `best_idiom_tagger.pt`
+vF'e geri yüklendi; vH arşivde (`best_idiom_tagger_vH_upos.pt`), kullanılmıyor.
+
+**Ortam notu:** bu makinede aynı süreçte 2-3 ELECTRA gövdesi (Idiom+Morph+stage-2) birden
+yüklemek harness'ın sessiz "bellek düşük" kill'ini birkaç kez tetikledi. Çözüm: Morph
+`dtype=float16`+CUDA ile yükleniyor; ağır `--mode all` yerine `--mode external`/`neural`
+gibi tekli modları ayrı ayrı çalıştırmak daha güvenli.
+
+**Kod kalıyor** (varsayılan kapalı, kanonik vF/vE'yi etkilemiyor): `data/tag_idiom_upos.py`,
+`idiom_data/upos_labels.json`, tüm idiom JSON'larına eklenmiş `"upos"` alanı,
+`IdiomLabelSpace`/`IdiomTagger`'daki `--pos-features` altyapısı.
 
 ## Kritik teknik notlar
 

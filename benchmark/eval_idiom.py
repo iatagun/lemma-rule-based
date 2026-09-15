@@ -99,10 +99,20 @@ def make_predictor(local: bool, checkpoint: str | None, hf_repo: str):
         model = IdiomTagger(ls, ls.encoder_model).eval()
         model.load_state_dict(ck["model"])
 
+        upos_for = None
+        if ls.pos_features:
+            from data.tag_idiom_upos import load_morph_upos_fn
+            _, upos_for = load_morph_upos_fn()
+            print("[pos-features] DizgeBERT-Morph çıkarım-zamanı UPOS aktif")
+
         @torch.no_grad()
         def pred_local(words):
             enc, kept, fp, lp = align_words(tok, words, MAX_LEN)
-            out = model(enc["input_ids"], enc["attention_mask"], fp, lp)
+            pos_ids = None
+            if upos_for is not None:
+                upos_full = upos_for(words)  # words-uzunluğunda, idiom tokenizer'ın 'kept'i ile hizala
+                pos_ids = torch.tensor([[upos_full[w] for w in kept]])
+            out = model(enc["input_ids"], enc["attention_mask"], fp, lp, pos_ids)
             tags1 = viterbi_decode(out["tags"][0], ls.tags)
             tags2 = viterbi_decode(out["tags2"][0], ls.tags2)
             return spans_from_bigappy(decode_bigappy_spans(tags1, tags2), words)

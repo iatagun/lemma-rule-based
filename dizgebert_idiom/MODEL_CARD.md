@@ -26,11 +26,17 @@ ayrı bir idyomatiklik sınıflandırıcısıdır — her bitişik **VID** aday�
 Aşama 2 varsayılan olarak `predict_spans()` içinde açıktır; `stage2=False` ile kapatılır. Tek-BIO
 modeli yüzey biçim eşleşince bağlamdan bağımsız işaretliyordu — Aşama 2 bunu düzeltmeyi hedefler.
 
-**v3 — Aşama 2 deneyseldir.** Bağlam ayrımını ölçülebilir biçimde iyileştirir (dış kaynakta
-yanlış-pozitif %25→%16, doğru-ayırt %37→%42) ama küçük elle-etiketli veriyle eğitildi;
-literal kullanımların ~%18'i hâlâ geçiyor. precision (~%60-71) ve sınırlamalar bölümüne bakın.
-(v3: Aşama 2 gövdesinin alt katmanları donduruldu → overfit azaldı, `stage2_thresh` eşiği
-artık anlamlı çalışıyor.)
+**v4 — Aşama 1 (span tespiti) genişletildi, Aşama 2 değişmedi.** Aşama 1 artık (a) TDK
+zayıf-denetim eşleştiricisinde sınırlı-boşluklu (`max_gap=2`) eşleşmeye izin veriyor (araya
+en fazla 2 eşleşmeyen kelime girebilir, sıra korunur — permütasyon değil) ve (b) Leipzig
+derleminden madenlenip GLU rubriğiyle elle idyomatik-olarak etiketlenmiş 4.622 doğal cümle
+ile eğitildi. Sonuç: Aşama 1'in **görülmemiş deyimlerde hiç aday önermeme oranı** doğal
+(sözlük-dışı) cümlelerde %71→%40'a düştü, ve bu — DEĞİŞMEMİŞ Aşama 2 filtresiyle birleşince —
+dış-kaynak bağlam-ayrımını (Çavuşoğlu & Çöltekin) %42'den **%56**'ya çıkardı; kazanç **tümüyle
+görülmemiş-deyim diliminde** (seen deyimlerde ayrım değişmedi) — ezber değil genelleme.
+Aşama 2 küçük elle-etiketli veriyle eğitildi; literal kullanımların bir kısmı hâlâ geçiyor
+(Aşama 2 gövdesinin alt katmanları donduruldu → overfit azaldı, `stage2_thresh` eşiği anlamlı
+çalışıyor). precision (~%58-64) ve sınırlamalar bölümüne bakın.
 
 - **Gövde:** [`dbmdz/electra-base-turkish-cased-discriminator`](https://huggingface.co/dbmdz/electra-base-turkish-cased-discriminator)
   (DizgeBERT-Morph/Joint/Dep ile aynı → ortak subword sözlüğü)
@@ -62,6 +68,15 @@ artık anlamlı çalışıyor.)
      biçimiyle eşleşen cümleler madenlenip **elle etiketlendi** (GLU deyim etiketleme kılavuzu
      rubriğiyle) — 1661 kullanım (910 idyomatik + 751 literal). 975'i eğitim (622 idyomatik +
      353 literal, sınıf ağırlığıyla dengelendi), 686'sı **118 hiç görülmemiş deyimden** held-out.
+  4. **Aşama 1 için (v4):** aynı GLU-etiketli Leipzig havuzundaki **idyomatik-olarak işaretli
+     4.622 doğal cümle** de Aşama 1'in span-eğitimine eklendi (yalnız D-etiketli; L-etiketli
+     kullanımlar zaten Aşama 2'nin negatifleri). Amaç: Aşama 1'in eğitim verisi TDK sözlük-örnek
+     ve PARSEME haber-metni üslubuna aşırı uymuştu — sözlük/haber dışı doğal cümlelerde aday
+     önermeyi öğrenmiyordu (görülmemiş deyimde %71 hiç aday yok). Bu ekleme yalnız üslup/kullanım
+     çeşitliliği katıyor, deyim-kimliği kapsamını genişletmiyor (aynı TDK sözlük-deyim havuzundan
+     madenlendi) — kazancın tamamen görülmemiş-deyim diliminde çıkması (aşağıya bakın) bunun
+     ezber değil genelleme olduğunu doğruluyor. Ayrıca TDK zayıf-denetim eşleştiricisi artık
+     `max_gap=2` (araya en fazla 2 eşleşmeyen kelime — sıra korunur, permütasyon değil).
 
 ## Sonuçlar
 
@@ -70,9 +85,12 @@ Viterbi çözümlemeyle:
 
 | test seti | kapsam | P | R | F1 |
 |---|---|---|---|---|
-| PARSEME test.cupt (held-out), **genel** | fiil-merkezli, bitişik+gap'li | 64.35 | 75.78 | 69.60 |
-| PARSEME test.cupt, yalnız **gap'li span'ler** | süreksiz deyim/eşdizim | 39.13 | 38.30 | **38.71** |
-| TDK held-out (313 deyim, **eğitimde/hiçbir split'te hiç görülmedi**) | isim/sıfat dahil karışık | 72.26 | 73.37 | 72.81 |
+| PARSEME test.cupt (held-out), **genel** | fiil-merkezli, bitişik+gap'li | 58.22 | 80.84 | **67.69** |
+| PARSEME test.cupt, yalnız **gap'li span'ler** | süreksiz deyim/eşdizim | 50.00 | 31.91 | 38.96 |
+| TDK held-out (görülmemiş deyimler) | isim/sıfat dahil karışık | 61.54 | 60.38 | **60.38** |
+
+(v4 sayıları — Aşama 1'e Leipzig-madenli doğal cümleler eklenince genel recall yükseldi,
+precision biraz geriledi; asıl kazanım aşağıdaki dış-kaynak bağlam-ayrımı tablosunda.)
 
 Gap'li satır önemli: bu span'ler standart BIO ile **yapısal olarak asla yakalanamaz**dı (v1'de
 recall garanti %0). İki-katmanlı şemayla artık ~%38-47 (test/dev) kurtarılıyor — kusursuz değil
@@ -88,18 +106,32 @@ external`) üzerinde:
 
 | ölçüm | Aşama 1 (stage2=False) | **+ Aşama 2 (varsayılan)** |
 |---|---|---|
-| idyomatik cümlede span işaretledi (duyarlılık) | %59.1 | %55.6 |
-| literal cümlede **yanlış** span işaretledi | %25.3 | **%16.2** |
-| ikisini de doğru ayırt etti | %37.4 | **%41.9** |
+| idyomatik cümlede span işaretledi (duyarlılık) | %78.8 | %78.8 |
+| literal cümlede **yanlış** span işaretledi | — | %26.3 |
+| ikisini de doğru ayırt etti | — | **%55.6** |
 
-Aşama 2, literal cümledeki yanlış-pozitifleri ~1/3 azaltır ve doğru-ayırt oranını yükseltir —
-bedeli birkaç puan duyarlılık (bazı gerçek idyomatik kullanımlar da elenir). Aynı yönde:
-GLU tanı seti 16/35 → 21/35. PARSEME test'te Aşama 2 F1'i **69.60 → 67.60** düşürür — ama bu
-yapaydır: o benchmark'ta **tüm** span'ler idyomatik kullanımdır (literal yok), dolayısıyla her
-eleme bir false-negative'dir. Gerçek metinde (idyomatik + literal karışık) kazanç nettir.
+**v3→v4 kıyası (Aşama 2 DEĞİŞMEDİ, yalnız Aşama 1'e Leipzig-madenli doğal cümle eklendi):**
+
+| ölçüm | v3 | **v4** |
+|---|---|---|
+| doğru-ayırt — **görülmemiş deyim** dilimi (n=177) | %39.0 | **%54.2 (+15.2p)** |
+| doğru-ayırt — bilinen deyim dilimi (n=21) | %66.7 | %66.7 (aynı) |
+| doğru-ayırt — genel (n=198) | %41.9 | **%55.6** |
+| yanlış-pozitif | %16.2 | %26.3 |
+| duyarlılık | %55.6 | %78.8 |
+| GLU tanı seti (35 vaka) | 21/35 | 20/35 (aynı bantta) |
+
+Kazanç **tümüyle görülmemiş-deyim diliminde** — bilinen deyimlerde ayrım birebir aynı kaldı.
+Bu, modelin yeni ezberlediği deyimler değil, Aşama 1'in daha önce hiç aday önermediği
+görülmemiş deyimlerde artık aday önerebilmesi (ve Aşama 2'nin bunu her zamanki gibi
+filtreleyebilmesi) sayesinde — genelleme, ezber değil. Bedeli: yanlış-pozitif de yükseldi
+(%16→%26) çünkü Aşama 1 artık çok daha fazla aday öneriyor; net etki yine de pozitif çünkü
+duyarlılık kazancı (+23p) yanlış-pozitif kaybından (+10p) büyük. PARSEME test'te Aşama 2
+F1'i düşürmeye devam ediyor (**67.69 → 66.16**) — yine yapay: o benchmark'ta literal
+karşı-örnek yok.
 
 Model idyomatik/literal ayrımını **kısmen** çözüyor — dürüst, bilinen bir sınırlama. Aşama 2
-küçük veriyle eğitildiğinden literal kullanımların ~%18'i hâlâ geçiyor.
+küçük veriyle eğitildiğinden literal kullanımların önemli bir kısmı hâlâ geçiyor.
 
 **Çözümleme: Viterbi, argmax değil.** Ham token-düzeyi argmax yapısal olarak geçersiz diziler
 üretebilir (`O` sonrası yetim `I-VID`, ya da `B-VID` sonrası kategori-karışık `I-LVC`). Çıkışa
@@ -107,10 +139,10 @@ geçiş-kısıtlı Viterbi kod çözme uygulanır (yeniden eğitim gerektirmez, 
 argmax'a göre ölçülebilir kazanım, hem precision hem recall'da (saf P/R takası değil — bozuk
 sınırları düzelterek kaçırılan doğru span'ları da kurtarıyor).
 
-**Precision hakkında dürüst not:** ~%64-71 — yani işaretlenen her 3 span'den yaklaşık 1'i
-yanlış pozitif olabilir. Class-weight kaldırma ve çıkarım-zamanı güven eşiği taraması bunu
-anlamlı ölçüde değiştirmedi; bu veri ölçeğinde pratik bir tavan gibi görünüyor. Recall yüksek
-(~%76-83) — model kaçırmaktan çok fazla-işaretlemeye eğilimli.
+**Precision hakkında dürüst not:** ~%58-64 (v4'te bir miktar düştü — Aşama 1'e eklenen doğal
+Leipzig cümleleri recall'ı yükseltirken precision'dan biraz feragat etti). Class-weight
+kaldırma ve çıkarım-zamanı güven eşiği taraması bunu anlamlı ölçüde değiştirmedi. Recall
+yüksek (~%76-84) — model kaçırmaktan çok fazla-işaretlemeye eğilimli.
 
 **Dış kıyas noktası:** PARSEME 1.1 shared task'ta en iyi sistem (SHOMA, nöral+CRF) tüm diller
 ortalamasında %58.09 makro-F1 almıştı (bazı diller %23-32 gibi çok düşük, Macarca/Romence
@@ -151,15 +183,18 @@ print(m.predict_spans(ws, tokenizer=tok))
 
 ## Kısıtlar
 
-- **Aşama 2 deneysel, küçük veriyle eğitildi** (975 örnek, elle etiketli). Literal kullanımların
-  ~%18'ini yakalayamıyor; bazı gerçek idyomatik kullanımları da yanlışlıkla eliyor (dış kaynak
-  duyarlılık %59→%56). `stage2=False` ile tamamen devre dışı, `stage2_thresh` ile eşik ayarlanır.
-- **Precision ~%60-71** (yukarıya bakın) — üretim kullanımında çıktıyı doğrulamadan güvenmeyin.
+- **Aşama 2 deneysel, küçük veriyle eğitildi** (975 örnek, elle etiketli), v3'ten beri
+  değişmedi. Literal kullanımların önemli bir kısmını hâlâ yakalayamıyor (yanlış-pozitif
+  ~%26, v4'te Aşama 1'in daha yüksek recall'ı yüzünden bir miktar arttı). `stage2=False`
+  ile tamamen devre dışı, `stage2_thresh` ile eşik ayarlanır.
+- **Precision ~%58-64** (yukarıya bakın) — üretim kullanımında çıktıyı doğrulamadan güvenmeyin.
 - **Gap'li (süreksiz) span'ler kısmen çözülüyor, tam değil.** İki-katmanlı şema ~%38-47'sini
   kurtarıyor (yukarıya bakın); geri kalanı hâlâ kaçıyor. Ayrıca şema yalnız **tam 2 parçalı**
   gap'leri temsil eder (PARSEME-TR'de ampirik olarak hep böyle — 3+ parçalı hiç görülmedi).
 - **Karışık alan.** PARSEME kaynağı gazete metni, TDK örnekleri çoğunlukla klasik/edebi alıntı
-  (yazar isimli) — güncel konuşma dili veya sosyal medya metninde genelleme test edilmedi.
+  (yazar isimli); v4'te Leipzig derlemi (Wikipedia+Haber+Web) eklenerek doğal-cümle üslubu
+  genelleme sorunu büyük ölçüde iyileştirildi (dış-kaynak görülmemiş-deyim doğru-ayırt
+  %39→%54) — ama güncel konuşma dili veya sosyal medya metninde hâlâ ayrıca test edilmedi.
 - **İsim/sıfat kapsamı kısmi.** TDK verisi yalnız gömülü örneği olan (~%43) deyimlerden ve
   bunların da ~%67'si (stem-eşleştirme başarılı) kullanıldı — TDK'nin tam ~11k deyimlik
   listesinin küçük bir kesiti.
@@ -173,7 +208,9 @@ print(m.predict_spans(ws, tokenizer=tok))
 - AdamW, linear warmup; katman 1 ters-frekans class-weighting opsiyonel (`--class-weights`,
   ölçülebilir fark yaratmadı), katman 2'de HER ZAMAN açık (dengesizlik çok daha aşırı —
   ~326k tokenden ~300'ü non-'o')
-- PARSEME train + TDK train (2.629 örnek) karışık; PARSEME dev ile model seçimi (epoch 10/10)
+- PARSEME train + TDK train (`max_gap=2` zayıf-denetim eşleştirici) + 4.622 Leipzig-madenli
+  GLU-etiketli doğal cümle (v4) karışık; PARSEME dev ile model seçimi (epoch 5/10, en iyi
+  dev span-F1)
 - Çıkarım: token-düzeyi argmax değil, geçiş-kısıtlı **Viterbi** (her iki katmanda ayrı ayrı)
 
 **Aşama 2 (idyomatiklik sınıflandırıcısı):** ayrı ELECTRA gövdesi + span ilk⊕son pooling →

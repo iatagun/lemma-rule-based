@@ -40,6 +40,8 @@ from dizgebert_idiom.modeling_dizgebert_idiom import decode_bigappy_spans, viter
 
 DATA_DIR = PROJECT_ROOT / "idiom_data"
 LABEL_SPACE_PATH = DATA_DIR / "label_space.json"
+UPOS_LABELS_PATH = DATA_DIR / "upos_labels.json"
+POS_DIM = 32
 
 ENCODER_MODEL = "dbmdz/electra-base-turkish-cased-discriminator"
 
@@ -66,6 +68,10 @@ class IdiomLabelSpace:
         # (tek-katman) label_space.json'larla geriye dönük uyum için varsayılan ["o"].
         self.tags2 = d.get("tags2", ["o"])
         self.tag2_to_id = {t: i for i, t in enumerate(self.tags2)}
+        # `--pos-features` deneyi (bkz. data/tag_idiom_upos.py, DizgeBERT-Morph çıkarımı):
+        # checkpoint'e gömülür ki make_predictor/export_hf modelin şeklini bilsin.
+        self.pos_features: bool = d.get("pos_features", False)
+        self.upos_labels: list[str] = d.get("upos_labels", [])
 
     @classmethod
     def load(cls, path: Path = LABEL_SPACE_PATH) -> "IdiomLabelSpace":
@@ -74,7 +80,8 @@ class IdiomLabelSpace:
         return cls(json.loads(path.read_text(encoding="utf-8")))
 
     def as_dict(self) -> dict:
-        return {"encoder_model": self.encoder_model, "tags": self.tags, "tags2": self.tags2}
+        return {"encoder_model": self.encoder_model, "tags": self.tags, "tags2": self.tags2,
+                "pos_features": self.pos_features, "upos_labels": self.upos_labels}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -105,6 +112,9 @@ class IdiomDataset(Dataset):
                 last[wid] = i
             kept = sorted(first)  # truncation trailing kelimeleri düşürebilir
             tags2_src = rec.get("tags2", ["o"] * len(rec["words"]))  # eski/TDK kayıtları katman2 taşımaz
+            n_upos = len(ls.upos_labels)
+            upos_src = rec.get("upos")  # yoksa (henüz data/tag_idiom_upos.py çalıştırılmamış
+            unk_pos = n_upos            # kayıt) hepsi UNK — geriye dönük uyum, kod kırılmaz.
             self.items.append({
                 "input_ids": enc["input_ids"],
                 "attention_mask": enc["attention_mask"],
@@ -112,6 +122,8 @@ class IdiomDataset(Dataset):
                 "last_pos": [last[w] for w in kept],
                 "tags": [ls.tag_to_id.get(rec["tags"][w], 0) for w in kept],
                 "tags2": [ls.tag2_to_id.get(tags2_src[w], 0) for w in kept],
+                "pos_ids": [(upos_src[w] if upos_src and upos_src[w] < n_upos else unk_pos)
+                            for w in kept] if n_upos else [0 for _ in kept],
             })
 
     def __len__(self):
@@ -139,6 +151,7 @@ def make_collate(pad_id: int):
             "last_pos": torch.tensor([padW(b["last_pos"], 0) for b in batch]),
             "tags": torch.tensor([padW(b["tags"], IGN) for b in batch]),
             "tags2": torch.tensor([padW(b["tags2"], IGN) for b in batch]),
+            "pos_ids": torch.tensor([padW(b["pos_ids"], 0) for b in batch]),
         }
 
     return collate
@@ -166,12 +179,21 @@ class IdiomTagger(nn.Module):
         self.encoder = AutoModel.from_pretrained(encoder_model)
         h = self.encoder.config.hidden_size
         self.dropout = nn.Dropout(DROPOUT)
-        self.tag_head = nn.Linear(2 * h, len(ls.tags))
-        self.tag_head2 = nn.Linear(2 * h, len(ls.tags2))
+        # `--pos-features` deneyi: DizgeBERT-Morph'un ürettiği UPOS'u ELECTRA temsiline
+        # ek özellik olarak katar (Dep/Joint'in ARC-classification'ının aksine, karar
+        # yine bu modele ait — POS yalnız yardımcı sinyal). Kapalıyken (varsayılan)
+        # forward() bit-birebir eski davranışla aynı.
+        pos_dim = POS_DIM if ls.pos_features else 0
+        if ls.pos_features:
+            self.pos_embed = nn.Embedding(len(ls.upos_labels) + 1, POS_DIM)  # +1 = UNK
+        self.tag_head = nn.Linear(2 * h + pos_dim, len(ls.tags))
+        self.tag_head2 = nn.Linear(2 * h + pos_dim, len(ls.tags2))
 
-    def forward(self, input_ids, attention_mask, first_pos, last_pos):
+    def forward(self, input_ids, attention_mask, first_pos, last_pos, pos_ids=None):
         out = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
         w = _pool_first_last(out.last_hidden_state, first_pos, last_pos)  # [B,W,2H]
+        if self.ls.pos_features:
+            w = torch.cat([w, self.pos_embed(pos_ids)], dim=-1)
         z = self.dropout(w)
         return {"tags": self.tag_head(z), "tags2": self.tag_head2(z)}
 
@@ -250,7 +272,7 @@ def train_epoch(model, loader, optimizer, scheduler, device, weights=None, weigh
         batch = move(batch, device)
         optimizer.zero_grad()
         logits = model(batch["input_ids"], batch["attention_mask"],
-                       batch["first_pos"], batch["last_pos"])
+                       batch["first_pos"], batch["last_pos"], batch["pos_ids"])
         loss = compute_loss(logits, batch, weights, weights2)
         loss.backward()
         nn.utils.clip_grad_norm_(model.parameters(), MAX_GRAD_NORM)
@@ -273,7 +295,7 @@ def evaluate(model, loader, device, ls: IdiomLabelSpace) -> dict:
 
     for batch in tqdm(loader, desc="eval"):
         b = move(batch, device)
-        out = model(b["input_ids"], b["attention_mask"], b["first_pos"], b["last_pos"])
+        out = model(b["input_ids"], b["attention_mask"], b["first_pos"], b["last_pos"], b["pos_ids"])
         logits1 = out["tags"].cpu()
         logits2 = out["tags2"].cpu()
         gold1, gold2 = batch["tags"], batch["tags2"]
@@ -428,6 +450,10 @@ def main() -> None:
                          "idyomatiklik filtresinden geçmiş hâli, filter_corpus_idiomaticity.py) ekle")
     ap.add_argument("--encoder", default=None,
                     help="label_space'teki encoder_model'i geçersiz kıl (encoder A/B için)")
+    ap.add_argument("--pos-features", action="store_true",
+                    help="DizgeBERT-Morph UPOS'unu (data/tag_idiom_upos.py ile önceden "
+                         "üretilmiş idiom_data/upos_labels.json + kayıtların 'upos' alanı) "
+                         "ELECTRA temsiline ek özellik olarak katar (precision denemesi)")
     args = ap.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -441,6 +467,12 @@ def main() -> None:
     ls = IdiomLabelSpace(ck["label_space"]) if ck and "label_space" in ck else IdiomLabelSpace.load()
     if args.encoder:
         ls.encoder_model = args.encoder
+    if args.pos_features:
+        if not UPOS_LABELS_PATH.exists():
+            sys.exit(f"{UPOS_LABELS_PATH} yok — önce: python data/tag_idiom_upos.py")
+        ls.pos_features = True
+        ls.upos_labels = json.loads(UPOS_LABELS_PATH.read_text(encoding="utf-8"))
+        print(f"pos-features açık: {len(ls.upos_labels)} UPOS + 1 UNK")
         print(f"encoder override: {ls.encoder_model}")
     tokenizer = AutoTokenizer.from_pretrained(ls.encoder_model)
     pad_id = tokenizer.pad_token_id or 0
