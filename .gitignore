@@ -59,3 +59,6 @@ Desktop.ini
 # elle-etiketleme çıktısı (kök dizine iniyor)
 /gold_labels.json
 /annotation_batch.json
+/gold_labels*.json
+/deyim_sent.txt
+/_deyim_sent_*.json
