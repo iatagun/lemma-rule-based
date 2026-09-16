@@ -340,6 +340,45 @@ yüklemek harness'ın sessiz "bellek düşük" kill'ini birkaç kez tetikledi. �
 `dtype=float16`+CUDA ile yükleniyor; ağır `--mode all` yerine `--mode external`/`neural`
 gibi tekli modları ayrı ayrı çalıştırmak daha güvenli.
 
+## Aşama 3 (2026-09-16) — deyim-kimliği kapsamı: gerçek, bağımsız kazanç — vL, YENİ YEREL KANONİK
+
+Aşama 2'nin negatif sonucu (yukarı) net bir teşhis verdi: `corpus_examples.json`'daki 5795
+benzersiz deyimden **5272'si zaten frozen**, yalnız **526'sı hiç dokunulmamış** (1553 ham
+cümle, `sample()`'ın per-idiom≤3 kapağından sonra 757 cümle). Bu, önceki turların hiç
+denemediği AYRI bir eksen: bilinen deyimin doğal üslupta tanınması değil, hiç görülmemiş
+deyim KİMLİKLERİNİN kapsanması.
+
+`--new-idioms-only` ile bu 526 deyime ait 757 cümle, aynı 3-oylu Claude Code alt-ajan yöntemiyle
+(3×260/237'lik parça × 3 oy = 9 ajan çağrısı, ekstra API ücreti yok) etiketlendi: D:447/N:310,
+**tam-oybirliği %87.5** (Aşama 2'nin %81'inden yüksek — muhtemelen bu deyimler daha az
+belirsiz/homonym-çakışmalı örneklerden oluşuyor). `--ingest-llm`: **757/757 kabul edildi,
+526/526 yeni deyim** — Aşama 2'nin aksine SIFIR çakışma (hedef zaten bu 526'ydı).
+`--apply`: `corpus_examples_glu.json` 7313→**7938 kayıt (+%8.5)**.
+
+vL (vK tabanı + bu veri) eğitildi (epoch 5'te en iyi, F1 66.25; epoch 8'de bellek-düşük kill
+tetiklendi ama en iyi checkpoint zaten diskteydi, sorun yok), stage-2 v3 DEĞİŞMEDEN ölçüldü:
+
+| metrik | vF (taban) | vJ | vK | **vL** | vE (referans, yayında) |
+|---|---|---|---|---|---|
+| PARSEME ALL F1 | 65.46 | 65.50 | 64.60 | 64.34 (−1.12) | 66.16 |
+| Çavuşoğlu tam (198) | 46.0% | 54.0% | 52.5% | **54.0%** | 55.6% |
+| **Çavuşoğlu unseen (177)** | 46.0% | 51.4% | 49.7% | **52.0% (en iyi vF-soyu)** | 54.2% |
+| CASES (16) | 13/16 | 11/16 | — | 12/16 | 14/16 |
+| GLU vaka (35) | 22/35 | 22/35 | 20/35 | 21/35 | 20/35 |
+
+**Ön-kayıtlı karar** (unseen ≥%54.2 VE PARSEME −≤3pp → PROMOTE): unseen %52.0, eşiğin
+2.2pp altında → **PARTIAL yine**, ama vJ/vK/vF'in hepsini geçti — gerçek, bağımsız bir kazanç
+(vK'nin "iyileşme yok" bulgusunun ardından ekseni doğruluyor: hacim değil kimlik-kapsamı
+darboğazı çözülünce ölçülebilir ilerleme geldi). `best_idiom_tagger.pt` **vL'ye yükseltildi**
+(vF değil artık) — dört varyant içinde en iyi ölçülen, en temiz kaynaklı (hiç stale/çakışan
+veri yok) sonuç. HF/Space dokunulmadı, hâlâ vE.
+
+**Durum ve sınır:** 526 deyimlik dokunulmamış havuz artık **tükendi** (`--new-idioms-only`
+boş dönecek). Daha fazla kimlik-kapsamı kazancı için gereken: `corpus_examples.json`'ın
+kendisini büyütmek (`fetch_leipzig_tr.py` + `prepare_tdk_corpus_examples.py --cap` artırma,
+ya da TDK sözlüğünün şu an mined-pool'a hiç girmemiş deyimlerini hedeflemek) — bu artık ucuz
+bir "var olan veriden seç" turu değil, yeni bir madencilik+etiketleme turu gerektirir.
+
 **Kod kalıyor** (varsayılan kapalı, kanonik vF/vE'yi etkilemiyor): `data/tag_idiom_upos.py`,
 `idiom_data/upos_labels.json`, tüm idiom JSON'larına eklenmiş `"upos"` alanı,
 `IdiomLabelSpace`/`IdiomTagger`'daki `--pos-features` altyapısı.
