@@ -602,17 +602,17 @@ def main() -> None:
         for b0 in range(0, len(todo), args.batch):
             batch = todo[b0:b0 + args.batch]
             try:
-                res = call_llm(args.base_url, args.model, args.api_key, batch, args.timeout)
+                res, agr = call_llm_voted(args.base_url, args.model, args.api_key, batch, args.timeout, args.votes)
             except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
                 print(f"  LLM hatası ({e}) — 10s bekle, tekrar dene")
                 time.sleep(10)
                 try:
-                    res = call_llm(args.base_url, args.model, args.api_key, batch, args.timeout)
+                    res, agr = call_llm_voted(args.base_url, args.model, args.api_key, batch, args.timeout, args.votes)
                 except Exception as e2:
                     sys.exit(f"LLM erişilemiyor: {e2}\nLM Studio açık mı? --base-url doğru mu?")
             for i, it in enumerate(batch):
                 lab = res.get(i + 1, "N")  # ayrıştırılamayan → N (negatif)
-                lf.write(json.dumps({"k": key(it), "label": lab,
+                lf.write(json.dumps({"k": key(it), "label": lab, "agreement": agr.get(i + 1, 1.0),
                                      "idiom": it["idiom"], "span": it["span"]},
                                     ensure_ascii=False) + "\n")
                 done[key(it)] = lab

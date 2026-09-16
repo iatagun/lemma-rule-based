@@ -389,11 +389,40 @@ seen dilimdeki büyük sıçramanın (66.7%→76.2%, n=21'de gürültülü olabi
 daha mütevazı kazancı (46.0%→51.4%) maskelemesinden kaynaklanıyor — tam olarak seen/unseen
 ayrımının var olma nedeni. Ön-kayıtlı kural bu yüzden tam-198 değil unseen dilimi esas aldı.
 
-**Sonraki adım: Aşama 2 (`--votes`) tetiklendi**, `C:\Users\user\.claude\plans\en-son-ba-ms-z-bir-ethereal-wall.md`
-uyarınca — önce ucuz kaçış (`--gate --votes 3 --gate-limit 200`, κ pilotun 0.606'sını
-geçmezse 3x harcama boşuna, Aşama 3'e geç), geçerse ana döngüye `call_llm_voted` kablola ve
-46606 kalan etiketsiz havuzdan yeni ~6000 cümleyi votes=3 ile etiket. `best_idiom_tagger.pt`
-vF'e geri yüklendi (vJ promote edilmedi, `best_idiom_tagger_vJ_llmbalanced.pt` arşivde).
+**Aşama 2 ucuz kaçış GEÇTİ** (`--gate --votes 3 --gate-limit 200`): κ 0.606 pilotundan
+**0.666**'ya çıktı, 4/4 kapı bandı GEÇ, oy-birliği %92 — kalite artışı gerçek.
+
+**Aşama 2 tam turu — API BÜTÇESİ OLMADAN, Claude Code ajanlarıyla çalıştırıldı, SONUÇ:
+İYİLEŞME YOK.** Kullanıcı ek API bütçesi ayıramadığı için `api.anthropic.com`'a gitmek yerine
+15 Claude Code alt-ajanı (`general-purpose`, 5×300 cümlelik parça × 3 oy) aynı GLU D/N
+rubric'iyle 1500 yeni cümleyi etiketledi (oturum bütçesi içinde, ekstra ücret yok).
+Çoğunluk-oyu birleştirme: 1500 kayıt, D:708/N:792, tam-oybirliği oranı %81 (2 partide yalnız
+2 oy kullanılabildi — 2 ajan denemesi ara dosyaya yazıp asıl etiket listesini teslim etmedi,
+üçüncü denemede biri yine aynı hatayı yaptı, kabul edilip 2-oy ile devam edildi).
+
+**Kritik olumsuz bulgu:** `--ingest-llm` bu 1500 kayıttan yalnız **145'ini** (84 D + 61 L,
+141 yeni deyim) frozen sete katabildi — geri kalan 1355'i **zaten** ilk ingest turunda (8000
+kayıt, Deney J) frozen hâle gelmiş 3742 deyimin biriyle çakıştı. `--apply` sonrası
+`corpus_examples_glu.json` 7222→**7313 kayıt (+%1.3)** — istatistiksel olarak anlamlı bir
+hacim artışı DEĞİL. vK (vJ tabanı + bu marjinal veri) eğitildi, sonuç vJ'nin GÜRÜLTÜ bandında,
+gerçekte biraz daha kötü:
+
+| metrik | vJ | **vK** |
+|---|---|---|
+| PARSEME ALL F1 | 65.50 | 64.60 (−0.90) |
+| Çavuşoğlu tam (198) | 54.0% | 52.5% |
+| Çavuşoğlu unseen (177) | 51.4% | **49.7% (−1.7, iyileşme yok)** |
+| CASES (16) | 11/16 | 10/16 (yaklaşık, "20/35" GLU vakası referans) |
+
+**Sonuç:** Aşama 2'nin kalite kaldıracı (κ 0.606→0.666) gerçekti, ama pratikte işe yaramadı —
+çünkü ölçek sınırlayıcısı kaliteden ÖNCE hacimdi ve bu turda hacim neredeyse hiç büyümedi
+(idiom-kimliği örtüşmesi yüzünden). **Ders: `--new-idioms-only` KULLANMADAN örneklenen yeni
+cümleler, ilk ingest turu zaten deyim-kimliği havuzunu 1389→5131'e genişlettiği için, hızla
+"zaten frozen" idiom'lara çarpıyor — asıl darboğaz artık idiom-KİMLİĞİ kapsamı, cümle-üslubu
+çeşitliliği değil.** Bu, plandaki Aşama 3'ün (deyim-kimliği kapsamı, ayrı eksen) tam olarak
+öngördüğü durum; Aşama 2 gibi "aynı havuzdan daha fazla cümle" yollarının artık getirisi
+tükenmiş görünüyor. `best_idiom_tagger.pt` vF'e geri yüklendi (ne vJ ne vK promote edildi,
+`best_idiom_tagger_vJ_llmbalanced.pt` / `best_idiom_tagger_vK_agentvotes.pt` arşivde).
 
 ## Kritik teknik notlar
 
