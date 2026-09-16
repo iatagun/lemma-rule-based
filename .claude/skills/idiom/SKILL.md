@@ -373,11 +373,53 @@ darboğazı çözülünce ölçülebilir ilerleme geldi). `best_idiom_tagger.pt`
 (vF değil artık) — dört varyant içinde en iyi ölçülen, en temiz kaynaklı (hiç stale/çakışan
 veri yok) sonuç. HF/Space dokunulmadı, hâlâ vE.
 
-**Durum ve sınır:** 526 deyimlik dokunulmamış havuz artık **tükendi** (`--new-idioms-only`
-boş dönecek). Daha fazla kimlik-kapsamı kazancı için gereken: `corpus_examples.json`'ın
-kendisini büyütmek (`fetch_leipzig_tr.py` + `prepare_tdk_corpus_examples.py --cap` artırma,
-ya da TDK sözlüğünün şu an mined-pool'a hiç girmemiş deyimlerini hedeflemek) — bu artık ucuz
-bir "var olan veriden seç" turu değil, yeni bir madencilik+etiketleme turu gerektirir.
+**Durum (2026-09-16, güncellendi):** 526 deyimlik dokunulmamış havuz o an **tükenmişti**.
+Aşağıdaki Leipzig genişletme turu tam bunu denedi — sonuç NEGATİF, bkz. "Deney N".
+
+## Deney N (2026-09-16) — Leipzig derlemini 3M→8M cümleye genişletme: REGRESYON, vL kanonik kaldı
+
+TDK'nin 11172 eşlenebilir deyiminden mevcut 3M-cümlelik Leipzig örneklemede yalnız 5795'i
+bulunabilmişti (~%48'i hiç eşleşmemiş) — bu, "daha büyük ham derlem = daha çok yeni deyim
+kimliği" hipotezini test etmek için doğal bir fırsattı. 6 ek Leipzig derlemi indirildi
+(`tur_wikipedia_2016_1M`, `tur_news_2019/2020/2022/2023_1M`, toplam 3M→8M cümle; `tur_mixed_2012_1M`
+mevcut değildi/404). `prepare_tdk_corpus_examples.py --cap 20` yeniden çalıştırıldı (stem-map
+cache silinip yeniden kuruldu): kapsanan deyim 5795→6084 gibi görünse de bu ölçüm frozen-set
+kaymasıyla kirli (bkz. not); gerçek ölçüt olan "hiç dokunulmamış deyim" sayısı **526→1133'e
+çıktı** (6745 ham cümle, sample-cap sonrası 2402).
+
+Bu 2402 cümle 30 Claude Code alt-ajanıyla (10×260/62 parça × 3 oy, ekstra API ücreti yok,
+Aşama 3'teki aynı yöntem) etiketlendi: D:1183/N:1219, tam-oybirliği %84.8 — kalite göstergesi
+iyi. `--ingest-llm`: 2383 kayıt / 1130 yeni deyim kabul edildi (**not**: 7614 kayıt "join-yok"
+ile atlandı — ajanların tek-satır JSON dosyasını parça parça okurken bazı cümle metinlerini
+harfiyen yeniden üretememesi; bu, aşağıdaki regresyonun olası bir nedeni). `--apply`:
+`corpus_examples_glu.json` 7938→**9837 kayıt (+%24)**.
+
+vM (vL tabanı + bu genişletilmiş veri, epoch 3'te en iyi F1 65.95) stage-2 v3 DEĞİŞMEDEN
+ölçüldü:
+
+| metrik | vL (taban, kanonik) | **vM** | Δ |
+|---|---|---|---|
+| PARSEME ALL F1 | 64.34 | 64.87 | +0.53 (düz/hafif iyi) |
+| Çavuşoğlu tam (198) | 54.0% | 51.5% | **−2.5** |
+| **Çavuşoğlu unseen (177)** | **52.0%** | **49.2%** | **−2.8 (REGRESYON)** |
+| CASES (16) | 12/16 | — | — |
+| GLU vaka (35) | 21/35 | 22/35 | +1 (düz) |
+
+**Sonuç: RED.** PARSEME'de değişim yok/hafif pozitif ama asıl karar metriği (Çavuşoğlu
+unseen) geriledi — vJ/vK ailesindeki "hacim tek başına yetmiyor" dersini doğruluyor, ama bu
+kez daha çarpıcı: vL'nin kazandığı net ilerlemeyi kısmen SİLDİ. Olası nedenler (doğrulanmadı,
+gelecek turlar için not): (1) yeni eklenen 5 derlem (özellikle çok-yıllı haber metni) daha
+gürültülü/farklı üsluplu olabilir ve stage-1'in TDK-sözlük-üslubuna göre kalibrasyonunu
+bozmuş olabilir; (2) %24'lük hacim artışının çoğu (1130 yeni deyim, göreli az örnekli) sınıf
+dengesini seyrekleştirmiş olabilir; (3) 7614 "join-yok" kaybı, ajan-tabanlı etiketlemenin tek-
+satır JSON okuma güvenilirliğinin bu ölçekte (2402 cümle, 10 batch) düştüğünü gösteriyor —
+gelecekte cümle-metnini join anahtarı yapmak yerine idx-tabanlı eşleştirme daha güvenli olur.
+
+`best_idiom_tagger.pt` vL'ye geri yüklendi (kanonik, DEĞİŞMEDİ). vM arşivde
+(`best_idiom_tagger_vM_leipzig8m.pt`), kullanılmıyor. **Ders: kimlik-kapsamı ekseni Aşama
+3'te (526 deyim, TDK-sözlük-üslubuna yakın orijinal 3-derlem havuzundan) işe yaradı ama Deney
+N'de (1133 deyim, 8M'lik daha geniş/gürültülü havuzdan) işe yaramadı — kaldıraç deyim SAYISI
+değil, kaynağın üslup/kalite TUTARLILIĞI. Ham derlem büyütme yönü şimdilik kapandı.**
 
 **Kod kalıyor** (varsayılan kapalı, kanonik vF/vE'yi etkilemiyor): `data/tag_idiom_upos.py`,
 `idiom_data/upos_labels.json`, tüm idiom JSON'larına eklenmiş `"upos"` alanı,
