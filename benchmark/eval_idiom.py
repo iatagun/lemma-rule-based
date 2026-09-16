@@ -125,6 +125,42 @@ def make_predictor(local: bool, checkpoint: str | None, hf_repo: str):
 
 
 # ═══════════════════════════════════════════════════════════════════════
+#  Deney O — stage-1 checkpoint ensemble'ı. Denenmemiş eksen: v5/vE/vF/vL farklı
+#  corpus-glu dilimleriyle eğitildi, farklı görülmemiş-deyim kör noktaları olabilir.
+#  Yeni eğitim yok — mevcut checkpoint'lerin aday span'lerini birleştirip aynı,
+#  değişmemiş stage-2 v3'ten geçiriyoruz.
+# ═══════════════════════════════════════════════════════════════════════
+def make_ensemble_predictor(checkpoints: list[str], min_votes: int):
+    """→ fn(words) -> spans. Her checkpoint'in önerdiği span'leri oy sayısına göre
+    greedy çakışma-çözümlemesiyle birleştirir (min_votes=1 → birleşim/recall-odaklı,
+    min_votes=len(checkpoints) → tam-oybirliği/precision-odaklı)."""
+    preds = [make_predictor(True, ck, "") for ck in checkpoints]
+
+    def combined(words):
+        all_spans = [s for p in preds for s in p(words)]
+        votes: dict[tuple, int] = {}
+        first: dict[tuple, dict] = {}
+        for s in all_spans:
+            key = (s["start"], s["end"], s["category"])
+            votes[key] = votes.get(key, 0) + 1
+            first.setdefault(key, s)
+        cands = sorted(
+            ((v, k[1] - k[0], first[k]) for k, v in votes.items() if v >= min_votes),
+            key=lambda t: (-t[0], -t[1]),
+        )
+        taken: list[tuple[int, int]] = []
+        out = []
+        for _, _, s in cands:
+            if any(s["start"] < e and st < s["end"] for st, e in taken):
+                continue
+            out.append(s)
+            taken.append((s["start"], s["end"]))
+        return out
+
+    return combined
+
+
+# ═══════════════════════════════════════════════════════════════════════
 #  Mod 1: nokta-atışı CASES
 # ═══════════════════════════════════════════════════════════════════════
 def run_cases(predict) -> None:
@@ -461,6 +497,12 @@ def main() -> None:
                     help="--mode stage2-iso için: benchmark/calibrate_stage2.py çıktısı "
                          "(idiom_data/_stage2_per_idiom_thresh.json) — global --stage2-thresh "
                          "yerine kapsanan deyimlerde per-deyim eşik kullan (Deney F)")
+    ap.add_argument("--ensemble", default=None,
+                    help="Deney O — virgülle ayrılmış birden çok yerel .pt checkpoint; "
+                         "--checkpoint yerine bunların aday span birleşimi kullanılır")
+    ap.add_argument("--ensemble-min-votes", type=int, default=1,
+                    help="--ensemble ile: bir span'in kabulü için gereken minimum model oyu "
+                         "(1=birleşim/recall-odaklı, N=tam-oybirliği/precision-odaklı)")
     args = ap.parse_args()
 
     idiom_filter = None
@@ -482,7 +524,12 @@ def main() -> None:
         run_stage2_iso(args.stage2, args.stage2_thresh, per_idiom_thresh)
         return
 
-    predict = make_predictor(args.local, args.checkpoint, args.hf_repo)
+    if args.ensemble:
+        cks = [c.strip() for c in args.ensemble.split(",") if c.strip()]
+        predict = make_ensemble_predictor(cks, args.ensemble_min_votes)
+        print(f"[ensemble] {len(cks)} checkpoint, min_votes={args.ensemble_min_votes}: {cks}")
+    else:
+        predict = make_predictor(args.local, args.checkpoint, args.hf_repo)
     if args.lexicon:
         from inference.lexicon_candidates import make_lexicon_predict
         predict = make_lexicon_predict(predict, only_if_empty=args.lexicon_only_if_empty)

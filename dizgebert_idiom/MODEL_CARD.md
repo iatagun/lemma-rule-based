@@ -38,6 +38,18 @@ Aşama 2 küçük elle-etiketli veriyle eğitildi; literal kullanımların bir k
 (Aşama 2 gövdesinin alt katmanları donduruldu → overfit azaldı, `stage2_thresh` eşiği anlamlı
 çalışıyor). precision (~%58-64) ve sınırlamalar bölümüne bakın.
 
+**v5 — Aşama 1'e ikinci gövde (ensemble), Aşama 2 değişmedi.** İki ayrı stage-1 checkpoint'i
+(v4'teki gövde + farklı bir corpus-glu diliminde eğitilmiş bağımsız bir varyant) her cümlede
+aday span önerir; iki listenin **birleşimi** (çakışan span'lerde en çok oy alan/en uzun
+kazanır) DEĞİŞMEMİŞ Aşama 2 filtresine girer. İki checkpoint farklı veri dilimleriyle
+eğitildiği için görülmemiş-deyim kör noktaları örtüşmüyor — birleşim, ne kadar hacim eklense
+de tek bir modelle kırılamayan bir tavanı aşıyor. Sonuç: dış-kaynak doğru-ayırt %55.6→**%57.1**
+(genel), görülmemiş-deyim diliminde %54.2→**%55.9** — proje tarihinin en iyi ölçümü. Bedel:
+**modelin iki katına çıkması** (üç ELECTRA gövdesi: iki stage-1 + bir stage-2, ~1.3 GB) ve
+buna bağlı ~2× çıkarım gecikmesi (stage-1 iki kez çalışıyor). PARSEME F1 hafifçe düştü
+(66.16→65.57) — iki gövdenin birleşimi biraz daha fazla yanlış-pozitif de ekliyor
+(yanlış-poz %26.3→%27.8), net etki yine pozitif.
+
 - **Gövde:** [`dbmdz/electra-base-turkish-cased-discriminator`](https://huggingface.co/dbmdz/electra-base-turkish-cased-discriminator)
   (DizgeBERT-Morph/Joint/Dep ile aynı → ortak subword sözlüğü)
 - **Kelime temsili:** ilk subword ⊕ son subword (DizgeBERT-Morph ile aynı yöntem)
@@ -50,8 +62,12 @@ Aşama 2 küçük elle-etiketli veriyle eğitildi; literal kullanımların bir k
 - **Aşama 2 — idyomatiklik sınıflandırıcısı:** ikinci, bağımsız bir ELECTRA gövdesi + span
   ilk⊕son subword temsili → `Linear(2H, 2)` → {literal, idyomatik}. `predict_spans()` bitişik
   VID adaylarını bundan geçirir; yalnız *güvenli* literal (p(literal) > eşik, varsayılan 0.5)
-  elenir — LVC ve gap'li span'ler dokunulmaz (LVC yarı-birleşimsel, ayrım anlamsız). Model
-  dosyası bu yüzden iki ELECTRA gövdesi içerir (~880 MB).
+  elenir — LVC ve gap'li span'ler dokunulmaz (LVC yarı-birleşimsel, ayrım anlamsız).
+- **Aşama 1 ensemble (v5):** ikinci, bağımsız bir Aşama-1 gövdesi (kendi ELECTRA + kendi BIO
+  head'leri, farklı veri dilimiyle eğitilmiş). `predict_spans()` her iki gövdenin aday
+  span'lerini üretip birleştirir (çakışmalarda en çok oy alan/en uzun span kazanır), sonra
+  birleşik liste Aşama 2'den geçer. Model dosyası bu yüzden **üç** ELECTRA gövdesi içerir
+  (~1.3 GB); çıkarım Aşama 1'i iki kez çalıştırdığı için ~2× daha yavaş.
 - **Eğitim verisi:**
   1. [PARSEME Türkçe fiil-merkezli çok-sözcüklü ifade derlemi, edition 1.2](https://gitlab.com/parseme/sharedtask-data/-/tree/master/1.2/TR)
      (Güngör & Yirmibeşoğlu) — 17.945 cümle, VID+LVC.full toplam ~6.7k span (yalnız *verbal* MWE;
@@ -85,12 +101,12 @@ Viterbi çözümlemeyle:
 
 | test seti | kapsam | P | R | F1 |
 |---|---|---|---|---|
-| PARSEME test.cupt (held-out), **genel** | fiil-merkezli, bitişik+gap'li | 58.22 | 80.84 | **67.69** |
-| PARSEME test.cupt, yalnız **gap'li span'ler** | süreksiz deyim/eşdizim | 50.00 | 31.91 | 38.96 |
-| TDK held-out (görülmemiş deyimler) | isim/sıfat dahil karışık | 61.54 | 60.38 | **60.38** |
+| PARSEME test.cupt (held-out), **genel** | fiil-merkezli, bitişik+gap'li | 56.44 | 78.22 | **65.57** |
+| PARSEME test.cupt, yalnız **gap'li span'ler** | süreksiz deyim/eşdizim | 41.67 | 31.91 | 36.14 |
+| TDK held-out (görülmemiş deyimler, v4 tek-gövde sayısı*) | isim/sıfat dahil karışık | 61.54 | 60.38 | **60.38** |
 
-(v4 sayıları — Aşama 1'e Leipzig-madenli doğal cümleler eklenince genel recall yükseldi,
-precision biraz geriledi; asıl kazanım aşağıdaki dış-kaynak bağlam-ayrımı tablosunda.)
+(v5/ensemble sayıları — v4'e göre F1 hafifçe düştü (67.69→65.57), asıl kazanım aşağıdaki
+dış-kaynak bağlam-ayrımı tablosunda. *TDK satırı ensemble ile yeniden ölçülmedi.)
 
 Gap'li satır önemli: bu span'ler standart BIO ile **yapısal olarak asla yakalanamaz**dı (v1'de
 recall garanti %0). İki-katmanlı şemayla artık ~%38-47 (test/dev) kurtarılıyor — kusursuz değil
@@ -106,29 +122,31 @@ external`) üzerinde:
 
 | ölçüm | Aşama 1 (stage2=False) | **+ Aşama 2 (varsayılan)** |
 |---|---|---|
-| idyomatik cümlede span işaretledi (duyarlılık) | %78.8 | %78.8 |
-| literal cümlede **yanlış** span işaretledi | — | %26.3 |
-| ikisini de doğru ayırt etti | — | **%55.6** |
+| idyomatik cümlede span işaretledi (duyarlılık) | %81.3 | %81.3 |
+| literal cümlede **yanlış** span işaretledi | — | %27.8 |
+| ikisini de doğru ayırt etti | — | **%57.1** |
 
-**v3→v4 kıyası (Aşama 2 DEĞİŞMEDİ, yalnız Aşama 1'e Leipzig-madenli doğal cümle eklendi):**
+**v3→v4→v5 kıyası (Aşama 2 HİÇ değişmedi; v4→v5 tek fark Aşama 1'in ikinci gövdeyle
+ensemble'lanması, Deney O):**
 
-| ölçüm | v3 | **v4** |
-|---|---|---|
-| doğru-ayırt — **görülmemiş deyim** dilimi (n=177) | %39.0 | **%54.2 (+15.2p)** |
-| doğru-ayırt — bilinen deyim dilimi (n=21) | %66.7 | %66.7 (aynı) |
-| doğru-ayırt — genel (n=198) | %41.9 | **%55.6** |
-| yanlış-pozitif | %16.2 | %26.3 |
-| duyarlılık | %55.6 | %78.8 |
-| GLU tanı seti (35 vaka) | 21/35 | 20/35 (aynı bantta) |
+| ölçüm | v3 | v4 | **v5 (ensemble)** |
+|---|---|---|---|
+| doğru-ayırt — **görülmemiş deyim** dilimi (n=177) | %39.0 | %54.2 | **%55.9 (+1.7p)** |
+| doğru-ayırt — bilinen deyim dilimi (n=21) | %66.7 | %66.7 | %66.7 (aynı) |
+| doğru-ayırt — genel (n=198) | %41.9 | %55.6 | **%57.1** |
+| yanlış-pozitif | %16.2 | %26.3 | %27.8 |
+| duyarlılık | %55.6 | %78.8 | %81.3 |
+| GLU tanı seti (35 vaka) | 21/35 | 20/35 | 20/35 (aynı) |
 
-Kazanç **tümüyle görülmemiş-deyim diliminde** — bilinen deyimlerde ayrım birebir aynı kaldı.
-Bu, modelin yeni ezberlediği deyimler değil, Aşama 1'in daha önce hiç aday önermediği
-görülmemiş deyimlerde artık aday önerebilmesi (ve Aşama 2'nin bunu her zamanki gibi
-filtreleyebilmesi) sayesinde — genelleme, ezber değil. Bedeli: yanlış-pozitif de yükseldi
-(%16→%26) çünkü Aşama 1 artık çok daha fazla aday öneriyor; net etki yine de pozitif çünkü
-duyarlılık kazancı (+23p) yanlış-pozitif kaybından (+10p) büyük. PARSEME test'te Aşama 2
-F1'i düşürmeye devam ediyor (**67.69 → 66.16**) — yine yapay: o benchmark'ta literal
-karşı-örnek yok.
+v3→v4 kazancı **tümüyle görülmemiş-deyim diliminde** çıkmıştı — bilinen deyimlerde ayrım
+birebir aynı kalmıştı (Aşama 1'in daha önce hiç aday önermediği görülmemiş deyimlerde artık
+aday önerebilmesi sayesinde, ezber değil genelleme). v4→v5 aynı deseni tekrarlıyor: ikinci
+stage-1 gövdesi farklı bir veri diliminde eğitildiği için v4'ün hâlâ kaçırdığı bazı
+görülmemiş-deyim adaylarını yakalıyor, bilinen deyimlerde değişim yok. Bedeli her iki
+adımda da aynı yönde: yanlış-pozitif kademeli yükseldi (%16→%26→%28) çünkü Aşama 1 giderek
+daha fazla aday öneriyor; net etki yine pozitif çünkü duyarlılık kazancı yanlış-pozitif
+kaybından büyük kalmaya devam ediyor. PARSEME test'te Aşama 2 F1'i düşürmeye devam ediyor
+(**67.69 → 66.16 → 65.57**) — yine yapay: o benchmark'ta literal karşı-örnek yok.
 
 Model idyomatik/literal ayrımını **kısmen** çözüyor — dürüst, bilinen bir sınırlama. Aşama 2
 küçük veriyle eğitildiğinden literal kullanımların önemli bir kısmı hâlâ geçiyor.
@@ -183,6 +201,10 @@ print(m.predict_spans(ws, tokenizer=tok))
 
 ## Kısıtlar
 
+- **Model ~1.3 GB, çıkarım ~2× daha yavaş (v5).** Aşama 1 ensemble'ı iki ayrı ELECTRA
+  gövdesi çalıştırıyor (+ Aşama 2 için üçüncü gövde). Gecikme kritikse `stage2=False` Aşama
+  2'yi kapatır ama ensemble'ı kapatmaz — ensemble'ı devre dışı bırakmanın çıkarım-zamanı
+  bayrağı yok, yalnız `config.ensemble=False` ile yeniden export gerekir.
 - **Aşama 2 deneysel, küçük veriyle eğitildi** (975 örnek, elle etiketli), v3'ten beri
   değişmedi. Literal kullanımların önemli bir kısmını hâlâ yakalayamıyor (yanlış-pozitif
   ~%26, v4'te Aşama 1'in daha yüksek recall'ı yüzünden bir miktar arttı). `stage2=False`
@@ -212,6 +234,11 @@ print(m.predict_spans(ws, tokenizer=tok))
   GLU-etiketli doğal cümle (v4) karışık; PARSEME dev ile model seçimi (epoch 5/10, en iyi
   dev span-F1)
 - Çıkarım: token-düzeyi argmax değil, geçiş-kısıtlı **Viterbi** (her iki katmanda ayrı ayrı)
+
+**Aşama 1 ensemble (v5):** ikinci gövde, birincisiyle aynı reçeteyle ama farklı bir
+corpus-glu veri diliminde (Leipzig'den madenlenip GLU rubriğiyle etiketlenmiş, ayrı bir
+etiketleme turundan) bağımsız eğitildi. İki gövde arasında ağırlık paylaşımı yok; birleştirme
+yalnız çıkarım-zamanı, span düzeyinde (`merge_ensemble_spans`, oy-sayımı + çakışma çözümü).
 
 **Aşama 2 (idyomatiklik sınıflandırıcısı):** ayrı ELECTRA gövdesi + span ilk⊕son pooling →
 `Linear(2H, 2)`. 975 elle-etiketli örnek (Leipzig derleminden madenlenip GLU rubriğiyle

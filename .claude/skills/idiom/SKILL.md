@@ -1,6 +1,6 @@
 ---
 name: idiom
-description: Türkçe deyim (VID) / eşdizim (LVC) span tespiti — DizgeBERT-Idiom. GLU çok-ölçütlü etiketleme karar çerçevesi (bir yapı bu bağlamda deyim mi, eşdizim mi, terim mi, literal mi?) + deney günlüğü (v6-v14 tek-model kaldıraçları TÜKENDİ; iki-aşamalı detect→filter ÇALIŞIYOR ve YAYINLANDI v3) + stage-2 idyomatiklik sınıflandırıcısı iş akışı. Trigger — DizgeBERT-Idiom üzerinde çalışırken, deyim/MWE eğitim verisi hazırlarken/etiketlerken, idyomatik-literal ayrımı, stage-2 sınıflandırıcı, `find_span`/`prepare_*idiom*`/`filter_corpus_idiomaticity`, `/deyim` ya da `/idiom`.
+description: Türkçe deyim (VID) / eşdizim (LVC) span tespiti — DizgeBERT-Idiom. GLU çok-ölçütlü etiketleme karar çerçevesi (bir yapı bu bağlamda deyim mi, eşdizim mi, terim mi, literal mi?) + deney günlüğü (v6-v14 tek-model kaldıraçları TÜKENDİ; iki-aşamalı detect→filter ÇALIŞIYOR; Aşama-1 checkpoint ENSEMBLE'ı (Deney O) çalıştı, YAYINLANDI v5) + stage-2 idyomatiklik sınıflandırıcısı iş akışı. Trigger — DizgeBERT-Idiom üzerinde çalışırken, deyim/MWE eğitim verisi hazırlarken/etiketlerken, idyomatik-literal ayrımı, stage-2 sınıflandırıcı, `find_span`/`prepare_*idiom*`/`filter_corpus_idiomaticity`, `/deyim` ya da `/idiom`.
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 user-invokable: true
 ---
@@ -10,11 +10,12 @@ user-invokable: true
 `lemma-rule-based` reposunda ELECTRA tabanlı Türkçe deyim (VID) / eşdizim (LVC.full)
 BIO span etiketleyici. **Yayınlandı** (`huggingface.co/iatagun/DizgeBERT-Idiom`).
 
-- **DİKKAT — YEREL ≠ YAYINDAKİ (2026-09-15 itibariyle):** `idiom_data/best_idiom_tagger.pt`
-  şu an **vF** (temiz-only corpus-glu ablasyonu, aşağıdaki "Deney H"). **HF'de yayında olan
-  hâlâ vE** (`iatagun/DizgeBERT-Idiom`, Space dahil) — kullanıcı isteğiyle vF şimdilik yalnız
-  yerel/arşiv güvencesinde tutuluyor, push edilmedi. Bir sonraki oturumda `best_idiom_tagger.pt`
-  ile push edilmiş HF sürümünü KARIŞTIRMA — hangisinin yayında olduğunu önce kontrol et.
+- **YAYINLANDI v5 (2026-09-16): Aşama-1 ENSEMBLE (Deney O) — vE+vL birleşimi.** `idiom_data/
+  best_idiom_tagger.pt` yerelde **vL** (Aşama 3 kanonik). HF paketi artık `best_idiom_tagger.pt`
+  tek dosyasından ÜRETİLMİYOR — iki ayrı stage-1 checkpoint'i (`best_idiom_tagger_vE_leipzigglu.pt`
+  + `best_idiom_tagger_vL_idiomcoverage.pt`) `--ensemble-ckpt` ile TEK pakete gömülüyor
+  (`config.ensemble=True`, `encoder_b`/`tag_head_b`/`tag_head2_b`). HF/Space şimdi bu ensemble'ı
+  çalıştırıyor. Detay: aşağıdaki "Deney O" bölümü.
 - **YAYINLANDI v4 (2026-09-14): vE (gap=2 + corpus_examples_glu.json) — Çavuşoğlu
   doğru-ayırt %41.9→%55.6, TÜMÜYLE unseen-deyim diliminde (+15.2pp), seen diliminde birebir
   aynı — 9 stage-2 negatifinin sonunda ilk gerçek kaldıraç, ama stage-1 tarafında. Kullanıcı
@@ -425,6 +426,78 @@ değil, kaynağın üslup/kalite TUTARLILIĞI. Ham derlem büyütme yönü şimd
 `idiom_data/upos_labels.json`, tüm idiom JSON'larına eklenmiş `"upos"` alanı,
 `IdiomLabelSpace`/`IdiomTagger`'daki `--pos-features` altyapısı.
 
+## Deney O (2026-09-16) — Aşama-1 checkpoint ENSEMBLE'ı: YAYINLANDI v5, en iyi ölçüm
+
+Deney N'nin ardından tek-checkpoint/veri-hacmi eksenleri tükenmiş görünüyordu. Hiç denenmemiş
+bir eksen: diskte zaten duran dört stage-1 checkpoint'i (v5, vE, vF, vL) farklı corpus-glu
+dilimleriyle eğitildi — görülmemiş-deyim kör noktaları örtüşmeyebilir. Yeni eğitim YOK; yalnız
+çıkarım-zamanı birleştirme.
+
+`benchmark/eval_idiom.py --ensemble ck1,ck2,... --ensemble-min-votes N`: her checkpoint kendi
+aday span'lerini üretir, `(start,end,category)` anahtarıyla oylanır, çakışan span'ler arasından
+en çok oy alan (eşitlikte en uzun) greedy seçilir. `min_votes=1` = birleşim (recall-odaklı),
+`min_votes=N` (tüm checkpoint sayısı) = tam-oybirliği (precision-odaklı). Değişmemiş stage-2
+v3 birleşik listeye uygulanıyor.
+
+**Sonuçlar (unseen 177-çift Çavuşoğlu, gap=2, stage-2 v3 değişmeden):**
+
+| kombinasyon | doğru-ayırt (unseen) |
+|---|---|
+| vL tek | 52.0% |
+| vE tek | 54.2% |
+| union(vL,vF) | 51.4% (vL tekten kötü) |
+| agree(vL,vF) 2/2 | 35.0% (ÇÖKTÜ — recall imha) |
+| majority(vE,vF,vL) 2/3 | 45.8% (kötü) |
+| **union(vE,vL)** | **55.9% (yeni rekor)** |
+
+vL+vF ikilisi İŞE YARAMADI (aynı soy, vF→vJ→vK→vL zinciri — korele hatalar; union gürültü
+ekliyor, agree recall'ı katlediyor). **vE+vL işe yaradı** çünkü ikisi gerçekten bağımsız veri
+dilimleriyle eğitildi (vE = LLM-hacim ağırlıklı stale veri, vL = temiz kimlik-kapsamı verisi) —
+kör noktaları örtüşmüyor. **Ders: ensemble çeşitliliği checkpoint SAYISINDAN değil, eğitim
+verisinin GERÇEKTEN BAĞIMSIZ olmasından geliyor** — aynı soyun ardışık sürümlerini
+ensemble'lamak zarar veriyor.
+
+**Tam boru hattı doğrulaması (union(vE,vL) + DEĞİŞMEMİŞ stage-2 v3):**
+
+| metrik | vE (tek, önceki yayın) | vL (tek, yerel kanonik) | **union(vE,vL)** |
+|---|---|---|---|
+| PARSEME ALL F1 | 66.16 | 64.34 | 65.57 |
+| Çavuşoğlu doğru-ayırt, tam (198) | 55.6% | 54.0% | **57.1% (yeni rekor)** |
+| Çavuşoğlu doğru-ayırt, unseen (177) | 54.2% | 52.0% | **55.9% (yeni rekor)** |
+| Çavuşoğlu doğru-ayırt, seen (21) | 66.7% | — | 66.7% (aynı) |
+| CASES (16) | 14/16 | 12/16 | 14/16 |
+| GLU vaka (35) | 20/35 | 21/35 | 20/35 |
+
+PARSEME F1 hafifçe düştü (66.16→65.57, iki gövdenin birleşimi biraz fazla yanlış-pozitif de
+katıyor: %26.3→%27.8) ama karar ölçütü (Çavuşoğlu doğru-ayırt) hem tam hem unseen dilimde
+proje tarihinin en iyisi — 9 stage-2 negatifi + birkaç stage-1 PARTIAL turundan sonra ilk kez
+hem tam-boru-hattı hem unseen'de net, sorgusuz bir rekor.
+
+**Bedel — bunu bir önceki tüm stage-1 turlarından ayıran şey:** bu bir veri/mimari kazancı
+DEĞİL, bir **çıkarım-zamanı maliyet takası**. Model paketi iki stage-1 gövdesi + bir stage-2
+gövdesi taşıyor (~1.3GB, önceki ~880MB'den), ve `predict_spans()` Aşama 1'i artık İKİ KEZ
+çalıştırıyor (~2× gecikme). Kullanıcı bu takası kabul edip yayınlamaya karar verdi.
+
+**Pakete gömme (`modeling_dizgebert_idiom.py`):** `config.ensemble=True` ise ikinci tam stage-1
+gövdesi (`encoder_b`/`tag_head_b`/`tag_head2_b`) kurulur; `predict_spans()` her iki gövdenin
+span'lerini `merge_ensemble_spans()` ile birleştirir (eval_idiom.py'deki mantığın TEK kopyası —
+orada ayrı iki checkpoint yükleyip ölçülmüştü, burada tek pakette gömülü aynı davranışı verir).
+`train_idiom_bert.py --export-hf` artık `--ensemble-ckpt <ikinci-checkpoint>` alıyor (IdiomTagger
+state_dict'ini `encoder_b.`/`tag_head_b.`/`tag_head2_b.` önekiyle aynı safetensors'a katar).
+Flag kapalıyken (`config.ensemble=False`, varsayılan) davranış bit-birebir eski — v4 paketleri
+etkilenmez.
+
+**YAYINLANDI v5 (2026-09-16):** `iatagun/DizgeBERT-Idiom`'a push edildi (vE tabanlı export +
+vL ensemble gövdesi + stage-2 v3, ~464MB delta upload). Round-trip doğrulandı (`--hf-repo`
+yerel klasörle PARSEME/CASES/external/GLU sayıları birebir eşleşti). Space (`iatagun/dizge-demo`)
+kodu da güncellendi (`idiom_tab.py` + `app.py`: v4→v5 rozetleri, ensemble açıklaması, güncel
+sayılar) — bu bir kod değişikliği olduğu için restart değil, commit+push ile tam rebuild
+tetiklendi (`RUNNING_BUILDING`→`RUNNING_APP_STARTING`→`RUNNING`). `gradio_client` smoke-test:
+idyomatik "yol aldık" doğru işaretlendi, bilinen literal yanlış-pozitif ("Otobüs ... yol aldı")
+hâlâ geçiyor — bu ölçülmüş/belgelenmiş %27.8 yanlış-pozitifin canlıda doğrulanması, deploy
+hatası değil. `idiom_data/best_idiom_tagger.pt` (yerel tek-gövde kanonik) hâlâ **vL** —
+ensemble yalnız HF paketinde, yerel tek-checkpoint iş akışını değiştirmedi.
+
 ## Deney J (2026-09-15, DEVAM EDİYOR) — vE'nin hacmini vF'in D+L dengesiyle birleştir
 
 Fikir: vE'nin +13.7pp kazancının ~%70'i "hacim" kaynaklıydı (Deney H), ama vE'nin verisi
@@ -570,10 +643,10 @@ python inference/push_idiom_hf.py
 `data/prepare_tdk_idiom_examples.py` (+frozen-split, snowball stemmer, `--max-gap`, `tdk_idioms_by_split.json` dump),
 `data/fetch_leipzig_tr.py`, `data/prepare_tdk_corpus_examples.py` (stem-map cache + sıkı eşleşme),
 `data/filter_corpus_idiomaticity.py`, `data/prepare_glu_examples.py`,
-`training/train_idiom_bert.py` (+`--span-weight-mult2`), `training/train_idiomaticity_clf.py`
+`training/train_idiom_bert.py` (+`--span-weight-mult2`, +`--ensemble-ckpt` — Deney O), `training/train_idiomaticity_clf.py`
 (+`--align-stage1`, `align_to_stage1()`),
-`dizgebert_idiom/` (config+modeling+MODEL_CARD, kökte),
-`benchmark/eval_idiom.py` (+`--seen-idioms-file`, `--lexicon`, `--gap`, `--per-idiom-thresh-file`),
+`dizgebert_idiom/` (config+modeling+MODEL_CARD, kökte; `config.ensemble` + `encoder_b`/`tag_head_b`/`tag_head2_b` + `merge_ensemble_spans()` — Deney O),
+`benchmark/eval_idiom.py` (+`--seen-idioms-file`, `--lexicon`, `--gap`, `--per-idiom-thresh-file`, +`--ensemble`/`--ensemble-min-votes` — Deney O),
 `benchmark/calibrate_stage2.py` (Deney F, gerçek-veri per-deyim kalibrasyon + korelasyon raporu),
 `data/deep_label_idioms.py` (hedefli-derin deyim etiketleme pilotu, `--votes` ile),
 `inference/predict_idiom.py`, `inference/lexicon_candidates.py` (Deney C, TDK sözlük-fallback —

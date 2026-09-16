@@ -366,7 +366,7 @@ def selection_score(res: dict) -> float:
 #  HF export
 # ─────────────────────────────────────────────────────────────────────────────
 def export_hf(model, tokenizer, ls: IdiomLabelSpace, out_dir: Path,
-              stage2_ckpt: str | None = None) -> None:
+              stage2_ckpt: str | None = None, ensemble_ckpt: str | None = None) -> None:
     import shutil
 
     from safetensors.torch import save_file
@@ -376,7 +376,7 @@ def export_hf(model, tokenizer, ls: IdiomLabelSpace, out_dir: Path,
     out_dir.mkdir(parents=True, exist_ok=True)
     cfg = DizgeBertIdiomConfig(
         encoder_name=ls.encoder_model, tags=ls.tags, tags2=ls.tags2, dropout=DROPOUT, max_len=MAX_LEN,
-        stage2=bool(stage2_ckpt),
+        stage2=bool(stage2_ckpt), ensemble=bool(ensemble_ckpt),
     )
     cfg.architectures = ["DizgeBertIdiomForTokenClassification"]
     cfg.auto_map = {
@@ -386,6 +386,22 @@ def export_hf(model, tokenizer, ls: IdiomLabelSpace, out_dir: Path,
     cfg.save_pretrained(out_dir)
 
     state = {k: v.contiguous() for k, v in model.state_dict().items()}
+    if ensemble_ckpt:
+        # Deney O — ikinci stage-1 checkpoint'i (IdiomTagger: encoder.*/tag_head.*/tag_head2.*)
+        # `_b` önekiyle aynı safetensors'a katılır (bkz. modeling.encoder_b/tag_head_b/tag_head2_b).
+        eb = torch.load(ensemble_ckpt, map_location="cpu")
+        eb = eb["model"] if "model" in eb else eb
+        for k, v in eb.items():
+            if k.startswith("encoder."):
+                nk = "encoder_b." + k[len("encoder."):]
+            elif k.startswith("tag_head2."):
+                nk = "tag_head2_b." + k[len("tag_head2."):]
+            elif k.startswith("tag_head."):
+                nk = "tag_head_b." + k[len("tag_head."):]
+            else:
+                continue  # pos_embed vb. desteklenmiyor — ensemble gövdesi düz olmalı
+            state[nk] = v.contiguous()
+        print(f"ensemble ikinci gövde katıldı: {ensemble_ckpt} (+{len(eb)} tensör)")
     if stage2_ckpt:
         # `train_idiomaticity_clf.IdiomaticityClf` anahtarları: encoder.* + head.{weight,bias}
         # → stage2_encoder.* / stage2_head.* önekiyle aynı safetensors'a kat.
@@ -427,6 +443,9 @@ def main() -> None:
     ap.add_argument("--stage2-ckpt", type=str, default=None,
                     help="idyomatiklik sınıflandırıcısı checkpoint'i — export-hf'e gömülür "
                          "(iki-aşamalı boru hattı; predict_spans stage-2 filtresi)")
+    ap.add_argument("--ensemble-ckpt", type=str, default=None,
+                    help="Deney O — ikinci bir stage-1 IdiomTagger checkpoint'i, export-hf'e "
+                         "ikinci gövde (encoder_b/tag_head_b/tag_head2_b) olarak gömülür")
     ap.add_argument("--class-weights", action="store_true",
                     help="O sınıfı baskınlığına karşı ters-frekans ağırlıklandırma")
     ap.add_argument("--span-weight-mult", type=float, default=1.0,
@@ -486,7 +505,7 @@ def main() -> None:
     if args.export_hf:
         if not args.checkpoint:
             print("UYARI: --checkpoint verilmedi, eğitilmemiş ağırlıklar export ediliyor.")
-        export_hf(model, tokenizer, ls, Path(args.export_hf), args.stage2_ckpt)
+        export_hf(model, tokenizer, ls, Path(args.export_hf), args.stage2_ckpt, args.ensemble_ckpt)
         return
 
     if args.eval:

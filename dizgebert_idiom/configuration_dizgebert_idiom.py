@@ -17,6 +17,7 @@ class DizgeBertIdiomConfig(PretrainedConfig):
         max_len: int = 128,
         stage2: bool = False,
         stage2_thresh: float = 0.5,
+        ensemble: bool = False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -34,3 +35,10 @@ class DizgeBertIdiomConfig(PretrainedConfig):
         # pakete gömülüyse anlamlı.
         self.stage2 = stage2
         self.stage2_thresh = stage2_thresh
+        # Deney O — stage-1 checkpoint ensemble'ı (bkz. .claude/skills/idiom/SKILL.md).
+        # Açıksa ikinci bir tam stage-1 gövdesi (`encoder_b`/`tag_head_b`/`tag_head2_b`)
+        # kurulur; iki gövdenin aday span'leri birleşim/oy-sayımıyla birleştirilir, sonra
+        # (varsa) aynı stage-2 filtresinden geçirilir. Farklı veri dilimleriyle eğitilmiş
+        # iki checkpoint (vE+vL) görülmemiş-deyim doğru-ayırtta tek modelden daha iyi
+        # ölçüldü; lineage-yakın çiftler (vL+vF) YARARLI DEĞİL — bkz. deney günlüğü.
+        self.ensemble = ensemble
