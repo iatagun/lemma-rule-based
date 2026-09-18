@@ -115,6 +115,13 @@ class IdiomDataset(Dataset):
             n_upos = len(ls.upos_labels)
             upos_src = rec.get("upos")  # yoksa (henüz data/tag_idiom_upos.py çalıştırılmamış
             unk_pos = n_upos            # kayıt) hepsi UNK — geriye dönük uyum, kod kırılmaz.
+            # Ensemble distilasyonu (öneri #1): kayıt `soft_tags`/`soft_tags2` taşıyorsa
+            # (scripts/distill_ensemble_labels.py çıktısı — vE+vL öğretmen ortalama softmax'ı,
+            # `words` uzunluğunda) öğrenci eğitiminde ek KL hedefi olarak kullanılır. Yoksa
+            # `has_soft=False` — davranış eskisiyle birebir aynı (yalnız sabit etiket kaybı).
+            soft_src = rec.get("soft_tags")
+            soft2_src = rec.get("soft_tags2")
+            has_soft = soft_src is not None and soft2_src is not None
             self.items.append({
                 "input_ids": enc["input_ids"],
                 "attention_mask": enc["attention_mask"],
@@ -124,6 +131,9 @@ class IdiomDataset(Dataset):
                 "tags2": [ls.tag2_to_id.get(tags2_src[w], 0) for w in kept],
                 "pos_ids": [(upos_src[w] if upos_src and upos_src[w] < n_upos else unk_pos)
                             for w in kept] if n_upos else [0 for _ in kept],
+                "soft_tags": [soft_src[w] for w in kept] if has_soft else None,
+                "soft_tags2": [soft2_src[w] for w in kept] if has_soft else None,
+                "has_soft": has_soft,
             })
 
     def __len__(self):
@@ -144,6 +154,10 @@ def make_collate(pad_id: int):
         def padW(seq, fill):
             return seq + [fill] * (maxW - len(seq))
 
+        def padSoft(seq):
+            seq = seq or []
+            return seq + [[0.0, 0.0, 0.0, 0.0, 0.0]] * (maxW - len(seq))
+
         return {
             "input_ids": torch.tensor([padL(b["input_ids"], pad_id) for b in batch]),
             "attention_mask": torch.tensor([padL(b["attention_mask"], 0) for b in batch]),
@@ -152,6 +166,9 @@ def make_collate(pad_id: int):
             "tags": torch.tensor([padW(b["tags"], IGN) for b in batch]),
             "tags2": torch.tensor([padW(b["tags2"], IGN) for b in batch]),
             "pos_ids": torch.tensor([padW(b["pos_ids"], 0) for b in batch]),
+            "soft_tags": torch.tensor([padSoft(b["soft_tags"]) for b in batch], dtype=torch.float32),
+            "soft_tags2": torch.tensor([padSoft(b["soft_tags2"]) for b in batch], dtype=torch.float32),
+            "has_soft": torch.tensor([bool(b["has_soft"]) for b in batch]),
         }
 
     return collate
@@ -247,15 +264,50 @@ def build_class_weights2(train_jsons: list[Path], ls: IdiomLabelSpace, device,
     return w
 
 
+def _ce_or_focal(logits: torch.Tensor, targets: torch.Tensor,
+                 weight: torch.Tensor | None, gamma: float) -> torch.Tensor:
+    """gamma<=0: düz cross-entropy (eskisiyle birebir aynı). gamma>0: focal loss
+    (Lin et al. 2017) — FL = (1-p_t)^gamma * CE_t. class-weight'ten FARKLI mekanizma:
+    ağırlık sınıf SIKLIĞINA göre sabit ölçekler, focal HER örneğin kendi güven düzeyine
+    (p_t) göre dinamik ölçekler — kolay (yüksek p_t) örnekleri bastırıp zor olanlara
+    odaklanır. `weight` verilirse (alpha) ikisi birlikte kullanılır."""
+    logits = logits.reshape(-1, logits.size(-1))
+    targets = targets.reshape(-1)
+    if gamma <= 0.0:
+        return F.cross_entropy(logits, targets, ignore_index=IGN, weight=weight)
+    ce = F.cross_entropy(logits, targets, ignore_index=IGN, weight=weight, reduction="none")
+    mask = targets != IGN
+    ce = ce[mask]
+    if ce.numel() == 0:
+        return logits.sum() * 0.0
+    pt = torch.exp(-ce)  # p_t = exp(-CE_t)
+    return ((1 - pt).clamp(min=0) ** gamma * ce).mean()
+
+
+def _soft_kl(student_logits: torch.Tensor, teacher_probs: torch.Tensor,
+            valid_mask: torch.Tensor) -> torch.Tensor:
+    """Öneri #1 — ensemble distilasyonu: öğrenci log-softmax'ı ile öğretmen (vE+vL ortalama)
+    softmax'ı arasında KL(öğrenci||öğretmen). `valid_mask` = geçerli kelime konumu VE kayıt
+    `has_soft=True` (yalnız weak-supervision kayıtları — PARSEME altın verisi hiç dokunulmaz)."""
+    if not valid_mask.any():
+        return student_logits.sum() * 0.0
+    log_p_student = F.log_softmax(student_logits, dim=-1)[valid_mask]
+    p_teacher = teacher_probs[valid_mask]
+    return F.kl_div(log_p_student, p_teacher, reduction="batchmean")
+
+
 def compute_loss(logits: dict, batch: dict, weights: torch.Tensor | None = None,
-                 weights2: torch.Tensor | None = None) -> torch.Tensor:
-    lg1 = logits["tags"]
-    l1 = F.cross_entropy(lg1.reshape(-1, lg1.size(-1)), batch["tags"].reshape(-1),
-                         ignore_index=IGN, weight=weights)
-    lg2 = logits["tags2"]
-    l2 = F.cross_entropy(lg2.reshape(-1, lg2.size(-1)), batch["tags2"].reshape(-1),
-                         ignore_index=IGN, weight=weights2)
-    return l1 + l2
+                 weights2: torch.Tensor | None = None, focal_gamma: float = 0.0,
+                 distill_lambda: float = 0.0) -> torch.Tensor:
+    l1 = _ce_or_focal(logits["tags"], batch["tags"], weights, focal_gamma)
+    l2 = _ce_or_focal(logits["tags2"], batch["tags2"], weights2, focal_gamma)
+    loss = l1 + l2
+    if distill_lambda > 0.0:
+        valid = (batch["tags"] != IGN) & batch["has_soft"].unsqueeze(-1)
+        loss = loss + distill_lambda * (
+            _soft_kl(logits["tags"], batch["soft_tags"], valid)
+            + _soft_kl(logits["tags2"], batch["soft_tags2"], valid))
+    return loss
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -265,7 +317,8 @@ def move(batch: dict, device) -> dict:
     return {k: v.to(device) for k, v in batch.items()}
 
 
-def train_epoch(model, loader, optimizer, scheduler, device, weights=None, weights2=None) -> float:
+def train_epoch(model, loader, optimizer, scheduler, device, weights=None, weights2=None,
+                focal_gamma: float = 0.0, distill_lambda: float = 0.0) -> float:
     model.train()
     total = 0.0
     for batch in tqdm(loader, desc="train"):
@@ -273,7 +326,7 @@ def train_epoch(model, loader, optimizer, scheduler, device, weights=None, weigh
         optimizer.zero_grad()
         logits = model(batch["input_ids"], batch["attention_mask"],
                        batch["first_pos"], batch["last_pos"], batch["pos_ids"])
-        loss = compute_loss(logits, batch, weights, weights2)
+        loss = compute_loss(logits, batch, weights, weights2, focal_gamma, distill_lambda)
         loss.backward()
         nn.utils.clip_grad_norm_(model.parameters(), MAX_GRAD_NORM)
         optimizer.step()
@@ -453,6 +506,18 @@ def main() -> None:
     ap.add_argument("--span-weight-mult2", type=float, default=1.0,
                     help="Deney D: katman-2 (gap/boşluk parçası) b/i-* ağırlıklarını bununla "
                          "çarp — --span-weight-mult'tan BAĞIMSIZ, yalnız GAPLI kategorisini etkiler")
+    ap.add_argument("--focal-gamma", type=float, default=0.0,
+                    help="focal loss (Lin et al. 2017) odaklanma gücü, 0=kapalı (düz CE, "
+                         "eskisiyle birebir aynı). class-weight'ten FARKLI eksen: sınıf sıklığı "
+                         "yerine ÖRNEK GÜÇLÜĞÜNE göre ağırlıklandırır (kolay örnekleri bastırır). "
+                         "--class-weights ile birlikte kullanılabilir (alpha=class-weight)")
+    ap.add_argument("--distill-lambda", type=float, default=0.0,
+                    help="öneri #1 — ensemble distilasyonu: 0=kapalı (eskisiyle birebir aynı). "
+                         ">0 ise weak-supervision kayıtlarında (tdk/corpus-glu, PARSEME altın "
+                         "HARİÇ) sabit-etiket kaybına ek olarak vE+vL öğretmen softmax'ıyla KL "
+                         "kaybı eklenir — bunun için --tdk-examples/--corpus-glu dosyalarının "
+                         "`_distill.json` varyantı (scripts/distill_ensemble_labels.py çıktısı, "
+                         "soft_tags/soft_tags2 alanları) gerekir")
     ap.add_argument("--tdk-examples", action="store_true",
                     help="idiom_data/tdk_examples.json'u (TDK sözlüğü gömülü örnekleri, "
                          "isim/sıfat deyimler dahil) train'e ekle")
@@ -519,6 +584,8 @@ def main() -> None:
     weight_sources = [DATA_DIR / "train.json"]
 
     tdk_path = DATA_DIR / "tdk_examples.json"
+    if args.distill_lambda > 0.0 and (DATA_DIR / "tdk_examples_distill.json").exists():
+        tdk_path = DATA_DIR / "tdk_examples_distill.json"
     if args.tdk_examples and tdk_path.exists():
         tdk_ds = IdiomDataset(tdk_path, tokenizer, ls)
         train_ds = torch.utils.data.ConcatDataset([train_ds] + [tdk_ds] * args.tdk_mult)
@@ -540,6 +607,8 @@ def main() -> None:
         print(f"GLU örnekleri: +{len(glu_ds)} × {args.glu_mult}")
 
     corpus_glu_path = DATA_DIR / "corpus_examples_glu.json"
+    if args.distill_lambda > 0.0 and (DATA_DIR / "corpus_examples_glu_distill.json").exists():
+        corpus_glu_path = DATA_DIR / "corpus_examples_glu_distill.json"
     if args.corpus_glu and corpus_glu_path.exists():
         cg_ds = IdiomDataset(corpus_glu_path, tokenizer, ls)
         train_ds = torch.utils.data.ConcatDataset([train_ds, cg_ds])
@@ -590,7 +659,8 @@ def main() -> None:
 
     for epoch in range(start_epoch, args.epochs + 1):
         print(f"\n=== Epoch {epoch}/{args.epochs} ===")
-        tl = train_epoch(model, train_dl, optimizer, scheduler, device, weights, weights2)
+        tl = train_epoch(model, train_dl, optimizer, scheduler, device, weights, weights2,
+                         args.focal_gamma, args.distill_lambda)
         print(f"train loss: {tl:.4f}")
         if device.type == "cuda":
             torch.cuda.empty_cache()

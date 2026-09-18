@@ -192,12 +192,22 @@ def merge_ensemble_spans(span_lists: list[list[dict]]) -> list[dict]:
     return out
 
 
-def span_p_literal(hs: "torch.Tensor", sf: int, sl: int, head: "nn.Module") -> float:
+def span_p_literal(hs: "torch.Tensor", sf: int, sl: int, head: "nn.Module",
+                    temperature: float = 1.0) -> float:
     """[L,H] hidden state + span ilk/son subword indeksi + Linear(2H,2) head → p(literal).
     Aşama-2 skorlamasının TEK kopyası (modeling._stage2 ve benchmark/eval_idiom.wrap_stage2
-    aynı hesabı yapıyordu — biri `align_words`'ü bile kullanmıyordu)."""
+    aynı hesabı yapıyordu — biri `align_words`'ü bile kullanmıyordu).
+
+    `temperature` (öneri #9): logit farkını (literal-idiomatik) T'ye böler, softmax'tan önce.
+    Tek-model tek-eşik boru hattında etkisiz (eşik taraması zaten aynı karar sınırını tarar);
+    yalnız BİRDEN ÇOK checkpoint'in p(literal)'ini birleştirirken (öneri #6 ensemble) farklı
+    ölçekli/aşırı-güvenli modelleri karşılaştırılabilir kılmak için var. Varsayılan 1.0 = eskisiyle
+    birebir aynı."""
     vec = torch.cat([hs[sf], hs[sl]], dim=-1)
-    return torch.softmax(head(vec), dim=-1)[0].item()
+    logits = head(vec)
+    if temperature != 1.0:
+        logits = logits / temperature
+    return torch.softmax(logits, dim=-1)[0].item()
 
 
 def decode_bigappy_spans(tags1: list[str], tags2: list[str]) -> list[tuple]:

@@ -104,7 +104,7 @@ def load_pairs() -> tuple[list[dict], list[dict]]:
         sp = span_from_tags(r["tags"])
         if sp is None:
             continue
-        rec = {"words": r["words"], "s": sp[0], "e": sp[1], "y": 1 if lb == "D" else 0}
+        rec = {"words": r["words"], "s": sp[0], "e": sp[1], "y": 1 if lb == "D" else 0, "idx": i}
         is_test = (r["idiom"] in holdout_idioms if holdout_idioms is not None
                    else " ".join(r["words"]) in test_texts)
         (test if is_test else train).append(rec)
@@ -189,17 +189,28 @@ def wrap_stage2(base_predict, clf_ckpt: str, thresh: float = 0.5):
     Yalnız bitişik VID'e uygulanır (LVC yarı-birleşimsel, gap'li dokunulmaz); span
     `p(literal) > thresh` ise elenir. Sınıflandırıcı gövdesi cümle başına BİR kez çalışır.
 
+    `clf_ckpt` virgülle ayrılmış birden çok checkpoint olabilir (öneri #6 — stage-2 ensemble,
+    Deney O'nun stage-1 ensemble'ıyla aynı desen): her checkpoint kendi p(literal)'ini üretir,
+    ortalaması eşikle kıyaslanır (soft-vote). Tek checkpoint verilince davranış birebir eskisiyle
+    aynı.
+
     Bu, `DizgeBertIdiomForTokenClassification.predict_spans(stage2=True)` ile AYNI kuralı
     kullanır (`spans_from_bigappy` + `span_p_literal`) — standalone `.pt` için (henüz
     pakete gömülmemiş stage-2 checkpoint'i). `benchmark/eval_idiom` ve `predict_idiom`
     bunu import eder (üç kopya → tek kaynak)."""
     from dizgebert_idiom.modeling_dizgebert_idiom import align_words, span_p_literal
 
-    ck = torch.load(clf_ckpt, map_location="cpu")
-    enc_name = ck.get("encoder", ENCODER)
-    tok = AutoTokenizer.from_pretrained(enc_name)
-    clf = IdiomaticityClf(enc_name).eval()
-    clf.load_state_dict(ck["model"])
+    loaded = []
+    for path in clf_ckpt.split(","):
+        path = path.strip()
+        if not path:
+            continue
+        ck = torch.load(path, map_location="cpu")
+        enc_name = ck.get("encoder", ENCODER)
+        tok = AutoTokenizer.from_pretrained(enc_name)
+        clf = IdiomaticityClf(enc_name).eval()
+        clf.load_state_dict(ck["model"])
+        loaded.append((tok, clf))
 
     @torch.no_grad()
     def predict(words):
@@ -208,15 +219,21 @@ def wrap_stage2(base_predict, clf_ckpt: str, thresh: float = 0.5):
                     and not sp.get("gappy") and not sp.get("literal")]
         if not to_check:
             return spans
-        enc, kept, fp, lp = align_words(tok, words, MAX_LEN)
-        hs = clf.encoder(input_ids=enc["input_ids"],
-                         attention_mask=enc["attention_mask"]).last_hidden_state[0]
+        per_clf = []
+        for tok, clf in loaded:
+            enc, kept, fp, lp = align_words(tok, words, MAX_LEN)
+            hs = clf.encoder(input_ids=enc["input_ids"],
+                             attention_mask=enc["attention_mask"]).last_hidden_state[0]
+            per_clf.append((kept, fp, lp, clf.head, hs))
         drop = set()
         for sp in to_check:
             s, e = sp["start"], sp["end"]
-            if s >= len(kept) or (e - 1) >= len(kept):
-                continue  # span kırpıldı → dokunma
-            if span_p_literal(hs, fp[0, s], lp[0, e - 1], clf.head) > thresh:
+            probs = []
+            for kept, fp, lp, head, hs in per_clf:
+                if s >= len(kept) or (e - 1) >= len(kept):
+                    continue  # span kırpıldı → bu checkpoint'ten oy yok
+                probs.append(span_p_literal(hs, fp[0, s], lp[0, e - 1], head))
+            if probs and (sum(probs) / len(probs)) > thresh:
                 drop.add(id(sp))
         return [sp for sp in spans if id(sp) not in drop]
 
@@ -284,6 +301,10 @@ def main() -> None:
     ap.add_argument("--align-stage1", default=None,
                     help="Deney B takibi: altın span yerine bu stage-1 checkpoint'inin "
                          "önerdiği aday span'lerle eğit (train/inference aday dağılımını eşitler)")
+    ap.add_argument("--min-idx", type=int, default=None,
+                    help="öneri #6 takibi: yalnız idx >= bu değer olan (kaynakça v3'ten SONRA "
+                         "eklenmiş, LLM/ajan-etiketli) kayıtlarla eğit — v3'ten gerçekten bağımsız "
+                         "bir ikinci stage-2 için (test seti DEĞİŞMEZ, hep tam held-out)")
     args = ap.parse_args()
     out_ckpt = Path(args.out)
 
@@ -293,6 +314,10 @@ def main() -> None:
     pad_id = tok.pad_token_id or 0
 
     train_rows, test_rows = load_pairs()
+    if args.min_idx is not None:
+        before = len(train_rows)
+        train_rows = [r for r in train_rows if r["idx"] >= args.min_idx]
+        print(f"--min-idx {args.min_idx}: train {before}→{len(train_rows)}")
     print(f"train {len(train_rows)} ({Counter(r['y'] for r in train_rows)})  "
           f"test {len(test_rows)} ({Counter(r['y'] for r in test_rows)})")
 

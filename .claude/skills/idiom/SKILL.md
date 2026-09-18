@@ -498,6 +498,172 @@ hâlâ geçiyor — bu ölçülmüş/belgelenmiş %27.8 yanlış-pozitifin canl�
 hatası değil. `idiom_data/best_idiom_tagger.pt` (yerel tek-gövde kanonik) hâlâ **vL** —
 ensemble yalnız HF paketinde, yerel tek-checkpoint iş akışını değiştirmedi.
 
+## Deney S (2026-09-18) — ortak-gövde çok-görevli eğitim (multi-task): PARSEME iyi, Çavuşoğlu
+## ÇÖKTÜ — REDDEDİLDİ, kök neden stage-2 head'in korumasız paylaşımı
+
+Öneri #2 — stage-1 (BIO) ve stage-2 (idiomatiklik) TAMAMEN AYRI iki ELECTRA gövdesi yerine
+TEK paylaşılan gövde + üç head (`tag_head`, `tag_head2`, `stage2_head`), aynı adımda birlikte
+eğitim (`scripts/train_joint_stage2.py`, yeni `JointIdiomTagger(IdiomTagger)`). Stage-1 verisi
+vL'nin birebir aynı reçetesi, stage-2 verisi `train_idiomaticity_clf.py::load_pairs()`'ın aynı
+frozen havuzu (9694 kayıt) — PARSEME altına dokunulmadı. Her adımda `loss1 + mu*loss2`
+(mu=1.0), TEK backward. Değerlendirme kolaylığı için en iyi epoch iki mevcut-format-uyumlu
+checkpoint'e bölündü (`best_idiom_tagger_vJoint.pt` + `best_idiomaticity_clf_vJoint.pt`,
+`best_idiom_tagger.pt` kanonik DOKUNULMADI — hash doğrulandı).
+
+Maliyet notu: her adımda 2. bir forward+backward (stage-2 batch) olduğundan eğitim ~3× yavaş
+(~30dk/epoch, öncekiler ~10dk).
+
+| metrik | vL (taban) | vJoint (mu=1) |
+|---|---|---|
+| dev F1 (seçim ölçütü, epoch 7) | 66.25 | 67.25 (+1.0) |
+| PARSEME ALL F1 | 64.34 | **67.38 (+3.04, P=62.01 dengeli)** |
+| **Çavuşoğlu doğru-ayırt** | **%54.0** | **%42.9 (−11.1, ÇÖKTÜ)** |
+| Çavuşoğlu yanlış-poz | 18.7% | **37.9% (ikiye katlandı)** |
+
+**Kök neden, izole `--mode stage2-iso` ile doğrulandı:** joint stage2_head'in kendi başına
+ayırt gücü v3'ten belirgin düşük — çift-içi sıralama **%84.4** (v3: ~%93), thresholded
+doğru-ayırt **%43.6** (v3: ~%58.7). Yani sorun stage-1 span kalitesinde DEĞİL (PARSEME iyi,
+hatta vFocal/vDistill'den daha dengeli precision'la) — **paylaşılan gövde, korumasız
+(freeze yok) ve her adımda çok daha büyük hacimli stage-1 gradyanının baskısı altında,
+stage-2'nin ince idiomatik/literal ayrımını öğrenecek representasyonu koruyamıyor.** v3'ün
+`--freeze 8` reçetesi tam olarak bu sorunu (küçük/hassas stage-2 görevinin büyük gövdede
+kaybolması) çözmek için vardı — ortak-gövde deneyi bu korumayı kaldırınca aynı sorun daha
+şiddetli geri geldi.
+
+**Sonuç: REDDEDİLDİ.** Ensemble (Deney O, çalıştı) ve distilasyon (Deney R, kısmi/negatif)
+ile birlikte üçüncü "iki modeli birleştirme" ekseni de kapandı — hepsi farklı mekanizmalarla
+denendi (tahmin birleştirme / bilgi damıtma / gövde paylaşımı), üçü de gerçek ensemble'ın
+(%57.1) gerisinde kaldı. **Not (denenmeden bırakılan takip):** `--freeze` ile stage2_head
+öncesi katmanları dondurarak aynı ortak-gövde fikri tekrar denenebilir (v3'ün reçetesini
+paylaşılan gövdeye taşımak) — düşük öncelikli, mekanizma teşhisi zaten net. Checkpoint'ler
+arşivde (`best_idiom_tagger_vJoint.pt`, `best_idiomaticity_clf_vJoint.pt`), kanonik değişmedi.
+
+## Deney R (2026-09-18) — ensemble distilasyonu (vE+vL → tek gövde): dev/PARSEME YÜKSELDİ,
+## Çavuşoğlu düştü — REDDEDİLDİ, önemli bir metodoloji dersiyle
+
+Deney O'nun ensemble kazancını (Çavuşoğlu doğru-ayırt tam %57.1 / unseen %55.9) 2× çıkarım
+maliyeti ödemeden tek gövdeye aktarma denemesi (bilgi damıtma / knowledge distillation).
+Weak-supervision kayıtlarının (PARSEME altın verisi HARİÇ — yalnız `tdk_examples.json` +
+`corpus_examples_glu.json`, 9332 kayıt) etiketlerini DEĞİŞTİRMEDEN, öğretmen (vE+vL ortalama
+softmax) sinyalini EK bir KL kaybı olarak eğitime kattık — sabit etiketi silmek yerine
+yumuşak-hedef ekleme, bilinçli tercih (deyim kimliklerini bilerek etiketlenmiş kayıtları
+modelin kendi eksik tahminleriyle EZMEMEK için).
+
+**Altyapı (kalıcı, repoda):** `scripts/distill_ensemble_labels.py` (öğretmen çifti → her
+kayda `soft_tags`/`soft_tags2` alanı ekler, `*_distill.json` üretir; truncation'a takılan
+kayıtlar atlanır, hizalama karmaşıklığından kaçınmak için). `training/train_idiom_bert.py`:
+`IdiomDataset` opsiyonel `soft_tags`/`soft_tags2`/`has_soft` taşır (yoksa eskisiyle birebir
+aynı), `compute_loss`'a `distill_lambda` (varsayılan 0.0=kapalı) — `--distill-lambda`
+bayrağı hem KL terimini açar hem `--tdk-examples`/`--corpus-glu`'yu otomatik `_distill.json`
+varyantına yönlendirir.
+
+vL'nin BİREBİR aynı verisiyle (`--class-weights --tdk-examples --corpus-glu --epochs 10`,
+tek fark `--distill-lambda 1.0`) eğitildi. **Dev seçim metriği bu kez GERÇEKTEN yükseldi**
+(vFocal'ın aksine): best epoch 5, span F1 ALL **68.83** — vL'nin 66.25'inin +2.58 üstünde,
+Aşama 3'ten beri stage-1'in gördüğü en yüksek dev F1.
+
+Tam boru hattı (vDistill + DEĞİŞMEMİŞ stage-2 v3, gap=2), vL ile bire bir aynı eval komutuyla:
+
+| metrik | vL (taban) | vDistill (λ=1) |
+|---|---|---|
+| dev F1 (seçim ölçütü) | 66.25 | **68.83 (+2.58)** |
+| PARSEME ALL F1 | 64.34 | **67.90 (+3.56)** |
+| PARSEME ALL P/R | — | 59.05 / 79.88 (dengeli — vFocal'ın recall-skew'ü YOK) |
+| **Çavuşoğlu doğru-ayırt** | **54.0%** | **53.0% (−1.0)** |
+| (referans: union(vE,vL) ensemble) | — | 57.1% (tam) |
+
+**Ders — bu deneyi öncekilerden ayıran şey:** dev F1 VE PARSEME F1 GERÇEKTEN yükseldi (vFocal'daki
+gibi bir recall-skew artefaktı değil — precision de sağlam), yani bu "iyi görünüp asıl testte
+kötü çıkan" bir yanlış-pozitif ölçüm değil. Yine de Çavuşoğlu'nda ENSEMBLE'IN kendisinin (57.1%)
+çok altında kaldı, hatta vL tekten bile hafif düştü (53.0 < 54.0). **Teşhis: distilasyon
+öğretmenin kendi eğitim-cümleleri üzerindeki davranışını damıtıyor — bu, modelin zaten gördüğü
+TDK/corpus-glu dağılımına daha iyi uymasını sağlıyor (dev F1 aynı dağılımdan, PARSEME'e yakın
+üslup) ama ensemble'ın GERÇEK kazancı (Deney O'da kanıtlanmıştı: vE ve vL'nin FARKLI kör
+noktalarının birleşimi, özellikle unseen-deyim genellemesinde) tek-gövde damıtmayla aktarılamıyor
+— öğretmen sinyali aynı eğitim cümlelerinde iki modelin ORTALAMASI, iki modelin
+TAMAMLAYICI kapsamının BİRLEŞİMİ değil.** Bu, projenin "dev F1/PARSEME artışı Çavuşoğlu
+genellemesini garanti etmez" meta-dersini (v6, v9-13, vFocal'dan sonra) dördüncü kez, bu kez
+en temiz biçimde doğruluyor (çünkü burada precision de gerçekten iyiydi, saf recall artefaktı
+değildi). **Kanonik `best_idiom_tagger.pt` vL'ye geri yüklendi.** `best_idiom_tagger_vDistill_lambda1.pt`
+arşivde. Altyapı (`--distill-lambda`, `scripts/distill_ensemble_labels.py`) kalıcı — belki
+farklı bir λ veya sıcaklık (T>1, öğretmen dağılımını yumuşatma) ile tekrar denenebilir ama
+düşük öncelikli (mekanizma teşhisi net: aynı-cümle damıtımı ensemble'ın kapsam-birleşimini
+yakalayamıyor).
+
+## Deney Q (2026-09-17) — stage-1 focal loss (γ=2): F1 düz, Çavuşoğlu düz/hafif kötü — REDDEDİLDİ
+
+Precision tavanı için en başından "denenmedi" diye işaretli kalan tek stage-1 kaldıracı: focal
+loss (Lin et al. 2017). Class-weight'ten mekanik olarak FARKLI bir eksen — sınıf SIKLIĞI yerine
+ÖRNEK GÜÇLÜĞÜNE (kendi p_t'sine) göre dinamik ağırlıklandırır. `train_idiom_bert.py` içine
+`--focal-gamma` eklendi (`_ce_or_focal`, `compute_loss`) — γ≤0 iken davranış eskisiyle birebir
+aynı (tek `F.cross_entropy` çağrısı, kod yolunda hiç dallanma yok), γ>0 iken `--class-weights`
+ile birlikte kullanılabilir (weight=alpha).
+
+vL'nin BİREBİR aynı verisiyle (`--class-weights --tdk-examples --corpus-glu --epochs 10`,
+tek değişken `--focal-gamma 2.0`) eğitildi. **Dev seçim metriği zaten uyarı verdi:** best epoch
+9, span F1 ALL **64.40** — vL'nin dev F1'i (66.25) altında, ilk kez bir stage-1 varyantı dev
+setinde bile vL'yi geçemedi (v6/vE/Aşama-3 hepsi dev'de de iyileşme göstermişti).
+
+Tam boru hattı (vFocal + DEĞİŞMEMİŞ stage-2 v3, gap=2), vL ile bire bir aynı eval komutuyla:
+
+| metrik | vL (taban) | vFocal (γ=2) |
+|---|---|---|
+| PARSEME ALL F1 | 64.34 | 64.55 (düz) |
+| PARSEME ALL P/R | — | 54.28 / **79.62** |
+| Çavuşoğlu duyarlılık | 70.7% | **77.3% (+6.6)** |
+| Çavuşoğlu yanlış-poz | 18.7% | **25.3% (+6.6)** |
+| **Çavuşoğlu doğru-ayırt** | **54.0%** | **53.5% (−0.5, gürültü içinde)** |
+
+**Ders:** focal loss, mekanik olarak class-weight'ten bambaşka bir eksen olmasına rağmen,
+BİREBİR AYNI hata imzasını üretti — v6-v13'ün "recall-skew" deseni (F1 düz/hafif iyi ama
+duyarlılık VE yanlış-poz birlikte yükseliyor, doğru-ayırt net kazanç vermiyor). Bu, projenin
+"precision tavanı bir mekanizma sorunu değil, weak-supervision etiket kalitesi sorunu" tanısını
+(bkz. "Çekirdek ders" bölümü) BAĞIMSIZ bir üçüncü kez doğruluyor — artık class-weight (orijinal
+tanı), UPOS-enjeksiyonu (Deney I) VE focal loss (bu deney) hepsi aynı duvara çarptı. Kanonik
+`best_idiom_tagger.pt` vL'ye geri yüklendi (hash doğrulandı). `best_idiom_tagger_vFocal_gamma2.pt`
+arşivde (gitignore'lu). `--focal-gamma` altyapısı kalıcı (varsayılan 0.0 = etkisiz).
+
+## Deney P (2026-09-17) — stage-2 ENSEMBLE: Deney O'nun stage-2 karşılığı, 3 varyant, ÜÇÜ DE NEGATİF
+
+Deney O stage-1'de ensemble çeşitliliğinin işe yaradığını gösterince, aynı fikir stage-2'de
+denendi. Altyapı eklendi (kalıcı, repoda): `training/train_idiomaticity_clf.py::wrap_stage2`
+artık virgülle ayrılmış birden çok checkpoint alıyor (p(literal) ortalaması — stage-1'in
+`--ensemble` deseniyle aynı), `dizgebert_idiom/modeling_dizgebert_idiom.py::span_p_literal`
+opsiyonel `temperature` parametresi aldı (varsayılan 1.0 = eskisiyle birebir aynı).
+
+**Varyant 1 — ensemble(v2, v3), diskte hazır checkpoint'lerle (ücretsiz):** Çavuşoğlu tam
+(198), doğru-ayırt v3 tek %54.0 → ensemble **%48.5 (düştü)**. v2/v3 AYNI SOYDAN (aynı 2173
+kayıtlık veri, yalnız `--freeze` derinliği farklı) — Deney O'nun "aynı soyu ensemble'lamak
+zarar veriyor" (vL+vF) dersinin stage-2 karşılığı.
+
+**Varyant 2 — sıcaklık kalibrasyonu bunu düzeltir mi?** Held-out (3031 çift, pool artık Aşama
+2/3 ingest'leriyle büyümüş) üzerinde v2/v3 için NLL-minimize eden T uyduruldu (T̂=6.9 / 3.7 —
+v2 gerçekten aşırı-güvenli). Kalibre edilmiş ortalama held-out macro'da bile v3 tekten geçemedi
+(70.55 vs 70.73). **Teşhis: sorun ölçek uyumsuzluğu değil, v2'nin gerçekten v3'ten daha az
+bilgili bir model olması — kalibrasyon bunu düzeltemez.**
+
+**Varyant 3 — GERÇEKTEN bağımsız veri ile ikinci stage-2 (vE/vL mantığının stage-2 karşılığı):**
+`--min-idx 2173` bayrağı eklendi (`train_idiomaticity_clf.py`) — yalnız v3'ten SONRA eklenmiş
+(idx≥2173, LLM/ajan-etiketli, 11281 kayıt, v3'ün orijinal 2173 elle-etiketinden AYRIK)
+kayıtlarla eğit. `best_idiomaticity_clf_postv3.pt` (freeze 8, aynı reçete, best epoch 2,
+held-out macro 72.7). Çavuşoğlu tam (198):
+
+| | v3 tek | postv3 tek | ensemble(v3,postv3) |
+|---|---|---|---|
+| doğru-ayırt | **%54.0** | %51.5 | %53.5 |
+
+Bağımsız veri, v2+v3'ten (48.5) daha az kötü ama yine de v3 tekten (54.0) DÜŞÜK — postv3 tek
+başına da v3'ten zayıf (LLM/ajan etiketleri stage-2 için hep daha gürültülü çıktı, bkz. stage-2
+v4/v4b). **Sonuç: 3 varyantın ÜÇÜ de v3'ü geçemedi.** Stage-1'de ensemble işe yaradı çünkü
+vE ve vL AYRI AYRI GÜÇLÜYDÜ (ikisi de tek başına %52-55 doğru-ayırt) ve farklı kör noktaları
+vardı; stage-2'de v3'ten başka hiçbir varyant (v2, postv3) tek başına v3'e yakın değil —
+ensemble'ın işe yaraması için önce iki eşit-güçte-ama-bağımsız model gerekir, ki stage-2'de
+elimizde öyle bir ikinci model yok (post-v3 verisi kalite olarak yapısal biçimde daha zayıf).
+**Stage-2 ensemble ekseni artık kapalı** — bu, stage-2'nin 10. bağımsız negatifi (7 negatif +
+2 pilot + bu = 10). Kanonik `best_idiomaticity_clf_v3.pt` DEĞİŞMEDİ. `best_idiomaticity_clf_postv3.pt`
+silindi (gitignore'lu, tekrar üretilebilir: `--min-idx 2173`). Altyapı (`--stage2` çoklu-checkpoint,
+`temperature` param) kalıcı — ileride GERÇEKTEN eşit-güçte iki stage-2 kaynağı bulunursa hazır.
+
 ## Deney J (2026-09-15, DEVAM EDİYOR) — vE'nin hacmini vF'in D+L dengesiyle birleştir
 
 Fikir: vE'nin +13.7pp kazancının ~%70'i "hacim" kaynaklıydı (Deney H), ama vE'nin verisi

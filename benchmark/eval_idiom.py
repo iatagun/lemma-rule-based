@@ -478,7 +478,9 @@ def main() -> None:
     ap.add_argument("--hf-repo", default="iatagun/DizgeBERT-Idiom")
     ap.add_argument("--stage2", default=None,
                     help="idyomatiklik sınıflandırıcı checkpoint'i (Fikir 3 iki-aşama) — "
-                         "aşama-1 VID span'leri bundan geçirilip literal olanlar elenir")
+                         "aşama-1 VID span'leri bundan geçirilip literal olanlar elenir. "
+                         "Virgülle ayrılmış birden çok checkpoint = stage-2 ensemble (öneri #6, "
+                         "p(literal) ortalaması)")
     ap.add_argument("--stage2-thresh", type=float, default=0.5,
                     help="span yalnız p(literal) > bu değer ise elenir (yüksek → recall korunur)")
     ap.add_argument("--seen-idioms-file", default=None,
