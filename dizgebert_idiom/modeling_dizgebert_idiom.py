@@ -284,6 +284,11 @@ class DizgeBertIdiomForTokenClassification(PreTrainedModel):
             self.encoder_b = AutoModel.from_config(AutoConfig.from_pretrained(config.encoder_name))
             self.tag_head_b = nn.Linear(2 * h, len(config.tags))
             self.tag_head2_b = nn.Linear(2 * h, len(config.tags2))
+        # Deney X — 3. bağımsız stage-1 gövdesi (aynı desen, `_c` önekiyle).
+        if getattr(config, "ensemble_extra2", False):
+            self.encoder_c = AutoModel.from_config(AutoConfig.from_pretrained(config.encoder_name))
+            self.tag_head_c = nn.Linear(2 * h, len(config.tags))
+            self.tag_head2_c = nn.Linear(2 * h, len(config.tags2))
         self.post_init()
 
     def _forward_body(self, encoder, tag_head, tag_head2, input_ids, attention_mask, first_pos, last_pos):
@@ -304,12 +309,15 @@ class DizgeBertIdiomForTokenClassification(PreTrainedModel):
     # ── kolaylık: ön-token'lanmış kelime listesi → [(kelime, katman1_etiket, katman2_etiket)] ──
     @torch.no_grad()
     def predict(self, words: list[str], tokenizer=None, body: str = "a") -> list[tuple[str, str, str]]:
-        """`body='b'` — ensemble'ın ikinci gövdesiyle tahmin (yalnız `config.ensemble=True`
-        ise anlamlı; `predict_spans` iç kullanımı için)."""
+        """`body='b'/'c'` — ensemble'ın ikinci/üçüncü gövdesiyle tahmin (yalnız
+        `config.ensemble`/`ensemble_extra2` açıkken anlamlı; `predict_spans` iç kullanımı için)."""
         tokenizer = tokenizer or AutoTokenizer.from_pretrained(self.config._name_or_path)
         enc, kept, fp, lp = align_words(tokenizer, words, self.config.max_len, self.device)
         if body == "b":
             out = self._forward_body(self.encoder_b, self.tag_head_b, self.tag_head2_b,
+                                      enc["input_ids"], enc["attention_mask"], fp, lp)
+        elif body == "c":
+            out = self._forward_body(self.encoder_c, self.tag_head_c, self.tag_head2_c,
                                       enc["input_ids"], enc["attention_mask"], fp, lp)
         else:
             out = self.forward(enc["input_ids"], enc["attention_mask"], fp, lp)
@@ -322,8 +330,9 @@ class DizgeBertIdiomForTokenClassification(PreTrainedModel):
                       stage2_thresh: float | None = None, keep_literal: bool = False) -> list[dict]:
         """`predict()` + iki-katman çözümleme → span sözlükleri (`spans_from_bigappy`).
 
-        `config.ensemble=True` ise ikinci gövdenin (`encoder_b`) aday span'leri de
-        üretilip `merge_ensemble_spans` ile birleştirilir (Deney O) — sonra aşağıdaki
+        `config.ensemble=True` ise ikinci (`encoder_b`, Deney O) ve varsa üçüncü
+        (`encoder_c`, `ensemble_extra2=True`, Deney X) gövdenin aday span'leri de
+        üretilip `merge_ensemble_spans` ile birleştirilir — sonra aşağıdaki
         stage-2 filtresi bu birleşik listeye uygulanır.
 
         `stage2` (varsayılan: `config.stage2`): açıksa bitişik **VID** adayları idyomatiklik
@@ -341,11 +350,16 @@ class DizgeBertIdiomForTokenClassification(PreTrainedModel):
         tags2 = [t2 for _w, _t1, t2 in triples]
         spans = spans_from_bigappy(decode_bigappy_spans(tags1, tags2), words, keep_literal)
         if getattr(self.config, "ensemble", False) and hasattr(self, "encoder_b"):
-            triples_b = self.predict(words, tokenizer, body="b")
-            tags1b = [t1 for _w, t1, _t2 in triples_b]
-            tags2b = [t2 for _w, _t1, t2 in triples_b]
-            spans_b = spans_from_bigappy(decode_bigappy_spans(tags1b, tags2b), words, keep_literal)
-            spans = merge_ensemble_spans([spans, spans_b])
+            all_spans = [spans]
+            for body in ("b", "c"):
+                if body == "c" and not (getattr(self.config, "ensemble_extra2", False)
+                                         and hasattr(self, "encoder_c")):
+                    continue
+                trip = self.predict(words, tokenizer, body=body)
+                t1 = [t1 for _w, t1, _t2 in trip]
+                t2 = [t2 for _w, _t1, t2 in trip]
+                all_spans.append(spans_from_bigappy(decode_bigappy_spans(t1, t2), words, keep_literal))
+            spans = merge_ensemble_spans(all_spans)
         if not use_s2:
             return spans
 

@@ -1,6 +1,6 @@
 ---
 name: idiom
-description: Türkçe deyim (VID) / eşdizim (LVC) span tespiti — DizgeBERT-Idiom. GLU çok-ölçütlü etiketleme karar çerçevesi (bir yapı bu bağlamda deyim mi, eşdizim mi, terim mi, literal mi?) + deney günlüğü (v6-v14 tek-model kaldıraçları TÜKENDİ; iki-aşamalı detect→filter ÇALIŞIYOR; Aşama-1 checkpoint ENSEMBLE'ı (Deney O) çalıştı, YAYINLANDI v5) + stage-2 idyomatiklik sınıflandırıcısı iş akışı. Trigger — DizgeBERT-Idiom üzerinde çalışırken, deyim/MWE eğitim verisi hazırlarken/etiketlerken, idyomatik-literal ayrımı, stage-2 sınıflandırıcı, `find_span`/`prepare_*idiom*`/`filter_corpus_idiomaticity`, `/deyim` ya da `/idiom`.
+description: Türkçe deyim (VID) / eşdizim (LVC) span tespiti — DizgeBERT-Idiom. YAYINLANDI v7 (2026-09-19, Deney X — 3-gövde ensemble, Çavuşoğlu doğru-ayırt rekoru %58.1). GLU çok-ölçütlü etiketleme karar çerçevesi + deney günlüğü (tek-model kaldıraçları TÜKENDİ; iki-aşamalı detect→filter ÇALIŞIYOR; ensemble/distilasyon turları Deney O/R/W/X'te) + stage-2 idyomatiklik sınıflandırıcısı iş akışı. Trigger — DizgeBERT-Idiom üzerinde çalışırken, deyim/MWE eğitim verisi hazırlarken/etiketlerken, idyomatik-literal ayrımı, stage-2 sınıflandırıcı, `find_span`/`prepare_*idiom*`/`filter_corpus_idiomaticity`, `/deyim` ya da `/idiom`.
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 user-invokable: true
 ---
@@ -10,6 +10,11 @@ user-invokable: true
 `lemma-rule-based` reposunda ELECTRA tabanlı Türkçe deyim (VID) / eşdizim (LVC.full)
 BIO span etiketleyici. **Yayınlandı** (`huggingface.co/iatagun/DizgeBERT-Idiom`).
 
+- **YAYINLANDI v7 (2026-09-19, en güncel): Aşama-1 3-GÖVDE ENSEMBLE (Deney X) — vE+vL+vX3
+  birleşimi, Çavuşoğlu doğru-ayırt rekoru %58.1 (tam) / %57.1 (unseen).** v6'nın tek-gövde
+  distilasyonu üç öğretmene genelleştirilmeye çalışıldı ama BAŞARISIZ oldu (vL tabanından da
+  kötü); kullanıcı kararıyla ham 3-gövde ensemble yayınlandı (~1.76GB, ~3× gecikme — v5'in
+  kabul ettiği takasın bir adım ilerisi). Detay: aşağıdaki "Deney X" bölümü.
 - **YAYINLANDI v5 (2026-09-16): Aşama-1 ENSEMBLE (Deney O) — vE+vL birleşimi.** `idiom_data/
   best_idiom_tagger.pt` yerelde **vL** (Aşama 3 kanonik). HF paketi artık `best_idiom_tagger.pt`
   tek dosyasından ÜRETİLMİYOR — iki ayrı stage-1 checkpoint'i (`best_idiom_tagger_vE_leipzigglu.pt`
@@ -570,19 +575,103 @@ yayınlandı:
   yalnız HF paketi v6, yerel tek-checkpoint iş akışı v5/Deney O'daki gibi değişmedi).
   Checkpoint arşivde: `best_idiom_tagger_vW_disagree.pt`. Stage-2 DEĞİŞMEDİ (v3).
 
-**Sonraki oturum için öneri — Deney X: Deney N'i (reddedilen "Leipzig 3M→8M genişletme")
-bu çerçeveyle yeniden dene.** Deney N, tek modele daha fazla ham veri tıkıştırmayı denemiş
-ve REGRESE olmuştu (Çavuşoğlu unseen 52.0→49.2). W'nin gösterdiği şey: darboğaz "daha fazla
-veri" değil, "veriyi doğru BİRLEŞTİRME yöntemi" imiş. Fikir: 8M'lik genişletilmiş Leipzig
-havuzunu TEK modele değil, ayrı korpus dilimleriyle eğitilmiş **2-3 bağımsız öğretmene**
-böl (Deney O'daki "bağımsız soy işe yarıyor, aynı soy zarar veriyor" dersini burada da
-kullan — dilimler gerçekten farklı/örtüşmeyen olmalı), sonra Deney W'nin anlaşmazlık-
-ağırlıklı distilasyon reçetesiyle (`scripts/distill_ensemble_labels.py` + `--distill-lambda
---distill-weight-disagree`, N teacher'a genelleştirilmesi gerekir — şu an yalnız 2 öğretmen
-destekliyor) tek gövdeye indir. Ön-koşul: önce N-öğretmenli ensemble'ın (distilasyondan ÖNCE,
-yalnız çıkarım-zamanı birleştirme) gerçekten vL/vW'yi geçtiğini doğrula (Deney O'nun
-union/agree/majority taramasına benzer) — geçmiyorsa distilasyona geçmeye değmez. Düşük-orta
-öncelik, henüz denenmedi.
+## Deney X (2026-09-19) — 3. bağımsız öğretmen ensemble'da YENİ REKOR, distilasyonda ÇÖKÜŞ:
+## "bağımsız veri" ensemble'a ve distilasyona FARKLI davranıyor
+
+Deney N'in reddedilen Leipzig 3M→8M genişlemesini Deney W çerçevesiyle (çoklu-öğretmen +
+anlaşmazlık-ağırlıklı distilasyon) yeniden denemek için önce bir ÖN-KOŞUL doğrulandı: gerçekten
+bağımsız 3. bir öğretmen bulunabilir mi? `_corpus_sample_labels.tsv`'de vL'nin eğitiminden
+(idx≤11070) SONRA eklenmiş ama hiç kullanılmamış 2383 kayıt (1130 yeni deyim kimliği, Deney N'in
+ingest turu, %84.8 tam-oybirliği) keşfedildi — vM checkpoint'i silinmiş olsa da ham etiket havuzu
+append-only olduğu için hâlâ diskteydi. `data/filter_corpus_idiomaticity.py`'e `--min-idx`/
+`--out-suffix` eklendi (idx-filtreli dilim çıkarma, canonical dosyaları ezmeden) — bu dilim
+(1924 kayıt, 958 D-span/966 L→hepO) vF/vJ/vK/vL zincirinden TAMAMEN AYRI: aynı soyun ardışık
+sürümü değil, gerçek bağımsız veri. `vX3` (bu dilim + standart TDK/PARSEME taban) eğitildi:
+dev F1 69.81 — tek başına vE/vL'den bile güçlü.
+
+**Ön-koşul testi (yalnız çıkarım-zamanı birleştirme, Deney O'nun union/agree/majority
+taramasının 3'lü hâli) — GEÇTİ, yeni rekor:**
+
+| kombinasyon | Çavuşoğlu doğru-ayırt (tam) | (unseen) |
+|---|---|---|
+| vL tek | 54.0% | 52.0% |
+| vE tek | 55.6% | 54.2% |
+| union(vE,vL) (Deney O, yayında v5 ensemble mantığı) | 57.1% | 55.9% |
+| Deney W tek-gövde distilasyon (yayında v6) | 57.1% | 55.4% |
+| majority(vE,vL,vX3) 2/3 | 49.0% | 45.8% (Deney O deseni: karma soy zarar veriyor) |
+| agree(vE,vL,vX3) 3/3 | 31.3% | 27.1% (çöktü) |
+| **union(vE,vL,vX3) min_votes=1** | **58.1% (yeni rekor)** | **57.1% (yeni rekor)** |
+
+PARSEME ALL F1 66.02 (union(vE,vL)'nin 65.57'sine ve Deney W'nin 66.07'sine yakın), CASES
+13/16 (14/16'dan hafif düşük, n=16 gürültü bandında), GLU 20/35 (düz). Ön-koşul net geçti —
+kullanıcı onayıyla distilasyon adımına geçildi.
+
+**Distilasyon (Deney X asıl denemesi) — TEMİZ NEGATİF, PARSEME F1 en iyisi ama Çavuşoğlu
+vL'den de kötü.** `scripts/distill_ensemble_labels.py` 2→N öğretmene genelleştirildi
+(`--teachers ck1,ck2,...`; anlaşmazlık ağırlığı artık öğretmen ÇİFTLERİNİN ortalama ikili
+toplam-varyasyon uzaklığı — N=2 için eski formülle birebir aynı sonucu verir, geriye uyumlu).
+`train_idiom_bert.py`'nin distilasyon yolu zaten öğretmen sayısından bağımsızdı (yalnız
+`soft_tags`/`disagree_tags` tüketiyor), değişiklik gerekmedi. vE+vL+vX3 ile Deney W'nin
+BİREBİR aynı reçetesi (`--distill-lambda 1.0 --distill-weight-disagree`, 10 epoch) → **vY**,
+best epoch 10, dev F1 67.07 (Deney W'nin 67.37'sine yakın).
+
+| metrik | vL | Deney W (2-öğretmen distill, yayında) | union(vE,vL,vX3) | **vY (3-öğretmen distill)** |
+|---|---|---|---|---|
+| PARSEME ALL F1 | 64.34 | 66.07 | 66.02 | **67.09 (en iyi F1)** |
+| CASES (16) | 13/16 | 14/16 | 13/16 | 13/16 |
+| **Çavuşoğlu doğru-ayırt (tam)** | 54.0% | 57.1% | 58.1% | **51.5% (vL'den de kötü)** |
+| **Çavuşoğlu doğru-ayırt (unseen)** | 52.0% | 55.4% | 57.1% | **49.2% (vL'den de kötü)** |
+| seen (21 çift) | 66.7% | 71.4% | 66.7% | 71.4% |
+| GLU vaka (35) | 21/35 | 20/35 | 20/35 | 20/35 |
+
+**Ders — bu, projenin "PARSEME/dev-F1 artışı Çavuşoğlu genellemesini garanti etmez" meta-
+dersinin şimdiye kadarki EN ÇARPICI örneği:** vY en yüksek PARSEME F1'i verdi AMA asıl karar
+ölçütünde vL TABANINDAN BİLE kötü — yalnız "ensemble'ın gerisinde kalmak" değil, "distilasyon
+hiç yapılmamışından daha kötü" durumu ilk kez görüldü. **Mekanizma:** saf çıkarım-zamanı
+union'da fazladan bir öğretmen yalnız EKLEME yapabilir (min_votes=1 ile hiçbir doğru span
+kaybolmaz, stage-2 fazladan yanlış-pozitifi sonradan süzer) — bu yüzden vX3'ün kendi
+gürültüsü zararsız, yalnız tamamlayıcı kapsamı işe yarıyor. Distilasyonda ise TÜM öğretmen
+görüşleri TEK sürekli hedef dağılıma karışıyor; vX3 çok daha küçük/dar bir dilimde
+(1924 kayıt, vL'nin 7938'ine karşı) eğitildiği için token-düzeyi anlaşmazlıkları çoğu zaman
+GERÇEK tamamlayıcı sinyal değil, az-veriden kaynaklanan gürültü — anlaşmazlık-ağırlıklı kayıp
+tam da bu gürültülü noktalara ağırlık veriyor, öğrenciyi yanlış yöne itiyor. **Sonuç: "bağımsız
+öğretmen" ensemble için yeterli olsa da distilasyon için YETERLİ DEĞİL — teacher'ın kendi
+eğitim hacmi/kalitesi de belli bir eşiği geçmeli, yoksa disagreement-weighting gürültüyü
+sinyal sanıp damıtır.** Kanonik `best_idiom_tagger.pt` vL'ye geri yüklendi (hash doğrulandı),
+`corpus_examples_glu.json` vL'nin 7938 kaydına geri yüklendi. Checkpoint'ler arşivde:
+`best_idiom_tagger_vX3_slice3.pt`, `best_idiom_tagger_vY_3teacherdistill.pt`. HF/Space
+DOKUNULMADI, hâlâ v6 (Deney W). **union(vE,vL,vX3)'ün ham %58.1/%57.1 rekoru yayınlanmadı**
+(3× çıkarım maliyeti + distilasyon denemesi başarısız olduğu için tek-gövde alternatifi yok) —
+kullanıcı kararı bekliyor: ya Deney O'nun kabul ettiği türden bir maliyet-takasıyla 3'lü
+ensemble'ı yayınla, ya da mevcut v6'da kal.
+
+**Kod kalıcı:** `data/filter_corpus_idiomaticity.py --min-idx/--out-suffix` (bağımsız veri
+dilimi çıkarma, ileride başka deneyler için de kullanılabilir), `scripts/distill_ensemble_labels.py --teachers`
+(N-öğretmenli, 2 ile geriye uyumlu).
+
+**GÜNCELLEME — YAYINLANDI v7 (2026-09-19, kullanıcı kararıyla).** Kullanıcı, 3× çıkarım
+maliyetini kabul edip ham union(vE,vL,vX3) ensemble'ını yayınlamayı tercih etti (distilasyon
+başarısız olduğu için tek-gövde alternatifi yoktu). Paketleme kodu Deney O'nun tek-ikinci-gövde
+desenini (`config.ensemble`/`encoder_b`/`tag_head_b`/`tag_head2_b`) 3. bir gövdeye genelleştirdi:
+`configuration_dizgebert_idiom.py` → `ensemble_extra2: bool`, `modeling_dizgebert_idiom.py` →
+`encoder_c`/`tag_head_c`/`tag_head2_c` + `predict_spans()` artık `merge_ensemble_spans()`'a
+üç span listesi birden veriyor (fonksiyon zaten N-way genel, değişiklik gerekmedi),
+`train_idiom_bert.py --export-hf` → `--ensemble-ckpt2` (üçüncü checkpoint).
+- **HF push:** `iatagun/DizgeBERT-Idiom` commit `3672edf` (primary=vE, ensemble b=vL,
+  ensemble c=vX3, stage2=v3, ~1.76GB safetensors). Round-trip doğrulandı (`--hf-repo` yerel
+  union ölçümleriyle birebir: PARSEME F1 66.02, Çavuşoğlu doğru-ayırt tam %58.1, CASES 13/16,
+  GLU 20/35) VE ayrıca uzak repo'dan `model_info`/`config.json` indirilip `ensemble_extra2=True`
+  olduğu bağımsız doğrulandı (Deney W'nin "exit 0'a güvenme" dersi uygulandı).
+- **Space (`iatagun/dizge-demo`) güncellendi:** `idiom_tab.py`/`app.py` "v6·tek gövde" →
+  "v7·3-gövde ensemble" rozetleri/metinleri, kod değişikliği olduğu için restart değil tam
+  rebuild (BUILDING→APP_STARTING→RUNNING, `space_info().runtime.stage` ile doğrulandı).
+  `gradio_client` smoke-test: idyomatik "yol aldık" doğru işaretlendi, bilinen literal
+  yanlış-pozitif ("otobüs yol aldı") hâlâ geçiyor — ölçülmüş %28.3 yanlış-pozitifin canlıda
+  doğrulanması, deploy hatası değil.
+- **Yerel:** kanonik `idiom_data/best_idiom_tagger.pt` hâlâ **vL** (deney disiplini —
+  yalnız HF paketi v7, yerel tek-checkpoint iş akışı değişmedi). `corpus_examples_glu.json`
+  vL'nin 7938 kaydına geri yüklü. MODEL_CARD.md v6→v7 güncellendi (yeni tablo, "ham ensemble,
+  distilasyon değil" notu, v6 hâlâ tek-gövde alternatifi olarak belgelendi).
 
 ## Deney V (2026-09-19) — leksikal/bağlamsal uyumluluk mimarisi (Zeng&Bhat 2021): şimdiye
 ## kadarki en dengeli tek-model sonuç ama YİNE vL/ensemble'ın altında — REDDEDİLDİ

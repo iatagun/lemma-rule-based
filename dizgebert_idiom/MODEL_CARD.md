@@ -63,6 +63,18 @@ gövdede** dış-kaynak doğru-ayırt %57.1'e (ensemble'la birebir eşit) ulaşt
 tekrar **tek ELECTRA gövdesi** (~440MB stage-1 + stage-2, v4'ten büyük değil), **~2×
 gecikme bedeli tamamen ortadan kalktı**.
 
+**v7 — Aşama 1'e ÜÇÜNCÜ bir bağımsız gövde eklendi (ensemble'a geri dönüş, distilasyon
+değil).** v6'nın tek-gövde damıtımı, iki öğretmene (vE+vL) genelleştirildiğinde işe yaramıştı
+(bkz. yukarı) ama **üç** öğretmenle (vE+vL+ üçüncü, dar bir veri diliminde eğitilmiş bağımsız
+bir gövde) denendiğinde damıtım BAŞARISIZ oldu — üçüncü öğretmenin görece küçük eğitim hacmi
+yüzünden token-düzeyi anlaşmazlıkları çoğunlukla gerçek tamamlayıcı sinyal değil gürültüydü;
+anlaşmazlık-ağırlıklı kayıp bu gürültüye ağırlık verip PARSEME F1'i yükseltirken dış-kaynak
+doğru-ayırtı v5/v6'nın ALTINA düşürdü. Buna karşılık **saf çıkarım-zamanı birleşim** (üç
+gövdenin aday span'lerinin birleşimi, damıtım yok) yeni bir rekor verdi: dış-kaynak
+doğru-ayırt %57.1→**%58.1** (genel), görülmemiş-deyim diliminde %55.4→**%57.1**. Bedel v6'nın
+avantajını geri verdi: model artık **üç** stage-1 ELECTRA gövdesi taşıyor (+ stage-2, ~2 GB)
+ve stage-1 üç kez çalışıyor (~3× gecikme) — v5'in kabul ettiği takasın bir adım ilerisi.
+
 - **Gövde:** [`dbmdz/electra-base-turkish-cased-discriminator`](https://huggingface.co/dbmdz/electra-base-turkish-cased-discriminator)
   (DizgeBERT-Morph/Joint/Dep ile aynı → ortak subword sözlüğü)
 - **Kelime temsili:** ilk subword ⊕ son subword (DizgeBERT-Morph ile aynı yöntem)
@@ -76,11 +88,13 @@ gecikme bedeli tamamen ortadan kalktı**.
   ilk⊕son subword temsili → `Linear(2H, 2)` → {literal, idyomatik}. `predict_spans()` bitişik
   VID adaylarını bundan geçirir; yalnız *güvenli* literal (p(literal) > eşik, varsayılan 0.5)
   elenir — LVC ve gap'li span'ler dokunulmaz (LVC yarı-birleşimsel, ayrım anlamsız).
-- **Aşama 1 — anlaşmazlık-ağırlıklı ensemble distilasyonu (v6):** v5'in iki-gövdeli
-  ensemble'ının (vE+vL) bilgisi, öğretmenlerin per-token anlaşmazlığıyla ağırlıklandırılmış
-  bir KL kaybıyla TEK bir öğrenci gövdeye damıtıldı (aşağıdaki "Eğitim" bölümüne bakın). Model
-  dosyası yine **tek** stage-1 ELECTRA gövdesi içerir (+ Aşama 2 için ayrı gövde) — v5'in
-  ~1.3 GB / ~2× gecikme bedeli yok.
+- **Aşama 1 — üç bağımsız stage-1 gövdesinin ensemble'ı (v7):** her cümlede üç ayrı ELECTRA
+  gövdesi (farklı veri dilimleriyle eğitilmiş) kendi aday span'lerini önerir; birleşim
+  (çakışan span'lerde en çok oy alan/en uzun kazanır) DEĞİŞMEMİŞ Aşama 2 filtresine girer.
+  Model dosyası **üç** stage-1 ELECTRA gövdesi + Aşama 2 için ayrı bir gövde içerir (~2 GB,
+  ~3× gecikme — aşağıdaki "Eğitim" bölümüne bakın). Önceki v6 sürümü bunun yerine iki
+  gövdeyi tek gövdeye damıtıyordu (1× bedel); üçüncü gövdeyle aynı damıtım denendi ama
+  başarısız oldu (bkz. yukarıdaki v7 notu) — bu yüzden v7 ham ensemble olarak kaldı.
 - **Eğitim verisi:**
   1. [PARSEME Türkçe fiil-merkezli çok-sözcüklü ifade derlemi, edition 1.2](https://gitlab.com/parseme/sharedtask-data/-/tree/master/1.2/TR)
      (Güngör & Yirmibeşoğlu) — 17.945 cümle, VID+LVC.full toplam ~6.7k span (yalnız *verbal* MWE;
@@ -140,17 +154,22 @@ external`) üzerinde:
 | literal cümlede **yanlış** span işaretledi | — | %23.7 |
 | ikisini de doğru ayırt etti | — | **%57.1** |
 
-**v3→v4→v5→v6 kıyası (Aşama 2 HİÇ değişmedi; her sürümde tek değişen Aşama 1):**
+**v3→v4→v5→v6→v7 kıyası (Aşama 2 HİÇ değişmedi; her sürümde tek değişen Aşama 1):**
 
-| ölçüm | v3 | v4 | v5 (ensemble) | **v6 (distilasyon)** |
-|---|---|---|---|---|
-| doğru-ayırt — **görülmemiş deyim** dilimi (n=177) | %39.0 | %54.2 | %55.9 | **%55.4 (ensemble'a neredeyse eşit)** |
-| doğru-ayırt — bilinen deyim dilimi (n=21) | %66.7 | %66.7 | %66.7 | **%71.4 (en iyi)** |
-| doğru-ayırt — genel (n=198) | %41.9 | %55.6 | %57.1 | **%57.1 (eşit)** |
-| yanlış-pozitif | %16.2 | %26.3 | %27.8 | **%23.7 (düştü)** |
-| duyarlılık | %55.6 | %78.8 | %81.3 | %77.8 |
-| GLU tanı seti (35 vaka) | 21/35 | 20/35 | 20/35 | 20/35 (aynı) |
-| **model boyutu / gecikme** | 1× | 1× | **2×, ~1.3GB** | **1× (v5'in bedeli yok)** |
+| ölçüm | v3 | v4 | v5 (2-gövde ensemble) | v6 (2-öğretmen distilasyon) | **v7 (3-gövde ensemble)** |
+|---|---|---|---|---|---|
+| doğru-ayırt — **görülmemiş deyim** dilimi (n=177) | %39.0 | %54.2 | %55.9 | %55.4 | **%57.1 (en iyi)** |
+| doğru-ayırt — bilinen deyim dilimi (n=21) | %66.7 | %66.7 | %66.7 | %71.4 (en iyi) | %66.7 |
+| doğru-ayırt — genel (n=198) | %41.9 | %55.6 | %57.1 | %57.1 | **%58.1 (en iyi)** |
+| yanlış-pozitif | %16.2 | %26.3 | %27.8 | %23.7 (en düşük) | %28.3 |
+| duyarlılık | %55.6 | %78.8 | %81.3 | %77.8 | %83.3 |
+| GLU tanı seti (35 vaka) | 21/35 | 20/35 | 20/35 | 20/35 | 20/35 (aynı) |
+| **model boyutu / gecikme** | 1× | 1× | 2×, ~1.3GB | **1× (bedel yok)** | **3×, ~2GB (en pahalı)** |
+
+v7'yi TEK gövdeye damıtmak (v6'nın yaptığı gibi) denendi ama başarısız oldu — üçüncü
+öğretmenin küçük eğitim hacmi anlaşmazlık sinyalini gürültüleştirdi, sonuç v3 tabanından
+bile kötü çıktı. v7 bu yüzden **ham ensemble** olarak yayınlandı, v6'nın tek-gövde
+avantajını taşımıyor.
 
 v3→v4 kazancı **tümüyle görülmemiş-deyim diliminde** çıkmıştı — bilinen deyimlerde ayrım
 birebir aynı kalmıştı (Aşama 1'in daha önce hiç aday önermediği görülmemiş deyimlerde artık
@@ -220,11 +239,11 @@ print(m.predict_spans(ws, tokenizer=tok))
 - **Aşama 2 deneysel, küçük veriyle eğitildi** (975 örnek, elle etiketli), v3'ten beri
   değişmedi. Literal kullanımların önemli bir kısmını hâlâ yakalayamıyor (yanlış-pozitif
   ~%24-28). `stage2=False` ile tamamen devre dışı, `stage2_thresh` ile eşik ayarlanır.
-- **v6'nın kaynağı bir distilasyon** — v5'in ensemble'ından damıtıldı, kendi başına
-  toplanmış yeni bir veri kaynağı yok. Öğretmen ensemble'ın kendi zayıflıkları (yukarıdaki
-  precision/kapsam sınırları) damıtımdan da geçebilir; v6'nın v5'i geçmesi ensemble'ın kör
-  noktalarının tamamen kapandığı anlamına gelmez, yalnız BİLİNEN kör noktaların iyi aktarıldığı
-  anlamına gelir.
+- **v7 üç gövdeli bir ensemble, tek bir bütünleşik model değil** — üçüncü gövde görece dar
+  bir veri diliminde eğitildi ve yalnız çıkarım-zamanı birleşim olarak katkı sağlıyor (kendi
+  başına tek-gövde damıtımı denendiğinde başarısız oldu, bkz. yukarı). Model boyutu/gecikmesi
+  buna göre büyük (~2GB, ~3×) — hız/bellek kısıtlı ortamlarda v6 (tek gövde, ~440MB) daha
+  uygun bir seçim olabilir.
 - **Precision ~%58-64** (yukarıya bakın) — üretim kullanımında çıktıyı doğrulamadan güvenmeyin.
 - **Gap'li (süreksiz) span'ler kısmen çözülüyor, tam değil.** İki-katmanlı şema ~%38-47'sini
   kurtarıyor (yukarıya bakın); geri kalanı hâlâ kaçıyor. Ayrıca şema yalnız **tam 2 parçalı**

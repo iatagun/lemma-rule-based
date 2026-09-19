@@ -18,6 +18,7 @@ class DizgeBertIdiomConfig(PretrainedConfig):
         stage2: bool = False,
         stage2_thresh: float = 0.5,
         ensemble: bool = False,
+        ensemble_extra2: bool = False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -42,3 +43,7 @@ class DizgeBertIdiomConfig(PretrainedConfig):
         # iki checkpoint (vE+vL) görülmemiş-deyim doğru-ayırtta tek modelden daha iyi
         # ölçüldü; lineage-yakın çiftler (vL+vF) YARARLI DEĞİL — bkz. deney günlüğü.
         self.ensemble = ensemble
+        # Deney X — 3. bağımsız stage-1 gövdesi (`encoder_c`/`tag_head_c`/`tag_head2_c`).
+        # Yalnız `ensemble=True` ile birlikte anlamlı; union(a,b,c) görülmemiş-deyim
+        # doğru-ayırtta union(a,b)'yi de geçti (bkz. deney günlüğü, Deney X).
+        self.ensemble_extra2 = ensemble_extra2

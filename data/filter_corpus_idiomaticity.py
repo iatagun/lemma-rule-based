@@ -251,12 +251,17 @@ TEST_JSON = PROJECT_ROOT / "idiom_data" / "corpus_minpair_test.json"
 
 
 def apply_manual(recs: list[dict], holdout: float = 0.15, seed: int = 7,
-                 l_only: bool = False, balance: bool = False, lit_class: bool = False) -> None:
+                 l_only: bool = False, balance: bool = False, lit_class: bool = False,
+                 min_idx: int | None = None, out_suffix: str = "") -> None:
     """D → span'li örnek, L → aynı öbek hep-O (minimal-çift negatif sinyali). E atılır.
     `recs` = _corpus_sample_records.jsonl (idx alanlı). Deyim düzeyinde held-out.
     l_only=True: eğitime YALNIZ L→hep-O. balance=True: D'yi L sayısına indir (1:1).
     lit_class=True (Fikir 4): L → hep-O yerine `B/I-VID-LIT` span'i (etiket uzayında
-    açık "deyim-biçimin literal kullanımı" sınıfı; label_space.json'a eklenmiş olmalı)."""
+    açık "deyim-biçimin literal kullanımı" sınıfı; label_space.json'a eklenmiş olmalı).
+    min_idx: yalnız bu idx'ten büyük/eşit kayıtları kullan (Deney X — bağımsız veri
+    dilimi çıkarmak için, örn. bir önceki turdan SONRA eklenmiş kayıtlar).
+    out_suffix: çıktı dosya adlarına eklenir (canonical corpus_examples_glu.json'u
+    ezmeden ayrı bir dilim üretmek için)."""
     if not MANUAL_LABELS.exists():
         sys.exit(f"{MANUAL_LABELS} yok — önce --dump ve elle etiketleme.")
     lab: dict[int, str] = {}
@@ -268,7 +273,9 @@ def apply_manual(recs: list[dict], holdout: float = 0.15, seed: int = 7,
         if len(parts) >= 2 and parts[0].isdigit() and parts[1].upper() in "DLE":
             lab[int(parts[0])] = parts[1].upper()
     dist = Counter(lab.values())
-    picked = recs  # idx == list konumu (jsonl sıralı yazılıyor); güvenlik için idx ile eşle
+    picked = recs if min_idx is None else [r for r in recs if r["idx"] >= min_idx]
+    if min_idx is not None:
+        print(f"--min-idx {min_idx}: kayıt {len(recs)}→{len(picked)}")
     by_idx = {r["idx"]: r for r in recs}
 
     def to_rec(it: dict, label: str) -> dict:
@@ -312,18 +319,21 @@ def apply_manual(recs: list[dict], holdout: float = 0.15, seed: int = 7,
         train_d = train_d[:len(train_l)]                    # 1:1 D:L
     train_out = train_d + train_l
 
-    OUT_JSON.write_text(json.dumps(train_out, ensure_ascii=False), encoding="utf-8")
-    TEST_JSON.write_text(json.dumps(test_out, ensure_ascii=False), encoding="utf-8")
+    out_json = OUT_JSON.with_name(OUT_JSON.stem + out_suffix + OUT_JSON.suffix) if out_suffix else OUT_JSON
+    test_json = TEST_JSON.with_name(TEST_JSON.stem + out_suffix + TEST_JSON.suffix) if out_suffix else TEST_JSON
+    holdout_json = (PROJECT_ROOT / "idiom_data" / f"_holdout_idioms{out_suffix}.json")
+    out_json.write_text(json.dumps(train_out, ensure_ascii=False), encoding="utf-8")
+    test_json.write_text(json.dumps(test_out, ensure_ascii=False), encoding="utf-8")
     # held-out deyim listesi — train_idiomaticity_clf.py bunu DEYİM düzeyinde bölme için okur
     # (cümle-metni düzeyi yetmez: focus-l sonradan aynı deyimden yeni cümle ekleyince sızar)
-    (PROJECT_ROOT / "idiom_data" / "_holdout_idioms.json").write_text(
+    holdout_json.write_text(
         json.dumps(sorted(test_idioms), ensure_ascii=False), encoding="utf-8")
     nd = sum(1 for r in train_out if any(t.startswith(("B-VID", "I-VID")) and not t.endswith("-LIT")
                                           or t.startswith(("B-LVC", "I-LVC")) for t in r["tags"]))
     lspec = "L→VID-LIT" if lit_class else "L→hepO"
     print(f"etiket: {len(lab)}/{len(picked)}  dağılım {dict(dist)}")
-    print(f"train: {len(train_out):,} ({nd} D-span / {len(train_out)-nd} {lspec})  → {OUT_JSON.name}")
-    print(f"held-out minimal-çift test: {len(test_out)} kayıt, {len(test_idioms)} deyim  → {TEST_JSON.name}")
+    print(f"train: {len(train_out):,} ({nd} D-span / {len(train_out)-nd} {lspec})  → {out_json.name}")
+    print(f"held-out minimal-çift test: {len(test_out)} kayıt, {len(test_idioms)} deyim  → {test_json.name}")
     print("Sonraki: python train_idiom_bert.py --class-weights --tdk-examples --corpus-glu --epochs 10")
     print("         python benchmark/eval_idiom.py --local --checkpoint <ckpt> --eval-file idiom_data/corpus_minpair_test.json  # (train_idiom_bert --eval yolu)")
 
@@ -557,6 +567,11 @@ def main() -> None:
                          "sor, çoğunluk oyu al (--gate ile birlikte kullan, κ/gürültü ölçmek için)")
     ap.add_argument("--gate-limit", type=int, default=None,
                     help="--gate: yalnız ilk N altın örnekte dene (ucuz pilot)")
+    ap.add_argument("--min-idx", type=int, default=None,
+                    help="--apply: yalnız bu idx'ten büyük/eşit kayıtları kullan (Deney X — "
+                         "bağımsız veri dilimi çıkarma)")
+    ap.add_argument("--out-suffix", type=str, default="",
+                    help="--apply: çıktı dosyalarına eklenecek ek (canonical dosyaları ezmemek için)")
     args = ap.parse_args()
 
     items = load_items()
@@ -584,7 +599,8 @@ def main() -> None:
         return focus_l(items, args.max_per_idiom, args.max_total, args.seed, args.focus_n)
     if args.apply:
         return apply_manual(load_records(items, args.max_per_idiom, args.max_total, args.seed),
-                            l_only=args.l_only, balance=args.balance, lit_class=args.lit_class)
+                            l_only=args.l_only, balance=args.balance, lit_class=args.lit_class,
+                            min_idx=args.min_idx, out_suffix=args.out_suffix)
 
     if args.restart:
         LABELS.unlink(missing_ok=True)
