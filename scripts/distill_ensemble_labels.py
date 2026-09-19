@@ -61,10 +61,21 @@ def soft_label_file(src_path: Path, out_path: Path, model_a, model_b, ls, tokeni
 
         out_a = model_a(input_ids, attn, fp, lp, pos_ids)
         out_b = model_b(input_ids, attn, fp, lp, pos_ids)
-        p1 = (F.softmax(out_a["tags"][0], dim=-1) + F.softmax(out_b["tags"][0], dim=-1)) / 2
-        p2 = (F.softmax(out_a["tags2"][0], dim=-1) + F.softmax(out_b["tags2"][0], dim=-1)) / 2
+        pa1, pb1 = F.softmax(out_a["tags"][0], dim=-1), F.softmax(out_b["tags"][0], dim=-1)
+        pa2, pb2 = F.softmax(out_a["tags2"][0], dim=-1), F.softmax(out_b["tags2"][0], dim=-1)
+        p1 = (pa1 + pb1) / 2
+        p2 = (pa2 + pb2) / 2
         rec["soft_tags"] = p1.cpu().tolist()
         rec["soft_tags2"] = p2.cpu().tolist()
+        # Deney W — anlaşmazlık-ağırlıklı distilasyon: Deney R'nin damıtımı TÜM kayıtlara
+        # eşit uygulaması ("Agree to Disagree", NeurIPS 2020'nin teşhis ettiği ortalama-eşleme
+        # sorunu — öğretmenlerin ÇEŞİTLİLİĞİni silip yalnız ortalamasını öğretiyor) yerine, iki
+        # öğretmenin (vE/vL) per-token softmax'ının toplam-varyasyon uzaklığı (0=birebir aynı
+        # fikirde, 1=tam zıt) her token için ayrıca saklanır — eğitimde KL kaybını bu ağırlıkla
+        # çarpmak, damıtım kapasitesini öğretmenlerin GERÇEKTEN anlaştığı (zaten gereksiz sinyal)
+        # değil AYRIŞTIĞI (tamamlayıcı kapsamın olduğu) bölgelere yönlendirir.
+        rec["disagree_tags"] = (0.5 * (pa1 - pb1).abs().sum(-1)).cpu().tolist()
+        rec["disagree_tags2"] = (0.5 * (pa2 - pb2).abs().sum(-1)).cpu().tolist()
 
     out_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     print(f"{src_path.name} → {out_path.name}: {n_full} soft-etiketli, {n_trunc} truncation'a "

@@ -111,25 +111,40 @@ def load_pairs() -> tuple[list[dict], list[dict]]:
     return train, test
 
 
+def _first_last(wid: list[int | None]) -> tuple[dict, dict]:
+    first, last = {}, {}
+    for i, w in enumerate(wid):
+        if w is None:
+            continue
+        first.setdefault(w, i)
+        last[w] = i
+    return first, last
+
+
 class ClfDS(Dataset):
+    """`lex_*` alanları — Deney V (compat-gap): span kelimelerinin TEK BAŞINA (cümle
+    bağlamı olmadan) tokenize edilmiş hali, `IdiomaticityClf(compat_gap=True)` bunu
+    ikinci bir küçük forward ile kodlayıp "leksikal" (bağlamsız) temsili çıkarır.
+    `compat_gap=False` iken bu alanlar hesaplanır ama forward() hiç kullanmaz — ucuz
+    (birkaç kelimelik dizi), tek DS ile her iki mod da çalışsın diye ayrı dal açılmadı."""
+
     def __init__(self, rows: list[dict], tok, name: str = ""):
         self.items = []
         dropped = 0
         for r in rows:
             enc = tok(r["words"], is_split_into_words=True, truncation=True, max_length=MAX_LEN)
-            wid = enc.word_ids()
-            first, last = {}, {}
-            for i, w in enumerate(wid):
-                if w is None:
-                    continue
-                first.setdefault(w, i)
-                last[w] = i
+            first, last = _first_last(enc.word_ids())
             if r["s"] not in first or (r["e"] - 1) not in last:
                 dropped += 1  # span MAX_LEN kırpmasına takıldı
                 continue
+            span_words = r["words"][r["s"]:r["e"]]
+            lex_enc = tok(span_words, is_split_into_words=True, truncation=True, max_length=MAX_LEN)
+            lfirst, llast = _first_last(lex_enc.word_ids())
             self.items.append({
                 "input_ids": enc["input_ids"], "attention_mask": enc["attention_mask"],
                 "sf": first[r["s"]], "sl": last[r["e"] - 1], "y": r["y"],
+                "lex_input_ids": lex_enc["input_ids"], "lex_attention_mask": lex_enc["attention_mask"],
+                "lf": lfirst[0], "ll": llast[max(llast)],
             })
         if dropped:
             print(f"  {name or 'ClfDS'}: {dropped}/{len(rows)} örnek span MAX_LEN'e takıldı, atlandı")
@@ -144,13 +159,18 @@ class ClfDS(Dataset):
 def collate(pad_id: int):
     def f(b):
         m = max(len(x["input_ids"]) for x in b)
-        pad = lambda s, v: s + [v] * (m - len(s))
+        lm = max(len(x["lex_input_ids"]) for x in b)
+        pad = lambda s, v, w: s + [v] * (w - len(s))
         return {
-            "input_ids": torch.tensor([pad(x["input_ids"], pad_id) for x in b]),
-            "attention_mask": torch.tensor([pad(x["attention_mask"], 0) for x in b]),
+            "input_ids": torch.tensor([pad(x["input_ids"], pad_id, m) for x in b]),
+            "attention_mask": torch.tensor([pad(x["attention_mask"], 0, m) for x in b]),
             "sf": torch.tensor([x["sf"] for x in b]),
             "sl": torch.tensor([x["sl"] for x in b]),
             "y": torch.tensor([x["y"] for x in b]),
+            "lex_input_ids": torch.tensor([pad(x["lex_input_ids"], pad_id, lm) for x in b]),
+            "lex_attention_mask": torch.tensor([pad(x["lex_attention_mask"], 0, lm) for x in b]),
+            "lf": torch.tensor([x["lf"] for x in b]),
+            "ll": torch.tensor([x["ll"] for x in b]),
         }
     return f
 
@@ -160,14 +180,25 @@ class IdiomaticityClf(nn.Module):
 
     `freeze` > 0: embeddings + alttan `freeze` transformer katmanı dondurulur (975 örnekte
     tam fine-tune ağır overfit ediyordu — loss→0.0007, softmax doygun, eşik ayarı ölü).
-    Dondurma trainable parametreyi düşürür → overfit azalır, eşik taraması geri gelir."""
+    Dondurma trainable parametreyi düşürür → overfit azalır, eşik taraması geri gelir.
 
-    def __init__(self, encoder=ENCODER, dropout: float = DROPOUT, freeze: int = 0):
+    `compat_gap` (Deney V, Zeng & Bhat 2021 "semantic compatibility"): span'in BAĞLAMSAL
+    temsiline (cümledeki hali) ek olarak LEKSİKAL (bağlamsız — yalnız span kelimeleri,
+    ayrı bir küçük dizi olarak kodlanmış) temsilini de çıkarır; head'e `[bağlamsal, leksikal,
+    bağlamsal-leksikal]` (6H) verilir. Sezgi: bağlamsal anlam leksikal/düz anlamdan NE KADAR
+    saptıysa o kadar idyomatik — önceki turların (v5ctx) hep BAĞLAMSAL tarafı zenginleştirmesinden
+    (`[CLS]⊕ortalama⊕ilk⊕son`) farklı bir eksen, hiç denenmemişti. `compat_gap=False` iken
+    davranış birebir eskisiyle aynı (head 2H girdi alır, `lex_*` alanları hesaplanır ama
+    kullanılmaz)."""
+
+    def __init__(self, encoder=ENCODER, dropout: float = DROPOUT, freeze: int = 0,
+                 compat_gap: bool = False):
         super().__init__()
         self.encoder = AutoModel.from_pretrained(encoder)
         h = self.encoder.config.hidden_size
         self.dropout = nn.Dropout(dropout)
-        self.head = nn.Linear(2 * h, 2)
+        self.compat_gap = compat_gap
+        self.head = nn.Linear(6 * h if compat_gap else 2 * h, 2)
         if freeze > 0:
             for p in self.encoder.embeddings.parameters():
                 p.requires_grad_(False)
@@ -176,12 +207,16 @@ class IdiomaticityClf(nn.Module):
                 for p in lyr.parameters():
                     p.requires_grad_(False)
 
-    def forward(self, input_ids, attention_mask, sf, sl):
+    def forward(self, input_ids, attention_mask, sf, sl,
+                lex_input_ids=None, lex_attention_mask=None, lf=None, ll=None):
         hs = self.encoder(input_ids=input_ids, attention_mask=attention_mask).last_hidden_state
-        B, _, H = hs.shape
-        f = hs[torch.arange(B), sf]
-        g = hs[torch.arange(B), sl]
-        return self.head(self.dropout(torch.cat([f, g], -1)))
+        B = hs.shape[0]
+        ctx = torch.cat([hs[torch.arange(B), sf], hs[torch.arange(B), sl]], -1)
+        if not self.compat_gap:
+            return self.head(self.dropout(ctx))
+        lhs = self.encoder(input_ids=lex_input_ids, attention_mask=lex_attention_mask).last_hidden_state
+        lex = torch.cat([lhs[torch.arange(B), lf], lhs[torch.arange(B), ll]], -1)
+        return self.head(self.dropout(torch.cat([ctx, lex, ctx - lex], -1)))
 
 
 def wrap_stage2(base_predict, clf_ckpt: str, thresh: float = 0.5):
@@ -198,7 +233,7 @@ def wrap_stage2(base_predict, clf_ckpt: str, thresh: float = 0.5):
     kullanır (`spans_from_bigappy` + `span_p_literal`) — standalone `.pt` için (henüz
     pakete gömülmemiş stage-2 checkpoint'i). `benchmark/eval_idiom` ve `predict_idiom`
     bunu import eder (üç kopya → tek kaynak)."""
-    from dizgebert_idiom.modeling_dizgebert_idiom import align_words, span_p_literal
+    from dizgebert_idiom.modeling_dizgebert_idiom import align_words, span_p_literal, span_p_literal_gap
 
     loaded = []
     for path in clf_ckpt.split(","):
@@ -207,10 +242,11 @@ def wrap_stage2(base_predict, clf_ckpt: str, thresh: float = 0.5):
             continue
         ck = torch.load(path, map_location="cpu")
         enc_name = ck.get("encoder", ENCODER)
+        compat_gap = ck.get("compat_gap", False)
         tok = AutoTokenizer.from_pretrained(enc_name)
-        clf = IdiomaticityClf(enc_name).eval()
+        clf = IdiomaticityClf(enc_name, compat_gap=compat_gap).eval()
         clf.load_state_dict(ck["model"])
-        loaded.append((tok, clf))
+        loaded.append((tok, clf, compat_gap))
 
     @torch.no_grad()
     def predict(words):
@@ -220,19 +256,27 @@ def wrap_stage2(base_predict, clf_ckpt: str, thresh: float = 0.5):
         if not to_check:
             return spans
         per_clf = []
-        for tok, clf in loaded:
+        for tok, clf, compat_gap in loaded:
             enc, kept, fp, lp = align_words(tok, words, MAX_LEN)
             hs = clf.encoder(input_ids=enc["input_ids"],
                              attention_mask=enc["attention_mask"]).last_hidden_state[0]
-            per_clf.append((kept, fp, lp, clf.head, hs))
+            per_clf.append((tok, clf, compat_gap, kept, fp, lp, hs))
         drop = set()
         for sp in to_check:
             s, e = sp["start"], sp["end"]
             probs = []
-            for kept, fp, lp, head, hs in per_clf:
+            for tok, clf, compat_gap, kept, fp, lp, hs in per_clf:
                 if s >= len(kept) or (e - 1) >= len(kept):
                     continue  # span kırpıldı → bu checkpoint'ten oy yok
-                probs.append(span_p_literal(hs, fp[0, s], lp[0, e - 1], head))
+                if compat_gap:
+                    # Deney V: span kelimeleri BAĞLAMSIZ, ayrı küçük dizi olarak da kodlanır
+                    lenc, lkept, lfp, llp = align_words(tok, words[s:e], MAX_LEN)
+                    lhs = clf.encoder(input_ids=lenc["input_ids"],
+                                      attention_mask=lenc["attention_mask"]).last_hidden_state[0]
+                    probs.append(span_p_literal_gap(hs, fp[0, s], lp[0, e - 1],
+                                                    lhs, lfp[0, 0], llp[0, -1], clf.head))
+                else:
+                    probs.append(span_p_literal(hs, fp[0, s], lp[0, e - 1], clf.head))
             if probs and (sum(probs) / len(probs)) > thresh:
                 drop.add(id(sp))
         return [sp for sp in spans if id(sp) not in drop]
@@ -246,7 +290,8 @@ def evaluate(model, dl, device) -> dict:
     tp = fp = fn = tn = 0
     for b in dl:
         b = {k: v.to(device) for k, v in b.items()}
-        pred = model(b["input_ids"], b["attention_mask"], b["sf"], b["sl"]).argmax(-1)
+        pred = model(b["input_ids"], b["attention_mask"], b["sf"], b["sl"],
+                     b["lex_input_ids"], b["lex_attention_mask"], b["lf"], b["ll"]).argmax(-1)
         y = b["y"]
         tp += int(((pred == 1) & (y == 1)).sum());  fp += int(((pred == 1) & (y == 0)).sum())
         fn += int(((pred == 0) & (y == 1)).sum());  tn += int(((pred == 0) & (y == 0)).sum())
@@ -294,6 +339,9 @@ def main() -> None:
     ap.add_argument("--encoder", default=ENCODER)
     ap.add_argument("--freeze", type=int, default=0,
                     help="embeddings + alttan N transformer katmanını dondur (overfit↓)")
+    ap.add_argument("--compat-gap", action="store_true",
+                    help="Deney V: leksikal/bağlamsal uyumluluk mimarisi (Zeng&Bhat 2021) — "
+                         "head'e [bağlamsal,leksikal,fark] (6H) verilir. Kapalıyken eskisiyle aynı.")
     ap.add_argument("--dropout", type=float, default=DROPOUT)
     ap.add_argument("--lr", type=float, default=LR)
     ap.add_argument("--weight-decay", type=float, default=0.01)
@@ -331,7 +379,8 @@ def main() -> None:
     test_ds = ClfDS(test_rows, tok, "held-out")
     test_dl = DataLoader(test_ds, batch_size=BATCH, collate_fn=collate(pad_id))
 
-    model = IdiomaticityClf(args.encoder, dropout=args.dropout, freeze=args.freeze).to(device)
+    model = IdiomaticityClf(args.encoder, dropout=args.dropout, freeze=args.freeze,
+                            compat_gap=args.compat_gap).to(device)
     if args.freeze:
         ntr = sum(p.numel() for p in model.parameters() if p.requires_grad)
         print(f"freeze {args.freeze} → trainable {ntr/1e6:.1f}M")
@@ -363,7 +412,8 @@ def main() -> None:
         for b in tqdm(train_dl, desc=f"ep{ep}"):
             b = {k: v.to(device) for k, v in b.items()}
             opt.zero_grad()
-            logits = model(b["input_ids"], b["attention_mask"], b["sf"], b["sl"])
+            logits = model(b["input_ids"], b["attention_mask"], b["sf"], b["sl"],
+                           b["lex_input_ids"], b["lex_attention_mask"], b["lf"], b["ll"])
             loss = F.cross_entropy(logits, b["y"], weight=w)
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -378,7 +428,8 @@ def main() -> None:
         print(f"ep{ep} loss {tot/len(train_dl):.4f}  {res}  macro {score:.1f}")
         if score > best:
             best = score
-            torch.save({"model": model.state_dict(), "encoder": args.encoder, "metrics": res}, out_ckpt)
+            torch.save({"model": model.state_dict(), "encoder": args.encoder, "metrics": res,
+                       "compat_gap": args.compat_gap}, out_ckpt)
             print(f"  → {out_ckpt.name}")
     print(f"best macro {best:.1f}")
 

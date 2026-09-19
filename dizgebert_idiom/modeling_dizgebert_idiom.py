@@ -210,6 +210,22 @@ def span_p_literal(hs: "torch.Tensor", sf: int, sl: int, head: "nn.Module",
     return torch.softmax(logits, dim=-1)[0].item()
 
 
+def span_p_literal_gap(hs_ctx: "torch.Tensor", sf: int, sl: int,
+                        hs_lex: "torch.Tensor", lf: int, ll: int,
+                        head: "nn.Module", temperature: float = 1.0) -> float:
+    """Deney V — `span_p_literal`in compat-gap varyantı (Zeng&Bhat 2021 "semantic
+    compatibility"): BAĞLAMSAL temsile (`hs_ctx`, tam cümle) ek olarak span kelimelerinin
+    TEK BAŞINA (bağlamsız, `hs_lex`) kodlanmış hali de kullanılır — head'e
+    `[bağlamsal, leksikal, bağlamsal-leksikal]` (6H) verilir. `IdiomaticityClf(compat_gap=True)`
+    ile eğitilen head'lerle uyumlu; `training/train_idiomaticity_clf.py::wrap_stage2` çağırır."""
+    ctx = torch.cat([hs_ctx[sf], hs_ctx[sl]], dim=-1)
+    lex = torch.cat([hs_lex[lf], hs_lex[ll]], dim=-1)
+    logits = head(torch.cat([ctx, lex, ctx - lex], dim=-1))
+    if temperature != 1.0:
+        logits = logits / temperature
+    return torch.softmax(logits, dim=-1)[0].item()
+
+
 def decode_bigappy_spans(tags1: list[str], tags2: list[str]) -> list[tuple]:
     """İki katmanı (bkz. bigappy-unicrossy) birleştirip span listesi üretir.
 

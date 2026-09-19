@@ -498,6 +498,231 @@ hâlâ geçiyor — bu ölçülmüş/belgelenmiş %27.8 yanlış-pozitifin canl�
 hatası değil. `idiom_data/best_idiom_tagger.pt` (yerel tek-gövde kanonik) hâlâ **vL** —
 ensemble yalnız HF paketinde, yerel tek-checkpoint iş akışını değiştirmedi.
 
+## Deney W (2026-09-19) — anlaşmazlık-ağırlıklı ensemble distilasyonu: TEK modelde ensemble'ın
+## Çavuşoğlu doğru-ayırtını (%57.1) YAKALADI, PARSEME'de ensemble'ı bile geçti — PROMOTE ADAYI,
+## KULLANICI KARARI BEKLİYOR
+
+Fork araştırmasının 2. önerisi. Deney R'nin teşhisi: vE+vL öğretmen çiftinin softmax
+ORTALAMASINI TÜM kayıtlara eşit KL kaybıyla damıtmak, öğretmenlerin ÇEŞİTLİLİĞİNİ (asıl
+değerli kısmı — birbirini tamamlayan kör-nokta kapsamı) siliyor, öğrenciye yalnız ortalamayı
+öğretiyor ("Agree to Disagree", NeurIPS 2020'nin genel teşhisiyle örtüşüyor). Çözüm: damıtım
+kaybını öğretmenlerin GERÇEKTEN ayrıştığı (tamamlayıcı bilgi taşıyan) pozisyonlara yönlendirmek,
+zaten anlaştıkları (gereksiz sinyal) pozisyonlara değil.
+
+**Uygulama (kalıcı, repoda):** `scripts/distill_ensemble_labels.py` artık her token için
+öğretmenlerin (vE/vL) per-token softmax'ının toplam-varyasyon uzaklığını (`0.5*Σ|p_a-p_b|`,
+[0,1]) da hesaplayıp `disagree_tags`/`disagree_tags2` olarak kaydediyor. `training/train_idiom_bert.py`:
+`_soft_kl` artık opsiyonel `disagree_weight` alıyor — verilirse KL'nin her pozisyondaki katkısı
+o pozisyonun anlaşmazlık ağırlığıyla çarpılıp ağırlıklı ortalama alınır (verilmezse eskisiyle
+BİREBİR aynı — `batchmean` = `kl.sum(-1).mean()`e matematiksel olarak eşit olduğu doğrulandı).
+`--distill-weight-disagree` bayrağı (kapalıyken Deney R ile bit-birebir aynı davranış).
+
+**Eğitim:** Deney R'nin BİREBİR aynı reçetesi (vL verisi, `--distill-lambda 1.0`) +
+`--distill-weight-disagree`. Best epoch 10, dev F1 **67.37** (vL'nin 66.25'ini geçti;
+Deney R'nin 68.83'ünden düşük ama Deney R'nin dev F1 kazancı "sahte" çıkmıştı — asıl ölçüt
+Çavuşoğlu). `best_idiom_tagger_vW_disagree.pt` (kanonik `best_idiom_tagger.pt`'ye geçici
+yazıldı, hash doğrulamasıyla vL'ye geri yüklendi — DOKUNULMADI).
+
+**Tam boru hattı (vW + DEĞİŞMEMİŞ stage-2 v3), diğer turlarla kıyas:**
+
+| metrik | vL (taban) | Deney R (düz distilasyon) | union(vE,vL) ensemble (yayında) | **Deney W (vW)** |
+|---|---|---|---|---|
+| PARSEME ALL F1 | 64.34 | 67.90 | 65.57 | **66.07** |
+| **Çavuşoğlu doğru-ayırt (tam)** | 54.0% | 53.0% | **57.1%** | **57.1% (EŞİT)** |
+| CASES (16) | 13/16 | — | 14/16 | **14/16 (eşit)** |
+| GLU vaka (35) | 21/35 | — | 20/35 | 20/35 |
+| Paket/gecikme bedeli | 1×, ~440MB | 1×, ~440MB | **2×, ~1.3GB** | **1×, ~440MB (ensemble bedeli YOK)** |
+
+**Kesin kanıt — seen/unseen kırılımı (Deney A'nın dondurulmuş setiyle), ezber değil gerçek
+genelleme olduğunu gösteriyor:**
+
+| dilim | vL | vE (tek) | union(vE,vL) ensemble | **Deney W** |
+|---|---|---|---|---|
+| seen (21 çift) | 66.7% | 66.7% | 66.7% | **71.4% (en iyi)** |
+| **unseen (177 çift)** | 39.0% | 54.2% | 55.9% | **55.4% (ensemble'a neredeyse eşit)** |
+
+Deney W, ensemble'ın unseen-deyim kazancının (39.0→55.9, +16.9pp) **%98'ini** (39.0→55.4,
++16.4pp) TEK modelde yakalıyor — Deney R'nin başaramadığı tam olarak bu eksendi (ensemble'ın
+tamamlayıcı kapsamını tek gövdeye aktarma). Fork'un teşhisi doğru çıktı: sorun distilasyonun
+KENDİSİ değil, damıtım kapasitesinin nasıl DAĞITILDIĞIydı.
+
+**Durum: YAYINLANDI v6 (2026-09-19).** Şimdiye kadarki tüm turlardan (S/T/U/V dahil) farklı
+olarak bu, hem asıl karar metriğinde (Çavuşoğlu) ensemble'ı yakalıyor HEM maliyet eksenindeki
+bedeli tamamen ortadan kaldırıyor — Deney O'nun ensemble kararının (maliyet kabul edilebilir
+çünkü doğruluk kazancı onu haklı çıkarıyor) gerektirdiği takas bile yok. Kullanıcı onayıyla
+yayınlandı:
+- **HF push:** `iatagun/DizgeBERT-Idiom` (commit `fd002bd`, ~134MB delta, 880MB paket — v5'in
+  1.32GB'ının yarısı). Round-trip doğrulandı (`--hf-repo` yerel `--checkpoint vW` sayılarıyla
+  birebir eşleşti). MODEL_CARD.md v5→v6 güncellendi (yeni tablo, "ensemble" yerine
+  "anlaşmazlık-ağırlıklı distilasyon" anlatımı, 2×→1× gecikme notu).
+- **Space (`iatagun/dizge-demo`) güncellendi:** `idiom_tab.py`/`app.py`'deki "v5 · ensemble"
+  rozetleri/metinleri "v6 · tek gövde" olarak güncellendi (scratchpad'de klonlanıp commit+push
+  edildi, kod değişikliği olduğu için restart değil tam rebuild tetiklendi: BUILDING→
+  APP_STARTING→RUNNING). `gradio_client` smoke-test: idyomatik "yol aldık" doğru işaretlendi,
+  bilinen literal yanlış-pozitif ("otobüs yol aldı") hâlâ geçiyor — ölçülmüş/belgelenmiş %23.7
+  yanlış-pozitifin canlıda doğrulanması, deploy hatası değil.
+- **Süreç notu (mühendislik dersi):** ilk push denemesi (`... &` ile hem shell arka-planına hem
+  `run_in_background`'a aynı anda alma) sessizce yarıda kesildi — HF repo'sunda değişiklik
+  olmadı ama komut "exit 0" ile "tamamlandı" göründü. `list_repo_commits`/`model_info` ile
+  gerçek durumu doğrulamadan "push bitti" denmemeli; log dosyasının son satırını (`✓ push
+  tamam`) görmeden başarı varsayılmamalı.
+- **Yerel:** kanonik `idiom_data/best_idiom_tagger.pt` hâlâ **vL** (deney disiplini gereği —
+  yalnız HF paketi v6, yerel tek-checkpoint iş akışı v5/Deney O'daki gibi değişmedi).
+  Checkpoint arşivde: `best_idiom_tagger_vW_disagree.pt`. Stage-2 DEĞİŞMEDİ (v3).
+
+**Sonraki oturum için öneri — Deney X: Deney N'i (reddedilen "Leipzig 3M→8M genişletme")
+bu çerçeveyle yeniden dene.** Deney N, tek modele daha fazla ham veri tıkıştırmayı denemiş
+ve REGRESE olmuştu (Çavuşoğlu unseen 52.0→49.2). W'nin gösterdiği şey: darboğaz "daha fazla
+veri" değil, "veriyi doğru BİRLEŞTİRME yöntemi" imiş. Fikir: 8M'lik genişletilmiş Leipzig
+havuzunu TEK modele değil, ayrı korpus dilimleriyle eğitilmiş **2-3 bağımsız öğretmene**
+böl (Deney O'daki "bağımsız soy işe yarıyor, aynı soy zarar veriyor" dersini burada da
+kullan — dilimler gerçekten farklı/örtüşmeyen olmalı), sonra Deney W'nin anlaşmazlık-
+ağırlıklı distilasyon reçetesiyle (`scripts/distill_ensemble_labels.py` + `--distill-lambda
+--distill-weight-disagree`, N teacher'a genelleştirilmesi gerekir — şu an yalnız 2 öğretmen
+destekliyor) tek gövdeye indir. Ön-koşul: önce N-öğretmenli ensemble'ın (distilasyondan ÖNCE,
+yalnız çıkarım-zamanı birleştirme) gerçekten vL/vW'yi geçtiğini doğrula (Deney O'nun
+union/agree/majority taramasına benzer) — geçmiyorsa distilasyona geçmeye değmez. Düşük-orta
+öncelik, henüz denenmedi.
+
+## Deney V (2026-09-19) — leksikal/bağlamsal uyumluluk mimarisi (Zeng&Bhat 2021): şimdiye
+## kadarki en dengeli tek-model sonuç ama YİNE vL/ensemble'ın altında — REDDEDİLDİ
+
+Fork araştırmasının 3. önerisi: stage-2 head'ini TEK birleşik `[CLS]⊕span-ilk⊕son` yerine,
+span'in BAĞLAMSAL (cümledeki hali) ve LEKSİKAL (bağlamsız — yalnız span kelimeleri, ayrı
+küçük dizi olarak kodlanmış) temsillerini AYRI çıkarıp `[bağlamsal, leksikal, fark]` (6H)
+olarak birleştirmek. Önceki turların (v5ctx, Deney H sonrası) hep BAĞLAMSAL tarafı
+zenginleştirmesinden (`[CLS]⊕ortalama⊕ilk⊕son`) FARKLI bir eksen — hiç bir LEKSİKAL/bağlamsız
+referans temsili denenmemişti.
+
+**Uygulama (kalıcı, repoda):** `training/train_idiomaticity_clf.py`: `ClfDS` artık span
+kelimelerini AYRICA bağlamsız tokenize edip (`lex_input_ids`/`lex_attention_mask`/`lf`/`ll`)
+saklıyor; `IdiomaticityClf(compat_gap=True)` ikinci bir küçük forward ile leksikal temsili
+çıkarıp head'e `[ctx, lex, ctx-lex]` veriyor (`compat_gap=False` = eskisiyle bit-birebir aynı,
+head 2H girdi alır). Checkpoint'e `compat_gap` bayrağı gömülüyor. **Gerçek boru hattı da
+güncellendi** (yalnız eğitim değil): `dizgebert_idiom/modeling_dizgebert_idiom.py::span_p_literal_gap`
+(yeni fonksiyon, `span_p_literal`in compat-gap ikizi) + `wrap_stage2()` artık checkpoint'in
+`compat_gap` bayrağını okuyup gerekirse her aday span için span-kelimelerini AYRICA bağlamsız
+kodluyor (cümle başına ekstra küçük forward, yalnız aday sayısı kadar). Uçtan uca smoke-test
+ile doğrulandı (eğitim + `wrap_stage2` çıkarımı).
+
+**Eğitim:** v3'ün BİREBİR aynı reçetesi (`--freeze 8 --dropout 0.3 --weight-decay 0.05
+--epochs 14`, AYNI frozen havuz — 9694 train/3031 test) + `--compat-gap`. Best epoch 3
+(macro 74.2, sonraki epoch'lar düşüş/aşırı-öğrenme). `best_idiomaticity_clf_vGap.pt`.
+
+**Tam boru hattı (vL span modeli + vGap stage-2), diğer turlarla kıyas:**
+
+| metrik | vL (taban, v3) | Deney S | Deney T (PCGrad) | Deney U (freeze8) | **Deney V (vGap)** |
+|---|---|---|---|---|---|
+| PARSEME ALL F1 | 64.34 | 67.38 | 65.82 | 60.87 | **62.46** |
+| **Çavuşoğlu doğru-ayırt** | **54.0%** | 42.9% | 34.3% | 45.5% | **47.5%** |
+| Çavuşoğlu yanlış-poz | 18.7% | 37.9% | 46.5% | 32.8% | **19.7%** |
+| CASES (16) | 13/16 | — | 12/16 | 13/16 | 12/16 |
+| GLU vaka (35) | 21/35 | — | 17/35 | 22/35 | 21/35 |
+
+**Sonuç: REDDEDİLDİ ama şimdiye kadarki en dengeli tek-model sonuç.** Deney U'yu doğru-ayırtta
+geçti (%47.5>%45.5) VE yanlış-pozitifte ÇOK daha iyi (%19.7, vL'nin %18.7'sine neredeyse eşit —
+S/T/U'nun hepsi %33-46 aralığındaydı). Leksikal/bağlamsal FARK sinyali gerçek bir şey ölçüyor
+gibi görünüyor (mekanizma doğru yönde) ama tek başına vL'yi (%54.0) geçmeye yetmiyor — muhtemelen
+çünkü span'i "bağlamsız" kodlamak da kendi başına belirsiz (2-3 kelimelik izole bir dizi hâlâ
+ELECTRA'nın kendi ön-eğitim önyargılarını taşıyor, "gerçek" bir sözlük/lemma referansı değil).
+Kanonik `best_idiomaticity_clf_v3.pt` DEĞİŞMEDİ. Checkpoint arşivde (`best_idiomaticity_clf_vGap.pt`).
+**Not (denenmeden bırakılan takip):** `compat_gap` + `freeze` birlikte (bu turda freeze zaten
+kullanıldı, ama vGap'in kendi mimarisi lex-encoder'ı da mı dondurmalı yoksa serbest mi bırakmalı
+sorusu ayrı bir eksen) — düşük öncelikli.
+
+## Deney U (2026-09-19) — Deney S'e freeze=8 (v3'ün reçetesi, ortak gövdede): büyük iyileşme
+## ama YİNE vL/ensemble'ın altında — REDDEDİLDİ
+
+Deney T'nin teşhisi (PCGrad gradyan-YÖNÜ çakışmasını doğru çözdü ama asıl sorun stage-2'nin
+KORUMASIZLIĞI/aşırı-öğrenmesiydi) doğrudan test edildi: `scripts/train_joint_stage2.py`'e
+`--freeze N` eklendi (`training/train_idiomaticity_clf.py::IdiomaticityClf`'in AYNI dondurma
+mantığı — embeddings + alttan N transformer katmanı — ama PAYLAŞILAN gövdede, `tag_head`/
+`tag_head2`'yi de aynı anda korur). `--freeze 0` = Deney S/T ile bit-birebir aynı davranış.
+Deney S'in BİREBİR aynı reçetesi + `--freeze 8`, PCGrad KAPALI (en temiz tek-değişkenli test —
+Deney T'nin hangi ekseninin gerçekten işe yaradığını izole etmek için).
+
+Doğrulama: freeze 8 → 110M→**28.4M trainable** (v3'ün kendi rakamıyla birebir). Yan fayda:
+eğitim de **~6.5× hızlandı** (~1.1it/s→~7.2it/s, daha az katmanda geri-yayılım + PCGrad'ın ek
+autograd.grad yükü yok) — 10 epoch ~80dk'da bitti (Deney T'nin ~8.5 saatine karşı).
+
+Best epoch 9 (dev F1 62.70). Tam boru hattı (vJointF8):
+
+| metrik | vL (taban) | Deney S | Deney T (PCGrad) | **Deney U (freeze8)** |
+|---|---|---|---|---|
+| PARSEME ALL F1 | 64.34 | 67.38 | 65.82 | **60.87 (−3.47)** |
+| **Çavuşoğlu doğru-ayırt** | **54.0%** | 42.9% | 34.3% | **45.5%** |
+| Çavuşoğlu yanlış-poz | 18.7% | 37.9% | 46.5% | **32.8%** |
+| CASES (16) | 13/16 | — | 12/16 | **13/16 (vL'yle eşit)** |
+| GLU vaka (35) | 21/35 | — | 17/35 | **22/35 (o ana kadarki en iyisi)** |
+
+**Sonuç: REDDEDİLDİ ama üç ortak-gövde varyantının en iyisi.** Hipotez doğrulandı — freeze,
+Deney S'in %42.9'unu VE Deney T'nin %34.3'ünü büyük farkla geçti. Ama PARSEME'de gerçek bir
+bedel var (kapasite kısıtlaması, stage-1'in kendi öğrenmesini de yavaşlatıyor) ve doğru-ayırt
+hâlâ vL'nin (%54.0) altında. **Ortak-gövde ekseni (Deney S/T/U, üç farklı mekanizma —
+korumasız/PCGrad/freeze) artık tükenmiş görünüyor** — hiçbiri AYRI iki gövdenin (vL span +
+v3 stage-2) toplamını geçemedi. Checkpoint arşivde (`best_idiom_tagger_vJointF8.pt`,
+`best_idiomaticity_clf_vJointF8.pt`), kanonik değişmedi.
+
+## Deney T (2026-09-18/19) — Deney S'e PCGrad gradyan cerrahisi: gradyan çakışması gerçekten
+## VARDI (doğrulandı) ama Çavuşoğlu düz-Deney S'ten de KÖTÜ — REDDEDİLDİ, farklı bir kök neden
+
+Deney S'in teşhisi ("paylaşılan gövde, korumasız, stage-1'in büyük gradyanı stage-2'yi
+boğuyor") literatürdeki gradyan-çakışması/görev-dengesizliği problemiyle örtüşüyordu —
+PCGrad (Yu et al., NeurIPS 2020) tam bunu hedefliyor: iki görev gradyanı PAYLAŞILAN
+parametrelerde çakışırsa (kosinüs negatif), çakışan bileşen projekte edilip silinir; head'ler
+(`tag_head`/`tag_head2` ↔ loss1, `stage2_head` ↔ loss2) zaten göreve özel, yalnız `encoder`
+parametrelerinde cerrahi uygulandı (`scripts/train_joint_stage2.py::pcgrad_step`, `--pcgrad`
+bayrağı, kapalıyken Deney S ile bit-birebir aynı davranış). Aynı vL reçetesi, `--epochs 10
+--mu 1.0 --pcgrad --batch-size 8` (bu makinede 4GB VRAM zorunluluğuyla batch 16→8 — Deney S ile
+tek-değişkenli kıyas tam saf değil, ama sonuç zaten net negatif olduğundan bu ikincil).
+
+**Süreç notu (mühendislik dersi):** ilk implementasyonda iki gerçek bug vardı, ikisi de
+düzeltildi ve smoke-test'le doğrulandı: (1) `loss1.backward(inputs=..., retain_graph=True)`
+olması gerekirken `True` bırakılmıştı — grafiği hiç serbest bırakmıyordu, GPU'da adım başına
+bellek birikip epoch içinde 1s/it'ten 5.6s/it'e çıkıyordu; (2) PCGrad'ın simetrik
+projeksiyonunda ikinci satır `flat1`'i BİRİNCİ satırda zaten güncellenmiş haliyle kullanıyordu
+(orijinal değerler cache'lenmeliydi) — matematiği sinsice bozan bir referans hatası. Ayrıca
+epoch1→epoch2 geçişinde tekrarlayan bir yavaşlama (~1.1s/it→~5s/it, sonra platoya oturuyor)
+gözlendi; checkpoint kaydını CPU'ya taşımak (D2H trafiğini yarıya indirmek) ÇÖZMEDİ — asıl
+sebep, eval'den önce çağrılan `torch.cuda.empty_cache()` imiş: 4GB'lık kartta cache'i zorla
+boşaltmak allocator'ı her epoch başında sıfırdan (daha parçalı) yeniden ısınmaya zorluyordu.
+Bu çağrıyı (Deney S'ten kalma) kaldırmak sorunu tamamen çözdü. **İkisi de mekanizma
+doğrulamasından SONRA, gerçek 10-epoch koşusundan ÖNCE yakalandı** — deney sonucunun kendisini
+etkilemedi.
+
+**Mekanizma doğrulandı:** `pcgrad_conflict_rate` epoch başına ölçüldü, adımların **%46-62'sinde
+gerçek çakışma vardı** (epoch1 %46 → epoch10 %62, model ezberledikçe çakışma ARTIYOR) —
+Deney S'in "stage-1/stage-2 gradyanları paylaşılan gövdede çakışıyor" teşhisi bağımsız olarak
+doğrulandı, PCGrad'ın müdahale edecek gerçek bir şeyi vardı.
+
+Tam boru hattı (vJointPC, epoch6 en iyi dev-F1 66.51'de seçildi), Deney S ve vL ile kıyas:
+
+| metrik | vL (taban) | Deney S (vJoint, korumasız) | **Deney T (vJointPC, PCGrad)** |
+|---|---|---|---|
+| PARSEME ALL F1 | 64.34 | 67.38 | 65.82 |
+| **Çavuşoğlu doğru-ayırt (tam, gevşek)** | **54.0%** | **42.9%** | **34.3% (Deney S'ten de KÖTÜ)** |
+| Çavuşoğlu yanlış-poz | 18.7% | 37.9% | **46.5% (en kötü)** |
+| CASES (16) | 13/16 | — | 12/16 |
+| GLU vaka (35) | 21/35 | — | 17/35 |
+| minimal-çift doğru-ayırt (stage2-iso) | ~59% (v3) | — | **11% (çöküş)** |
+
+**Sonuç: REDDEDİLDİ, Deney S'ten de kötü.** PCGrad gradyan-YÖNÜ çakışmasını doğru şekilde
+çözdü ama bu, sorunun yanlış ekseniydi. Gerçek teşhis: stage-2, ~1212 batch'lik küçük havuzu
+her epoch'ta `itertools.cycle` ile 2.8× tekrar tekrar görüyor ve hiçbir dondurma/düzenlileştirme
+olmadan hızla ezberliyor (loss2 epoch1 0.33 → epoch10 0.001) — bu Deney S'te de vardı, ama
+PCGrad bunu DAHA KÖTÜLEŞTİRDİ: çakışma anlarında PCGrad, stage-2'nin gradyan YÖNÜNÜ stage-1'in
+büyük ama iyi-koşullu gradyanının "sulandırmasından" bilinçli olarak KORUYOR — sorun stage-2'nin
+yönü değil, o yönün zaten aşırı-ezberlenmiş/gürültülü olmasıydı, PCGrad kötü bir sinyali
+korumuş oldu. İkinci, ayrı bir kusur: seçim ölçütü (`selection_score`) YALNIZ stage-1 span-F1'e
+bakıyor, stage-2'nin kendi genellemesini hiç izlemiyor — epoch6 stage-1 için en iyi ama stage-2
+zaten epoch4'ten beri (loss2 0.006) ağır ezberlemiş durumdaydı, "en iyi" checkpoint stage-2 açısından
+gelişigüzel bir noktada seçildi. **Deney S'in notundaki takip fikri ("--freeze ile stage2_head
+öncesi katmanları dondurarak ortak-gövdeyi tekrar dene") hâlâ denenmedi ve şimdi daha güçlü bir
+öncelik kazandı** — PCGrad'ın gösterdiği kadarıyla sorun gradyan YÖNÜ değil, stage-2'nin
+KORUMASIZLIĞI (regularizasyon eksikliği); freeze bunu hem gradyan-hacim hem overfit ekseninde
+birden çözebilir, PCGrad tek başına yetersiz kaldı. Checkpoint'ler arşivde
+(`best_idiom_tagger_vJointPC.pt`, `best_idiomaticity_clf_vJointPC.pt`), kanonik değişmedi.
+
 ## Deney S (2026-09-18) — ortak-gövde çok-görevli eğitim (multi-task): PARSEME iyi, Çavuşoğlu
 ## ÇÖKTÜ — REDDEDİLDİ, kök neden stage-2 head'in korumasız paylaşımı
 

@@ -84,21 +84,63 @@ class JointIdiomTagger(IdiomTagger):
         return self.stage2_head(self.stage2_dropout_layer(torch.cat([f, g], -1)))
 
 
-def split_checkpoints(model: JointIdiomTagger, ls: IdiomLabelSpace, meta: dict) -> None:
+def split_checkpoints(model: JointIdiomTagger, ls: IdiomLabelSpace, meta: dict,
+                       suffix: str = "vJoint") -> None:
     """En iyi epoch'ta paylaşılan gövdeyi mevcut eval altyapısıyla uyumlu iki dosyaya böler
     (dosya-başı docstring). Yalnız değerlendirme kolaylığı, eğitimi etkilemez."""
-    full = model.state_dict()
+    # GPU tensörlerini TEK seferde CPU'ya kopyala — aksi halde iki ayrı torch.save() çağrısı
+    # encoder ağırlıklarını (paylaşılan, iki dosyada da var) GPU'dan İKİ KEZ D2H kopyalar,
+    # bu da 4GB'lık kartta allocator fragmentasyonuna yol açıp sonraki epoch'u yavaşlatıyordu.
+    full = {k: v.detach().cpu() for k, v in model.state_dict().items()}
     tagger_sd = {k: v for k, v in full.items()
                 if not k.startswith("stage2_head") and not k.startswith("stage2_dropout_layer")}
     torch.save({**meta, "model": tagger_sd, "label_space": ls.as_dict(),
                 "encoder_model": ls.encoder_model},
-               DATA_DIR / "best_idiom_tagger_vJoint.pt")
+               DATA_DIR / f"best_idiom_tagger_{suffix}.pt")
 
     clf_sd = {k: v for k, v in full.items() if k.startswith("encoder.")}
     clf_sd["head.weight"] = full["stage2_head.weight"]
     clf_sd["head.bias"] = full["stage2_head.bias"]
     torch.save({"model": clf_sd, "encoder": ls.encoder_model, "metrics": meta.get("metrics")},
-               DATA_DIR / "best_idiomaticity_clf_vJoint.pt")
+               DATA_DIR / f"best_idiomaticity_clf_{suffix}.pt")
+
+
+def pcgrad_step(model: JointIdiomTagger, loss1: torch.Tensor, loss2: torch.Tensor) -> bool:
+    """Deney T — PCGrad (Yu et al., NeurIPS 2020) gradyan cerrahisi, yalnız PAYLAŞILAN
+    `encoder` parametrelerinde. Deney S'in kök nedeni buydu: ortak gövde korumasız paylaşıldığı
+    için stage-1'in çok daha büyük hacimli gradyanı stage-2'nin ince sinyalini boğuyordu.
+    Head'ler (`tag_head`/`tag_head2` ↔ loss1, `stage2_head` ↔ loss2) zaten göreve özel,
+    çakışma yalnız paylaşılan gövdede olabilir — orada iki görev gradyanının kosinüsü negatifse
+    (çakışıyorsa) her birinin diğerine çakışan bileşeni silinir, DEĞİLSE davranış toplam
+    (loss1+loss2) ile birebir aynıdır. `--pcgrad` kapalıyken bu fonksiyon hiç çağrılmaz."""
+    shared = [p for p in model.encoder.parameters() if p.requires_grad]
+    task1_only = list(model.tag_head.parameters()) + list(model.tag_head2.parameters())
+    if hasattr(model, "pos_embed"):
+        task1_only += list(model.pos_embed.parameters())
+    task2_only = list(model.stage2_head.parameters())
+
+    g1 = torch.autograd.grad(loss1, shared, retain_graph=True, allow_unused=True)
+    g2 = torch.autograd.grad(loss2, shared, retain_graph=True, allow_unused=True)
+    g1 = [torch.zeros_like(p) if g is None else g for g, p in zip(g1, shared)]
+    g2 = [torch.zeros_like(p) if g is None else g for g, p in zip(g2, shared)]
+    flat1 = torch.cat([g.reshape(-1) for g in g1])
+    flat2 = torch.cat([g.reshape(-1) for g in g2])
+    dot = torch.dot(flat1, flat2)
+    conflict = bool(dot.item() < 0)
+    if conflict:
+        flat1_orig, flat2_orig = flat1, flat2
+        flat1 = flat1_orig - dot / (flat2_orig.norm() ** 2 + 1e-12) * flat2_orig
+        flat2 = flat2_orig - dot / (flat1_orig.norm() ** 2 + 1e-12) * flat1_orig
+    combined = flat1 + flat2
+    offset = 0
+    for p, g in zip(shared, g1):
+        n = g.numel()
+        p.grad = combined[offset:offset + n].view_as(g).clone()
+        offset += n
+
+    loss1.backward(inputs=task1_only, retain_graph=False)
+    loss2.backward(inputs=task2_only, retain_graph=False)
+    return conflict
 
 
 def main() -> None:
@@ -107,10 +149,20 @@ def main() -> None:
     ap.add_argument("--mu", type=float, default=1.0, help="stage-2 kaybının ağırlığı (loss1 + mu*loss2)")
     ap.add_argument("--batch-size", type=int, default=BATCH_SIZE)
     ap.add_argument("--lr", type=float, default=LR)
+    ap.add_argument("--pcgrad", action="store_true",
+                     help="Deney T: paylaşılan encoder'da PCGrad gradyan cerrahisi (kapalıyken Deney S ile birebir aynı davranış)")
+    ap.add_argument("--freeze", type=int, default=0,
+                     help="Deney U: v3/IdiomaticityClf ile AYNI reçete — embeddings + alttan N "
+                          "transformer katmanını dondur (paylaşılan gövdede, yalnız üst katmanlar "
+                          "+ head'ler eğitilir). 0 = kapalı, Deney S/T ile birebir aynı davranış.")
     args = ap.parse_args()
+    suffix_parts = ["vJoint"]
+    if args.pcgrad: suffix_parts.append("PC")
+    if args.freeze: suffix_parts.append(f"F{args.freeze}")
+    suffix = "".join(suffix_parts)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Device: {device}  mu={args.mu}")
+    print(f"Device: {device}  mu={args.mu}  pcgrad={args.pcgrad}  freeze={args.freeze}")
 
     ls = IdiomLabelSpace.load()
     tokenizer = AutoTokenizer.from_pretrained(ls.encoder_model)
@@ -146,6 +198,17 @@ def main() -> None:
     print(f"stage-2 train {len(s2_train_ds)}  class-weights {s2_w.tolist()}")
 
     model = JointIdiomTagger(ls, ls.encoder_model).to(device)
+    if args.freeze > 0:
+        # v3/IdiomaticityClf ile BİREBİR aynı dondurma (training/train_idiomaticity_clf.py) —
+        # PAYLAŞILAN gövdede uygulanıyor, bu yüzden stage-1'in tag_head/tag_head2'sini de korur.
+        for p in model.encoder.embeddings.parameters():
+            p.requires_grad_(False)
+        layers = model.encoder.encoder.layer
+        for lyr in layers[:min(args.freeze, len(layers))]:
+            for p in lyr.parameters():
+                p.requires_grad_(False)
+        ntr = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f"freeze {args.freeze} → trainable {ntr/1e6:.1f}M")
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=WEIGHT_DECAY)
     total_steps = len(train_dl) * args.epochs
     scheduler = get_linear_schedule_with_warmup(
@@ -157,6 +220,7 @@ def main() -> None:
         model.train()
         s2_iter = itertools.cycle(s2_dl)
         tot1 = tot2 = 0.0
+        conflicts = 0
         for batch1 in tqdm(train_dl, desc="train"):
             batch1 = {k: v.to(device) for k, v in batch1.items()}
             batch2 = {k: v.to(device) for k, v in next(s2_iter).items()}
@@ -167,17 +231,23 @@ def main() -> None:
             logits2 = model.forward_stage2(batch2["input_ids"], batch2["attention_mask"],
                                            batch2["sf"], batch2["sl"])
             loss2 = F.cross_entropy(logits2, batch2["y"], weight=s2_w)
-            loss = loss1 + args.mu * loss2
-            loss.backward()
+            if args.pcgrad:
+                conflicts += int(pcgrad_step(model, loss1, loss2 * args.mu))
+            else:
+                (loss1 + args.mu * loss2).backward()
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
             scheduler.step()
             tot1 += loss1.item(); tot2 += loss2.item()
         n = len(train_dl)
-        print(f"train loss1(stage-1) {tot1/n:.4f}  loss2(stage-2) {tot2/n:.4f}")
+        conflict_note = f"  pcgrad_conflict_rate {conflicts/n:.2%}" if args.pcgrad else ""
+        print(f"train loss1(stage-1) {tot1/n:.4f}  loss2(stage-2) {tot2/n:.4f}{conflict_note}")
 
-        if device.type == "cuda":
-            torch.cuda.empty_cache()
+        # not: empty_cache() BİLEREK yok — PyTorch'un caching allocator'ı eval/train geçişini
+        # kendi yönetir; 4GB'lık kartta cache'i zorla boşaltmak allocator'ı sıfırdan (daha
+        # parçalı) yeniden ısınmaya zorluyor, bu da bir sonraki epoch'ta ~3x kalıcı yavaşlama
+        # yaratıyordu (Deney T, 2026-09-18) — checkpoint kaydını CPU'ya taşımak bunu ÇÖZMEDİ,
+        # asıl sebep bu çağrının kendisiydi.
         res = evaluate(model, dev_dl, device, ls)
         print_eval(res)
         score = selection_score(res)
@@ -185,8 +255,8 @@ def main() -> None:
         if score > best:
             best = score
             split_checkpoints(model, ls, {"epoch": epoch, "target_epochs": args.epochs,
-                                          "best": best, "metrics": res})
-            print("  → best kaydedildi (vJoint çifti)")
+                                          "best": best, "metrics": res}, suffix=suffix)
+            print(f"  → best kaydedildi ({suffix} çifti)")
 
     print(f"\nBest selection score: {best:.2f}")
 

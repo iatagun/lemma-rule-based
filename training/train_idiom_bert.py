@@ -122,6 +122,10 @@ class IdiomDataset(Dataset):
             soft_src = rec.get("soft_tags")
             soft2_src = rec.get("soft_tags2")
             has_soft = soft_src is not None and soft2_src is not None
+            # Deney W: öğretmenlerin per-token anlaşmazlık ağırlığı (yoksa None — geriye
+            # dönük uyum, eski _distill.json dosyaları da çalışır, ağırlıksız/düz mod olur).
+            dis_src = rec.get("disagree_tags")
+            dis2_src = rec.get("disagree_tags2")
             self.items.append({
                 "input_ids": enc["input_ids"],
                 "attention_mask": enc["attention_mask"],
@@ -134,6 +138,8 @@ class IdiomDataset(Dataset):
                 "soft_tags": [soft_src[w] for w in kept] if has_soft else None,
                 "soft_tags2": [soft2_src[w] for w in kept] if has_soft else None,
                 "has_soft": has_soft,
+                "disagree_tags": [dis_src[w] for w in kept] if dis_src else None,
+                "disagree_tags2": [dis2_src[w] for w in kept] if dis2_src else None,
             })
 
     def __len__(self):
@@ -158,6 +164,10 @@ def make_collate(pad_id: int):
             seq = seq or []
             return seq + [[0.0, 0.0, 0.0, 0.0, 0.0]] * (maxW - len(seq))
 
+        def padDisagree(seq):
+            seq = seq or []
+            return seq + [0.0] * (maxW - len(seq))
+
         return {
             "input_ids": torch.tensor([padL(b["input_ids"], pad_id) for b in batch]),
             "attention_mask": torch.tensor([padL(b["attention_mask"], 0) for b in batch]),
@@ -169,6 +179,8 @@ def make_collate(pad_id: int):
             "soft_tags": torch.tensor([padSoft(b["soft_tags"]) for b in batch], dtype=torch.float32),
             "soft_tags2": torch.tensor([padSoft(b["soft_tags2"]) for b in batch], dtype=torch.float32),
             "has_soft": torch.tensor([bool(b["has_soft"]) for b in batch]),
+            "disagree_tags": torch.tensor([padDisagree(b["disagree_tags"]) for b in batch], dtype=torch.float32),
+            "disagree_tags2": torch.tensor([padDisagree(b["disagree_tags2"]) for b in batch], dtype=torch.float32),
         }
 
     return collate
@@ -285,28 +297,39 @@ def _ce_or_focal(logits: torch.Tensor, targets: torch.Tensor,
 
 
 def _soft_kl(student_logits: torch.Tensor, teacher_probs: torch.Tensor,
-            valid_mask: torch.Tensor) -> torch.Tensor:
+            valid_mask: torch.Tensor, disagree_weight: torch.Tensor | None = None) -> torch.Tensor:
     """Öneri #1 — ensemble distilasyonu: öğrenci log-softmax'ı ile öğretmen (vE+vL ortalama)
     softmax'ı arasında KL(öğrenci||öğretmen). `valid_mask` = geçerli kelime konumu VE kayıt
-    `has_soft=True` (yalnız weak-supervision kayıtları — PARSEME altın verisi hiç dokunulmaz)."""
+    `has_soft=True` (yalnız weak-supervision kayıtları — PARSEME altın verisi hiç dokunulmaz).
+
+    `disagree_weight` (Deney W): verilirse her pozisyonun KL katkısı öğretmenlerin o
+    pozisyondaki anlaşmazlığıyla (toplam-varyasyon uzaklığı, [0,1]) ağırlıklandırılır —
+    `None` iken davranış eskisiyle BİREBİR aynı (`F.kl_div(..., reduction="batchmean")`
+    matematiksel olarak `kl.sum(-1).mean()`e eşit, aşağıdaki manuel hesap bunu yeniden üretir)."""
     if not valid_mask.any():
         return student_logits.sum() * 0.0
     log_p_student = F.log_softmax(student_logits, dim=-1)[valid_mask]
     p_teacher = teacher_probs[valid_mask]
-    return F.kl_div(log_p_student, p_teacher, reduction="batchmean")
+    kl = F.kl_div(log_p_student, p_teacher, reduction="none").sum(-1)
+    if disagree_weight is None:
+        return kl.mean()
+    w = disagree_weight[valid_mask]
+    return (kl * w).sum() / w.sum().clamp(min=1e-8)
 
 
 def compute_loss(logits: dict, batch: dict, weights: torch.Tensor | None = None,
                  weights2: torch.Tensor | None = None, focal_gamma: float = 0.0,
-                 distill_lambda: float = 0.0) -> torch.Tensor:
+                 distill_lambda: float = 0.0, distill_weight_disagree: bool = False) -> torch.Tensor:
     l1 = _ce_or_focal(logits["tags"], batch["tags"], weights, focal_gamma)
     l2 = _ce_or_focal(logits["tags2"], batch["tags2"], weights2, focal_gamma)
     loss = l1 + l2
     if distill_lambda > 0.0:
         valid = (batch["tags"] != IGN) & batch["has_soft"].unsqueeze(-1)
+        w1 = batch["disagree_tags"] if distill_weight_disagree else None
+        w2 = batch["disagree_tags2"] if distill_weight_disagree else None
         loss = loss + distill_lambda * (
-            _soft_kl(logits["tags"], batch["soft_tags"], valid)
-            + _soft_kl(logits["tags2"], batch["soft_tags2"], valid))
+            _soft_kl(logits["tags"], batch["soft_tags"], valid, w1)
+            + _soft_kl(logits["tags2"], batch["soft_tags2"], valid, w2))
     return loss
 
 
@@ -318,7 +341,8 @@ def move(batch: dict, device) -> dict:
 
 
 def train_epoch(model, loader, optimizer, scheduler, device, weights=None, weights2=None,
-                focal_gamma: float = 0.0, distill_lambda: float = 0.0) -> float:
+                focal_gamma: float = 0.0, distill_lambda: float = 0.0,
+                distill_weight_disagree: bool = False) -> float:
     model.train()
     total = 0.0
     for batch in tqdm(loader, desc="train"):
@@ -326,7 +350,8 @@ def train_epoch(model, loader, optimizer, scheduler, device, weights=None, weigh
         optimizer.zero_grad()
         logits = model(batch["input_ids"], batch["attention_mask"],
                        batch["first_pos"], batch["last_pos"], batch["pos_ids"])
-        loss = compute_loss(logits, batch, weights, weights2, focal_gamma, distill_lambda)
+        loss = compute_loss(logits, batch, weights, weights2, focal_gamma, distill_lambda,
+                            distill_weight_disagree)
         loss.backward()
         nn.utils.clip_grad_norm_(model.parameters(), MAX_GRAD_NORM)
         optimizer.step()
@@ -518,6 +543,12 @@ def main() -> None:
                          "kaybı eklenir — bunun için --tdk-examples/--corpus-glu dosyalarının "
                          "`_distill.json` varyantı (scripts/distill_ensemble_labels.py çıktısı, "
                          "soft_tags/soft_tags2 alanları) gerekir")
+    ap.add_argument("--distill-weight-disagree", action="store_true",
+                    help="Deney W: KL kaybını öğretmenlerin (vE/vL) per-token anlaşmazlığıyla "
+                         "ağırlıklandır (disagree_tags/disagree_tags2, aynı _distill.json'da) — "
+                         "damıtım kapasitesini anlaşma bölgelerinden (gereksiz) ayrışma "
+                         "bölgelerine (tamamlayıcı kapsam) yönlendirir. Kapalıyken Deney R ile "
+                         "birebir aynı (düz ortalama KL)")
     ap.add_argument("--tdk-examples", action="store_true",
                     help="idiom_data/tdk_examples.json'u (TDK sözlüğü gömülü örnekleri, "
                          "isim/sıfat deyimler dahil) train'e ekle")
@@ -660,7 +691,7 @@ def main() -> None:
     for epoch in range(start_epoch, args.epochs + 1):
         print(f"\n=== Epoch {epoch}/{args.epochs} ===")
         tl = train_epoch(model, train_dl, optimizer, scheduler, device, weights, weights2,
-                         args.focal_gamma, args.distill_lambda)
+                         args.focal_gamma, args.distill_lambda, args.distill_weight_disagree)
         print(f"train loss: {tl:.4f}")
         if device.type == "cuda":
             torch.cuda.empty_cache()
