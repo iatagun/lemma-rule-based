@@ -98,7 +98,12 @@ BIO span etiketleyici. **Yayınlandı** (`huggingface.co/iatagun/DizgeBERT-Idiom
     `revision="v8"` artık kalıcı git tag'leri (doğrulandı, ikisi de doğru state'e çözülüyor).
   - Tam detay + tablolar: `dizgebert_idiom/MODEL_CARD.md` (kısa) + `dizgebert_idiom/CHANGELOG.md`
     (sürüm geçmişi + derin istatistiksel doğrulama), ikisi de HF'ye push edildi
-    (commit d54d338, HF etiketleri: v6, v8).
+    (commit 8e9a29a, HF etiketleri: v6, v8). **Düzeltme notu:** Anthropic kullanım-politikası
+    yorumu ilk turda fazla geniş çıkarım yapmıştı ("train an AI model... without prior
+    authorization" genel cümlesinden yasak sonucu) — Anthropic'in resmi Yardım Merkezi SSS'i
+    dar-kapsamlı sınıflandırıcı/bilgi-çıkarma araçlarına AÇIK İZİN verdiğini gösteriyor
+    (yasak olan genel-amaçlı sohbet botları); DizgeBERT-Idiom bu izin verilen kategoriye
+    yakın, düzeltildi.
     Scriptler: `data/fetch_aslantas_gungor_tr.py`, `data/fetch_dodiom_tr.py`,
     `benchmark/eval_aslantas_gungor.py`, `benchmark/train_ag_electra_baseline.py`,
     `benchmark/reeval_ag_baseline_seqeval.py`, `benchmark/eval_ag_baseline_on_cavusoglu.py`,
