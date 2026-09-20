@@ -1,6 +1,6 @@
 ---
 name: idiom
-description: Türkçe deyim (VID) / eşdizim (LVC) span tespiti — DizgeBERT-Idiom. YAYINLANDI v7 (2026-09-19, Deney X — 3-gövde ensemble, Çavuşoğlu doğru-ayırt rekoru %58.1). GLU çok-ölçütlü etiketleme karar çerçevesi + deney günlüğü (tek-model kaldıraçları TÜKENDİ; iki-aşamalı detect→filter ÇALIŞIYOR; ensemble/distilasyon turları Deney O/R/W/X'te) + stage-2 idyomatiklik sınıflandırıcısı iş akışı. Trigger — DizgeBERT-Idiom üzerinde çalışırken, deyim/MWE eğitim verisi hazırlarken/etiketlerken, idyomatik-literal ayrımı, stage-2 sınıflandırıcı, `find_span`/`prepare_*idiom*`/`filter_corpus_idiomaticity`, `/deyim` ya da `/idiom`.
+description: Türkçe deyim (VID) / eşdizim (LVC) span tespiti — DizgeBERT-Idiom. YAYINLANDI v8 (2026-09-19, Deney Z — Aşama 2 LLM-üretilmiş sentetik minimal çiftlerle yeniden eğitildi, Çavuşoğlu doğru-ayırt rekoru %65.2/%65.0, v7'den +7pp, 10 ardışık stage-2 reddinden sonraki İLK kazanç). ÖNEMLİ (2026-09-20): `_bench_seen/unseen.json` bayatlamıştı (Deney A'dan beri hiç güncellenmemiş), düzeltildi — asıl bulgu ayakta kaldı ama detay için "KRİTİK DÜZELTME" bölümüne bak. GLU çok-ölçütlü etiketleme karar çerçevesi + deney günlüğü + stage-2 idyomatiklik sınıflandırıcısı iş akışı. Trigger — DizgeBERT-Idiom üzerinde çalışırken, deyim/MWE eğitim verisi hazırlarken/etiketlerken, idyomatik-literal ayrımı, stage-2 sınıflandırıcı, `find_span`/`prepare_*idiom*`/`filter_corpus_idiomaticity`, `/deyim` ya da `/idiom`.
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 user-invokable: true
 ---
@@ -10,7 +10,50 @@ user-invokable: true
 `lemma-rule-based` reposunda ELECTRA tabanlı Türkçe deyim (VID) / eşdizim (LVC.full)
 BIO span etiketleyici. **Yayınlandı** (`huggingface.co/iatagun/DizgeBERT-Idiom`).
 
-- **YAYINLANDI v7 (2026-09-19, en güncel): Aşama-1 3-GÖVDE ENSEMBLE (Deney X) — vE+vL+vX3
+- **Dış-literatür çapraz karşılaştırma (2026-09-20) — DÜZELTİLMİŞ sürüm.** İlk turun
+  "%79.5 F1" / "doğru-ayırt %77.4" gibi rakamları YANLIŞ METRİKLE hesaplanmıştı (bizim
+  kısmi-örtüşmeye puan veren token-düzeyi ölçütümüz — onların `seqeval` entity-exact-match
+  metriğiyle DOĞRUDAN kıyaslanamaz) ve deyim-kimliği örtüşmesi hiç ölçülmemişti. Dış bir
+  incelemeden (kullanıcı payı) sonra düzeltildi:
+  - **(1) DizgeBERT-Idiom'u Aslantaş & Güngör'ün (SIGTURK 2026,
+    `github.com/gozdeaslantas/Turkic_Idiom_Understanding_Benchmark`) TR test setinde (131
+    cümle) çalıştırmak — ONLARIN metriğiyle (seqeval entity-F1):** tümü F1=0.592 (stage2
+    kapalı) / 0.496 (açık), onların in-domain ELECTRA-tr/ConvBERT-tr'sinin (0.877/0.880)
+    belirgin altında. **131 idiomun 71'i (%54) zaten bizim Aşama-1 havuzumuzda** — gerçekten
+    görülmemiş 60 deyimlik dilimde F1 yalnız 0.414 (stage2 kapalı). "Sıfır-atış" yalnız
+    CÜMLE düzeyinde geçerliydi, deyim-kimliği düzeyinde değil.
+  - **(2) Onların backbone'unu (ELECTRA-tr, kendi verileriyle burada yeniden eğitildi —
+    kendi test setlerinde seqeval F1=0.924, makul reprodüksiyon) bizim Çavuşoğlu'muzda
+    çalıştırmak:** doğru-ayırt %9.6 (duyarlılık %87.4≈yanlış-poz %85.9). Bu, "salt-pozitif
+    eğitilmiş bir tagger bağlam ayırt edemiyor" gözlemini destekliyor — ama TEK BAŞINA "iki
+    aşama şart" genellemesini KANITLAMIYOR (onlar hiç literal örnekle eğitilmedi).
+  - **Bağımsız, asıl ablasyon (`eval_cavusoglu_stage_ablation.py`):** Aşama 1'i (v7, AYNI
+    veri — literal örnekler `corpus_examples_glu.json`'da zaten hep-O) Aşama 2 OLMADAN
+    çalıştırınca Çavuşoğlu'nda doğru-ayırt **%28.8** (95% GA %22.7–35.4) vs tam boru hattı
+    **%68.2**; eşleştirilmiş fark +39.4pp (95% GA +30.8–47.5, anlamlı). Bu, "bu mimari/veriyle
+    tek aşama yetmiyor" iddiasının GERÇEK kanıtı (ensemble'a özgü, tek-ELECTRA-gövdeye
+    otomatik genellenmez — not edildi).
+  - **(3) Umut et al. (2025, UBMK, IEEE-arkalı) veri seti yayınlanmamış** — Dodiom TR
+    (Eryiğit ekibi, 6861 örnek/36 deyim) yerine kullanıldı, AYNI VERİ DEĞİL. Deyim-KÜME
+    bootstrap (etkin n=36): duyarlılık %69.9 (küme-GA %62.5–76.3), yanlış-poz %15.1
+    (%12.1–18.1), **dengelenmiş doğruluk %77.4** (EŞLEŞTİRİLMEMİŞ, Çavuşoğlu'nun çift-düzeyi
+    "doğru-ayırt"ıyla AYNI ÖLÇEK DEĞİL). 36 deyimin **34'ü Aşama-1 span havuzunda zaten var**
+    (span-bulma açısından neredeyse hiç görülmemiş-deyim testi değil); Aşama-2'nin KENDİ
+    etiketli havuzuyla örtüşme 0/36 (asıl test edilen bağlam-ayrımı sinyali için dış veri).
+  - Tam detay + tablolar: `dizgebert_idiom/MODEL_CARD.md` (henüz HF'ye push edilmedi).
+    Scriptler: `data/fetch_aslantas_gungor_tr.py`, `data/fetch_dodiom_tr.py`,
+    `benchmark/eval_aslantas_gungor.py`, `benchmark/train_ag_electra_baseline.py`,
+    `benchmark/reeval_ag_baseline_seqeval.py`, `benchmark/eval_ag_baseline_on_cavusoglu.py`,
+    `benchmark/eval_dodiom.py`, `benchmark/eval_cavusoglu_stage_ablation.py`,
+    `benchmark/stats_utils.py`. **Ölçülmeyen/eksik kalan:** PARSEME'nin kendi VMWE
+    lemma-kimlikleri deyim-örtüşme kontrolüne dahil edilmedi (format farkı).
+- **YAYINLANDI v8 (2026-09-19, en güncel): Aşama-2 SENTETİK MİNİMAL ÇİFTLERLE yeniden eğitildi
+  (Deney Z) — Çavuşoğlu doğru-ayırt rekoru %65.2 (tam) / %65.0 (unseen), v7'den +7pp.**
+  10 ardışık stage-2 reddinden sonraki İLK gerçek kazanç: LLM'e doğal cümle etiketletmek
+  yerine 650 TDK deyimi için dengeli idyomatik+literal cümle YAZDIRILDI, doğal derlem verisi
+  tamamen atılıp yalnız bu sentetik havuzla eğitildi. Aşama 1 (v7, 3-gövde ensemble) hiç
+  değişmedi. Detay: aşağıdaki "Deney Z" bölümü.
+- **YAYINLANDI v7 (2026-09-19): Aşama-1 3-GÖVDE ENSEMBLE (Deney X) — vE+vL+vX3
   birleşimi, Çavuşoğlu doğru-ayırt rekoru %58.1 (tam) / %57.1 (unseen).** v6'nın tek-gövde
   distilasyonu üç öğretmene genelleştirilmeye çalışıldı ama BAŞARISIZ oldu (vL tabanından da
   kötü); kullanıcı kararıyla ham 3-gövde ensemble yayınlandı (~1.76GB, ~3× gecikme — v5'in
@@ -502,6 +545,212 @@ idyomatik "yol aldık" doğru işaretlendi, bilinen literal yanlış-pozitif ("O
 hâlâ geçiyor — bu ölçülmüş/belgelenmiş %27.8 yanlış-pozitifin canlıda doğrulanması, deploy
 hatası değil. `idiom_data/best_idiom_tagger.pt` (yerel tek-gövde kanonik) hâlâ **vL** —
 ensemble yalnız HF paketinde, yerel tek-checkpoint iş akışını değiştirmedi.
+
+## Deney Y (2026-09-19) — morfosentaktik kanonik-biçim sapması özelliği (Fazly/Cook/Stevenson
+## 2009): FP oranını gerçekten düşürdü ama doğru-ayırtı hareket ettirmedi — REDDEDİLDİ
+
+Literatür taraması sonrası (`~/.claude/plans/swift-finding-token.md`), Deney I'in ("UPOS
+enjeksiyonu çok kaba") teşhisini bir üst seviyeye taşıyan fikir test edildi: kaba POS dizisi
+yerine, span'in NESNE bileşeninin hâl-eki/çoğulluk/belirlilik ve FİİL bileşeninin çatısının
+idiomun KANONİK biçiminden sapıp sapmadığı — Fazly, Cook & Stevenson (2009)'un "verb-noun
+idiomatic combinations come in fixed syntactic forms" bulgusu. DizgeBERT-Morph zaten bu
+FEATS'i (Case/Number/Definite/Voice) tahmin ediyor; per-deyim öğrenilmiş istatistik yerine
+(çoğu deyimin örneği az, gürültülü olurdu) dilbilimsel öncül kural kullanıldı: kanonik biçim
+hâl-eksiz/belirsiz nesne + etken çatı.
+
+**Yeni modül** `data/tag_idiom_morph_feats.py::load_morph_feats_fn`/`morph_deviation_vec` —
+`tag_idiom_upos.py`'nin FEATS ikizi, ama UPOS'u da (nesne/fiil ayrımı için) taşıyor. Smoke-test
+mekanizmayı doğruladı: "yol aldık" (idiyomatik) → vec [0,0,0,0], "yolu aldı" (literal, hâl
+ekli) → vec [1,0,0,0] — tam projenin kendi kanonik yanlış-pozitif vakasında beklenen ayrım.
+
+**Mimari** (Deney V'nin `compat_gap` deseniyle birebir aynı yol): `IdiomaticityClf(morph_feat=
+bool)` → head girdisi `base_dim+4`; `morph_feat=False` iken eskisiyle bit-birebir aynı.
+`span_p_literal_morph` (modeling_dizgebert_idiom.py, `span_p_literal_gap`'in ikizi) çıkarım-
+zamanı kullanılıyor; `wrap_stage2` yalnız gerekince (`need_morph`) Morph modelini yüklüyor.
+
+vL span modeli + DEĞİŞMEMİŞ stage-2 eğitim verisi + `--freeze 8 --dropout 0.3 --weight-decay
+0.05 --epochs 14 --morph-feat` (v3'ün BİREBİR aynı reçetesi, tek değişken). Best epoch 3,
+dev macro 73.7.
+
+**Tam boru hattı (v7 stage-1 ensemble DEĞİŞMEDEN + vMorph stage-2):**
+
+| metrik | v7 (v3 stage-2) | **Deney Y (vMorph)** |
+|---|---|---|
+| PARSEME ALL F1 | 66.02 | 64.26 (−1.76) |
+| CASES (16) | 13/16 | 12/16 |
+| **Çavuşoğlu doğru-ayırt (tam)** | **58.1%** | **58.1% (birebir aynı)** |
+| **Çavuşoğlu doğru-ayırt (unseen)** | **57.1%** | **57.6% (+0.5, gürültü bandında)** |
+| Çavuşoğlu yanlış-poz (tam) | 28.3% | **24.7% (−3.6, gerçek iyileşme)** |
+| GLU vaka (35) | 20/35 | 21/35 |
+
+**Ön-kayıtlı eşik (doğru-ayırt ≥+2pp) geçilmedi → REDDEDİLDİ.** Ama Deney I'den farklı bir
+sonuç: yanlış-pozitif oranı gerçekten düştü (mekanizma bir şey yakalıyor — smoke-test'teki
+tam ayrımı doğruluyor), yalnız bu, tüm 198 çiftte doğru-ayırtı hareket ettirecek kadar GÜÇLÜ
+değil. Olası neden: 4-boyutlu kural-tabanlı sinyal yalnız "hâl eki VAR/YOK" gibi kaba bir
+ikili ayrım veriyor — birçok idiomun literal kullanımı da hâl-eksiz kalabiliyor (Türkçe SOV
++ düşük-hâl-işaretleme bağlamlarında), yani sinyal DOĞRU ama SEYREK devreye giriyor.
+Checkpoint arşivde (`best_idiomaticity_clf_vMorph.pt`), kanonik `best_idiomaticity_clf_v3.pt`
+DOKUNULMADI, stage-1 hiç değişmedi. Kod kalıcı (`data/tag_idiom_morph_feats.py`,
+`IdiomaticityClf(morph_feat=)`, `span_p_literal_morph`, `--morph-feat`) — ileride per-deyim
+öğrenilmiş kanonik-biçim istatistiğiyle (Deney Z'nin sentetik verisi yeterince büyürse)
+tekrar denenebilir, düşük öncelik.
+
+## Deney Z (2026-09-19) — LLM-ÜRETİLMİŞ dengeli minimal çiftler: 10 stage-2 reddinden
+## sonraki İLK GERÇEK KAZANÇ, projenin en büyük tek-sürüm sıçraması, YAYINLANDI v8
+
+Deney Y'nin ardından, plan dosyasındaki (`~/.claude/plans/swift-finding-token.md`) ikinci
+öneri denendi: 9 stage-2 negatifinin (P/Q/R/S/T/U/V/focal/LLM-ölçekli-etiketleme) hepsi AYNI
+kök soruna dayanıyordu — LLM doğal-derlem cümlelerini D/L diye SINIFLANDIRIYORDU (κ~0.57-0.66
+sınır gürültüsü), ve literal kullanım doğal metinde nadir olduğu için bu veri hep dengesizdi.
+Literatür (EDM2025 "Bridging the Data Gap") farklı bir rejim öneriyordu: LLM'e doğal cümle
+etiketletmek yerine, her deyim için dengeli D+L cümle YAZDIRMAK.
+
+**Uygulama:** `data/prepare_synthetic_stage2_pairs.py` (yeni) — `--select` Çavuşoğlu'nun 198
+GERÇEK eval çifti + frozen + held-out ile örtüşmeyen bir TDK deyim havuzu seçer, Claude Code
+alt-ajanlarına (Aşama 2/3'teki aynı ücretsiz yöntem) dispatch için parçalar; her ajan bir
+deyim listesi + TDK tanımı alıp 3 idyomatik + ≤3 literal cümle üretir (literal okuma anlamsızsa
+boş bırakır — zorlama yok), STRICT JSON döner. `--build` üretilen cümlelerde deyimin
+kelimelerinin gerçekten geçtiğini doğrular.
+
+**Kritik keşif — span doğrulama gevşetilmeli:** katı stem-eşit `find_span` ile yalnız
+%17 (101/605) kayıt kabul edildi — TDK örnek cümlelerinden farklı olarak SERBEST üretilen
+cümleler snowball stemmer'ın atlamadığı çekim ekleri (özellikle "-yor" şimdiki zaman) yüzünden
+stem eşleşmiyordu. `find_span_lenient` (önek-toleranslı eşleşme, kısa token'larda güvenlik
+sınırı) eklenince kabul oranı %87'ye çıktı — **yalnız bu scriptte**, paylaşılan `find_span`
+dokunulmadı.
+
+**150-deyimlik pilot (6 alt-ajan, 406 kayıt) — tam boru hattı (v7 ensemble DEĞİŞMEDEN):**
+
+| metrik | v7 (taban) | **Deney Z pilot (sentetik-yalnız)** |
+|---|---|---|
+| Çavuşoğlu doğru-ayırt (tam) | 58.1% | **62.1% (+4.0pp)** |
+| Çavuşoğlu doğru-ayırt (unseen) | 57.1% | **61.6% (+4.5pp)** |
+| Çavuşoğlu doğru-ayırt (seen) | 66.7% | 66.7% (birebir aynı — ezber değil genelleme) |
+| yanlış-poz | 28.3% | 25.8% |
+| GLU vaka (35) | 20/35 | 24/35 |
+
+**Kritik ablasyon — "sentetik+doğal karışım" DAHA KÖTÜ:** aynı 406 kaydı 9694 doğal kayıtla
+karıştırıp eğitmek doğru-ayırtı **56.6%/55.9%'a düşürdü** (tabanın bile altı) — küçük temiz
+sentetik sinyal, büyük gürültülü doğal havuzda boğuluyor. **Sentetik-YALNIZ eğitim** (doğal
+veri TAMAMEN atılıp yalnız sentetik havuzla) işe yaradı — dev macro'da EN KÖTÜ sonucu verdi
+(67.5, doğal-veri varyantlarının 73'üne karşı) ama Çavuşoğlu'nda EN İYİ sonucu verdi. **Ders:**
+Çavuşoğlu'nun kendisi de deliberate-inşa edilmiş dengeli minimal-çift bir test seti — sentetik
+verinin dağılımı buna doğal-derlem-madenli dağılımdan daha yakın, dev-set (doğal dağılımdan)
+bu yüzden YANILTICI bir seçim ölçütü. Bu, projenin "dev F1 artışı Çavuşoğlu genellemesini
+garanti etmez" dersinin TERS yönünü de doğruluyor: düşük dev metriği yüksek gerçek-dünya
+performansıyla bir arada olabilir, kaynak dağılımı hedefe yakınsa.
+
+**Ölçeklendirme turu (kullanıcı kararıyla) — 750 deyim daha (30 alt-ajan dispatch edildi,
+oturum API rate-limit'i 20'sinde vurdu, 20'si "failed" statüsüyle bile dosyasını YAZMIŞ
+çıktı — kullanıcı "elimizdekilerle devam" dedi, 26/36 parça = 650 deyim, 1866 kayıt (1354 D /
+512 L) ile devam edildi):**
+
+| metrik | v7 (taban) | 150-deyim pilot | **650-deyim (ölçekli)** |
+|---|---|---|---|
+| Çavuşoğlu doğru-ayırt (tam) | 58.1% | 62.1% | **65.2% (+7.1pp, yeni rekor)** |
+| Çavuşoğlu doğru-ayırt (unseen) | 57.1% | 61.6% | **65.0% (+7.9pp, yeni rekor)** |
+| Çavuşoğlu doğru-ayırt (seen) | 66.7% | 66.7% | **66.7% (üçüncü kez birebir aynı)** |
+| yanlış-poz | 28.3% | 25.8% | **21.2% (monoton iyileşme)** |
+| GLU vaka (35) | 20/35 | 24/35 | **25/35 (en iyi)** |
+| PARSEME ALL F1 | 66.02 | 64.27 | 63.48 (kabul edilebilir, ≤3pp bekçi içinde) |
+
+**Kazanç veri hacmiyle MONOTON büyüdü** (150→650 deyim, her eksende aynı yönde ilerleme),
+seen dilimi HER ÜÇ turda da birebir 66.7% kaldı — bu, ezber değil gerçek genelleme iddiasının
+en güçlü kanıtı (rastgele bir turda tesadüf olabilirdi, üç bağımsız ölçümde aynı sabit değer
+tesadüf değil).
+
+**Sızıntı kontrolü (yayından önce, kullanıcı talebiyle):** eğitimde fiilen kullanılan 503
+deyim (650 seçilenin 1866 kayda dönüşenleri) ile Çavuşoğlu'nun 198 eval deyimi (`_bench_seen.
+json` + `_bench_unseen.json`) arasında kesişim **sıfır** — doğrulandı, iki ayrı liste tam
+kümesi karşılaştırılarak.
+
+## KRİTİK DÜZELTME (2026-09-20) — `_bench_seen.json`/`_bench_unseen.json` BAYATLAMIŞTI,
+## Deney A/O/X/Z'nin "unseen dilimi" iddiaları için düzeltildi (asıl bulgular AYAKTA KALDI)
+
+HF model kartı için harici bir düzenleme turu sırasında ("Leipzig cümleleri Çavuşoğlu'nun
+177 unseen deyimiyle kesişmiyor mu, bir daha doğrula" sorusu) şu bulundu: `_bench_seen.json`/
+`_bench_unseen.json` (21/177) **Deney A'da (2026-09-14) BİR KEZ hesaplanmış ve o günden beri
+HİÇ YENİDEN HESAPLANMAMIŞTI.** Aradan geçen sürede (Aşama 2/3, Deney N, Deney J/K'nin ingest
+turları) frozen deyim havuzu 1151→6928'e büyüdü — yani o zaman "unseen" olan birçok deyim
+SONRADAN gerçekten eğitim verisine girdi ama statik split dosyası hiç güncellenmedi.
+
+**Ölçüm:** vL'nin gerçek eğitim havuzunda (idx≤11070, D/L etiketli, vL'nin kendi held-out'u
+hariç) 4616 deyim var; bunun **70'i** (`_bench_unseen.json`'daki 177'nin) ile örtüşüyor.
+Kümülatif frozen havuz + TDK train split ile daha muhafazakâr bir birleşim yapılınca: 177
+"unseen" deyimin **121'i** aslında eğitime-maruz kalmış çıktı — yalnız **57-59'u** gerçekten
+hiç görülmemiş.
+
+**Düzeltme:** `data/prepare_synthetic_stage2_pairs.py`'nin candidate-exclusion mantığı
+kullanılarak (frozen ∪ TDK-train) yeni bir muhafazakâr split hesaplandı, `_bench_seen.json`/
+`_bench_unseen.json` bu sürümle DEĞİŞTİRİLDİ (eskisi `_bench_{seen,unseen}_STALE_
+pre20260920.json` olarak arşivlendi).
+
+**Asıl bulgu ayakta mı?** EVET — v8'i düzeltilmiş, gerçekten-unseen 57-59 deyimlik dilimde
+yeniden ölçünce: doğru-ayırt %67.8 (v7 aynı dilimde %59.3) — yaklaşık +8.5pp, ORİJİNAL
+bulgudan (177'lik stale dilimde +7.9pp) BİLE BÜYÜK. Yani v8'in genelleme iddiası bağımsız
+olarak doğrulandı; bayat olan yalnız RAPORLANAN alt-küme tanımıydı, asıl etki değil.
+
+**Etkilenen geçmiş iddialar:** Deney A/O/X'in "seen/unseen" kırılımları da bu bayat split'e
+dayanıyordu (Deney A'nın kendi %39.0 vs %66.7 orijinal bulgusu dahil). Bu deneylerin ANA
+sonuçları (tam-198 doğru-ayırt rakamları) etkilenmez — yalnız "kazanç unseen dilimde
+yoğunlaştı" biçimindeki YAN kanıt zayıflar. Geçmiş deney günlüğü metinleri düzeltilmedi
+(tarihi kayıt olarak kalıyor) ama BU NOTA bakılmalı; yeni deneylerde seen/unseen kırılımı
+gerekiyorsa `_bench_seen.json`/`_bench_unseen.json`'ın artık düzeltilmiş sürüm olduğu
+unutulmamalı — ve büyüme devam ettikçe (yeni ingest turları) bu dosyalar YİNE bayatlayabilir,
+periyodik olarak bu yöntemle (frozen ∪ TDK-train birleşimi) yeniden hesaplanmalı.
+
+**Ders (genel, proje-ötesi):** "seen/unseen" ya da "train/test disjoint" gibi statik bir
+kontrol dosyası, ALTINDAKİ VERİ HAVUZU BÜYÜMEYE DEVAM EDERKEN sabit kalamaz — append-only
+ingest yapan her projede bu tür kontrol dosyalarının bir SON GEÇERLİLİK TARİHİ olduğunu
+varsaymak gerekir, "bir kez hesapladım, bitti" değil.
+
+## İKİNCİ DÜZELTME (2026-09-20) — Space smoke-test'leri YANLIŞ endpoint'i çağırıyordu,
+## şimdiye kadarki tüm "gradio_client smoke-test: ... hâlâ geçiyor" notları GEÇERSİZ
+
+Eşik güncellemesi (0.5→0.3) sonrası Space'te doğrulama yaparken şu bulundu:
+`iatagun/dizge-demo` çok-sekmeli bir Gradio uygulaması (hece/g2p, bağımlılık, sözdizim, deyim
+sekmeleri) ve BİRDEN ÇOK sekme aynı imzalı (`analyze(text, ...)`) fonksiyon tanımlıyor. Gradio
+bunları otomatik numaralandırıyor (`/analyze`, `/analyze_1`, ... `/analyze_6`) — ve **bu
+projenin şimdiye kadarki TÜM `gradio_client` smoke-testleri `api_name="/analyze"` kullanmıştı,
+ki bu aslında HECE sekmesine ait**, deyim sekmesine değil (gerçek deyim endpoint'i
+`/analyze_4`/`_5`/`_6`). Basit bir alt-dize kontrolü ("'yol al' in sonuç") her iki durumda da
+GİRİŞ METNİNİN kendisini içerdiği için YANLIŞ POZİTİF doğrulama üretiyordu — model hiç
+çalıştırılmadan "test geçti" görünüyordu.
+
+**Etkilenen geçmiş iddialar:** v5→v8 arası HER "Space güncellendi, `gradio_client` smoke-test:
+idyomatik doğru işaretlendi, bilinen literal ... hâlâ geçiyor" notu (Deney O, W, X, Z'nin
+yayın adımlarında tekrarlanan bir cümle kalıbı) muhtemelen HİÇ gerçek modeli çağırmadı. Bu,
+modelin o dönemlerdeki gerçek davranışını YANLIŞLAMIYOR (yerel `--hf-repo` round-trip
+doğrulamaları HER ZAMAN doğruydu, gerçek modeli kullanıyordu) — yalnız Space'in CANLI
+davranışının o smoke-testlerle hiç gerçekten doğrulanmadığı anlamına geliyor.
+
+**Doğru kullanım:** `gradio_client.Client(...).view_api()` ile gerçek endpoint adları HER
+ZAMAN önce listelenmeli; deyim sekmesi için doğru işaret CSS sınıfı kontrolüdür
+(`"idiom-vid" in sonuç or "idiom-lvc" in sonuç`), alt-dize eşleşmesi DEĞİL (girdi metni zaten
+aranan alt-diziyi içerebiliyor). Bu yöntemle 2026-09-20'de v8+0.3 eşiği canlıda DOĞRU şekilde
+doğrulandı: idyomatik cümle işaretlendi, "otobüs yol aldı" artık işaretlenmiyor.
+
+**YAYINLANDI v8 (2026-09-19).** Aşama 1 (v7, 3-gövde ensemble) HİÇ değişmedi; yalnız Aşama 2
+yeniden eğitildi (`best_idiomaticity_clf_vSynthOnly650.pt`, doğal veri sıfır, yalnız sentetik).
+- **HF push:** `iatagun/DizgeBERT-Idiom` commit `e11407f` (~1.76GB, stage-1 aynı, yalnız
+  stage-2 tensörleri değişti, ~114MB delta). Round-trip hem yerel hem uzaktan (`config.json`
+  indirilip `ensemble`/`ensemble_extra2`/`stage2` doğrulandı) kontrol edildi.
+- **Space güncellendi:** "v7·3-gövde ensemble" → "v8", Aşama 2 açıklaması sentetik-veri
+  anlatımına güncellendi, tam rebuild + `gradio_client` smoke-test (idyomatik doğru
+  işaretlendi; bilinen "otobüs yol aldı" örneği hâlâ geçiyor — %21.2 kalıntı yanlış-pozitifin
+  beklenen bir örneği, deploy hatası değil).
+- **MODEL_CARD.md v7→v8:** yeni karşılaştırma tablosu (v3..v8), Aşama 2 eğitim anlatımı
+  tamamen yeniden yazıldı, Kısıtlar bölümü güncellendi.
+- **Kalıcı kod:** `data/prepare_synthetic_stage2_pairs.py` (`--select`/`--build`,
+  `find_span_lenient`, kümülatif tur takibi — `_synthetic_candidates.json` sonraki turların
+  aynı deyimi tekrar seçmesini önler), `training/train_idiomaticity_clf.py`
+  (`load_synthetic`, `--synthetic-file`, `--synthetic-only`).
+
+**Sonraki oturum için not:** kazanç 150→650 deyimde monoton büyüdü, doygunluk işareti YOK —
+tam ~11k TDK listesine (ya da en azından 2000-3000 deyime) ölçeklemek daha da kazanç
+verebilir. Rate-limit nedeniyle bu turda yalnız 650/900 seçilen deyim gerçekten üretildi;
+`_synthetic_candidates.json` zaten kümülatif tutulduğu için sonraki tur `--select` çağrısı
+otomatik olarak YENİ deyimlerden devam eder.
 
 ## Deney W (2026-09-19) — anlaşmazlık-ağırlıklı ensemble distilasyonu: TEK modelde ensemble'ın
 ## Çavuşoğlu doğru-ayırtını (%57.1) YAKALADI, PARSEME'de ensemble'ı bile geçti — PROMOTE ADAYI,
