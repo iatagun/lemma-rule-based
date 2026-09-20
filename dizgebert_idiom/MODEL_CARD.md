@@ -142,14 +142,20 @@ print(m.predict_spans(ws, tokenizer=tok))
    **Kullanılan model:** Claude (Anthropic), Claude Code alt-ajanları aracılığıyla, TDK
    tanımını girdi alan sabit bir üretim istemi ile (script: `data/prepare_synthetic_stage2_pairs.py`,
    istem metni scriptin içinde/alt-ajan çağrılarında, ayrı bir prompt dosyası yayınlanmadı).
-   **Önemli lisans notu (2026-09-20'de doğrudan kontrol edildi):** Anthropic'in güncel Usage
-   Policy'si ("Do Not Abuse our Platform" bölümü) şunu açıkça yasaklıyor: *"Utilization of
-   inputs and outputs to train an AI model (e.g., 'model scraping' or 'model distillation')
-   without prior authorization from Anthropic."* Bu, Aşama-2'nin sentetik eğitim verisinin
-   Claude çıktılarından üretilmiş olması nedeniyle **doğrudan ilgili görünüyor** — Anthropic'ten
-   önceden izin alınmadıysa bu kısıt kapsamına girebilir. Bu bir hukuki görüş DEĞİL; modeli
-   ticari amaçla kullanmayı/dağıtmayı düşünenlerin kendi durumlarını Anthropic'in güncel
-   Usage Policy ve (varsa) Commercial Terms belgeleriyle doğrudan teyit etmesi ŞART.
+   **Lisans notu (2026-09-20'de doğrudan kontrol edildi, iki kaynak birlikte okunarak):**
+   Anthropic'in Usage Policy'si ("Do Not Abuse our Platform" bölümü) genel bir cümleyle
+   "Utilization of inputs and outputs to train an AI model... without prior authorization
+   from Anthropic"i yasaklıyor gibi görünse de, Anthropic'in resmi Yardım Merkezi'ndeki
+   açıklayıcı SSS'i ("Can I use my Outputs to train an AI model?") bunu netleştiriyor: **izin
+   verilen** kullanımlar arasında *"sentiment analysis tools", "content categorization
+   systems", "information extraction tools"* gibi DAR KAPSAMLI, uzmanlaşmış araçlar açıkça
+   sayılıyor; **yasak** olan ise *"general purpose chatbots"* ve *"models designed for
+   open-ended text generation"* — yani Claude'la REKABET EDEN genel-amaçlı modeller.
+   DizgeBERT-Idiom (dar kapsamlı bir span-tespit/sınıflandırma modeli, genel-amaçlı bir
+   sohbet modeli DEĞİL) bu ayrıma göre **izin verilen kategoriye** daha yakın duruyor. Yine de
+   bu bir hukuki görüş DEĞİL — özellikle ticari kullanım/dağıtım düşünenlerin kendi durumlarını
+   Anthropic'in güncel Usage Policy ve Commercial Terms belgeleriyle doğrudan teyit etmesi
+   önerilir.
 
 ## Sonuçlar
 
