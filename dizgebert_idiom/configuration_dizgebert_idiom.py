@@ -16,7 +16,7 @@ class DizgeBertIdiomConfig(PretrainedConfig):
         dropout: float = 0.15,
         max_len: int = 128,
         stage2: bool = False,
-        stage2_thresh: float = 0.5,
+        stage2_thresh: float = 0.3,
         ensemble: bool = False,
         ensemble_extra2: bool = False,
         **kwargs,
@@ -33,7 +33,9 @@ class DizgeBertIdiomConfig(PretrainedConfig):
         # ayrı ELECTRA gövdesi + span ilk⊕son pooling → {idyomatik, literal}. Açıksa
         # predict_spans() bitişik VID adaylarını filtreden geçirir, "güvenli literal"
         # olanı eler (LVC + gap'li span'ler dokunulmaz). Yalnız stage2 ağırlıkları
-        # pakete gömülüyse anlamlı.
+        # pakete gömülüyse anlamlı. Varsayılan eşik 0.3 (v8 sonrası, 2026-09-20) —
+        # Çavuşoğlu eşik-taramasında 0.5'ten ölçülebilir şekilde daha iyi çıktı (doğru-ayırt
+        # %65.2→%68.2, yanlış-poz %21.2→%14.6), bkz. MODEL_CARD.md.
         self.stage2 = stage2
         self.stage2_thresh = stage2_thresh
         # Deney O — stage-1 checkpoint ensemble'ı (bkz. .claude/skills/idiom/SKILL.md).

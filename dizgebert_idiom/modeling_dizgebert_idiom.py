@@ -210,6 +210,19 @@ def span_p_literal(hs: "torch.Tensor", sf: int, sl: int, head: "nn.Module",
     return torch.softmax(logits, dim=-1)[0].item()
 
 
+def span_p_literal_morph(hs: "torch.Tensor", sf: int, sl: int, morph_vec: "torch.Tensor",
+                         head: "nn.Module", temperature: float = 1.0) -> float:
+    """Deney Y — `span_p_literal`in morph-feat varyantı (Fazly/Cook/Stevenson 2009 kanonik-
+    biçim sapması): BAĞLAMSAL temsile (`hs`), `data/tag_idiom_morph_feats.py::morph_deviation_vec`
+    çıktısı olan 4-boyutlu [hâl-ekli,çoğul,belirli,çatı-sapmış] vektörü eklenir. `IdiomaticityClf
+    (morph_feat=True)` ile eğitilen head'lerle uyumlu; `wrap_stage2` çağırır."""
+    vec = torch.cat([hs[sf], hs[sl], morph_vec], dim=-1)
+    logits = head(vec)
+    if temperature != 1.0:
+        logits = logits / temperature
+    return torch.softmax(logits, dim=-1)[0].item()
+
+
 def span_p_literal_gap(hs_ctx: "torch.Tensor", sf: int, sl: int,
                         hs_lex: "torch.Tensor", lf: int, ll: int,
                         head: "nn.Module", temperature: float = 1.0) -> float:
