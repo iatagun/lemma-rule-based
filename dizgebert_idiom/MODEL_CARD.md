@@ -29,18 +29,20 @@ aşağıya bakın):
 
 | | değer | not |
 |---|---|---|
-| İdyomatik/literal doğru ayırt etme oranı (kendi benchmark'ımız) | **%68.2** (95% GA: %61.6–%74.7, n=198) | önceki sürüme (v7, %58.1, varsayılan eşik 0.5) göre +10.1pp; **her iki sürüm de AYNI 198 çiftte kendi en iyi eşiğine ayarlandı** — bkz. "dev-seti gibi" çekincesi altta |
+| İdyomatik/literal doğru ayırt etme oranı (kendi benchmark'ımız, v8, eşik=0.3) | **%68.2** (95% GA: %61.6–%74.7, n=198) | **"gevşek" tanım** — cümlede HERHANGİ bir span varsa sayılır, span'in hedef deyimle çakışması ŞART DEĞİL. "Sıkı" (span hedefle konumca çakışmalı) tanımla ölçüm yalnız 198 çiftin 11'inde mümkün oldu (stem-eşleştiricinin konumlama sınırı) — o 11'de doğru-ayırt %63.6, ama n=11 çok küçük, genellenemez. Önceki sürüme (v7, %58.1, varsayılan eşik 0.5) göre +10.1pp; **her iki sürüm de AYNI 198 çiftte kendi en iyi eşiğine ayarlandı** — bkz. "dev-seti gibi" çekincesi altta |
 | Yanlış-pozitif (literal cümlede yanlış işaretleme) | %14.6 | v7'ye göre (%28.3) yarıya yakın düşüş |
-| PARSEME test.cupt span-F1 | 63.48 | exact-match, VID+LVC.full |
+| PARSEME test.cupt span-F1 | 63.48 | exact-match, VID+LVC.full, Aşama 1 tek başına (stage2=False) |
 | Precision | yaklaşık %55-64 | model kaçırmaktan çok fazla-işaretlemeye eğilimli |
 
-**Üç bağımsız DIŞ değerlendirme (bizim seçtiğimiz eşik/sürüm yok, ayrıntı aşağıda "İlgili
-çalışmalar"):**
+**Üç bağımsız DIŞ değerlendirme — bu setlerde eşik/hiperparametre AYARI yapılmadı** (ama
+Çavuşoğlu'nda seçilmiş `stage2_thresh=0.3` varsayılanı, aşağıda stage2=True olarak işaretli
+satırlarda kullanılıyor — bu ayrı bir sette seçilmiş bir değerin buraya taşınması, "hiç ayar
+yok" demek değil):
 
-| dış kaynak | görev | sonuç | not |
+| dış kaynak | görev/sürüm | sonuç | not |
 |---|---|---|---|
-| Aslantaş & Güngör TR test (131 cümle) | span exact-match (seqeval) | **F1=0.592** (gerçekten görülmemiş 60 deyimde 0.414) | onların in-domain modelleri 0.877-0.880 — DizgeBERT geride |
-| Dodiom TR (6861 örnek/36 deyim) | idiomaticity (duyarlılık/yanlış-poz) | dengelenmiş-doğruluk %77.4, ama Aşama-2 açık/kapalı farkı **istatistiksel olarak anlamsız** (95% GA sıfırı içeriyor) | farklı ölçek, Çavuşoğlu'yla doğrudan kıyaslanamaz |
+| Aslantaş & Güngör TR test (131 cümle), v8 | span exact-match (seqeval) | stage2=False: F1=0.592 · **stage2=True (yayınlanan varsayılan, eşik 0.3): F1=0.496** (gerçekten görülmemiş 60 deyimde 0.414/0.372) | onların in-domain modelleri 0.877-0.880 — DizgeBERT geride |
+| Dodiom TR (6861 örnek/36 deyim), v8 | idiomaticity (duyarlılık/yanlış-poz) | stage2=True (eşik 0.3): dengelenmiş-doğruluk %77.4 · stage2=False: %74.9 — fark **istatistiksel olarak anlamsız** (95% GA sıfırı içeriyor) | farklı ölçek, Çavuşoğlu'yla doğrudan kıyaslanamaz |
 | Umut et al. (2025) | — | ölçülmedi | veri seti yayınlanmamış, Dodiom yerine kullanıldı |
 
 **En büyük bilinen kısıt:** Aşama 1, üç ayrı ELECTRA gövdesinin (ensemble) birleşimidir — model
@@ -50,16 +52,17 @@ dosyası yaklaşık 2GB, çıkarım tek-gövdeli bir modele göre yaklaşık 3×
 ## Kullanım
 
 **Model dosyası ~2GB ve `trust_remote_code=True` uzak Python kodu çalıştırır** (`modeling_
-dizgebert_idiom.py`) — üretimde bir `revision=` (commit hash) pinlemeniz önerilir, aksi
-halde repo'ya yeni bir push geldiğinde farkında olmadan farklı kod/ağırlık çekebilirsiniz.
-Güncel commit: `984e48b` (bu kartın kendisi). **v6 (tek gövde, ~440MB, daha küçük/hızlı ama
-daha eski/zayıf bir Aşama 2 — bkz. Sürüm Geçmişi)** hâlâ `revision="fd002bdd32"` ile erişilebilir
-(HF repo'nun commit geçmişinde, ayrı bir model/branch DEĞİL — sonraki commit'ler üstüne yazdı).
+dizgebert_idiom.py`) — üretimde bir `revision=` pinlemeniz önerilir, aksi halde repo'ya yeni
+bir push geldiğinde farkında olmadan farklı kod/ağırlık çekebilirsiniz. Bu kartın kendi push'u
+kendi hash'ini içeremeyeceği için (self-reference), HF üzerinde sürüm etiketleri (git tag)
+oluşturuldu: **`revision="v8"`** güncel sürüm, **`revision="v6"`** tek-gövde/daha küçük
+alternatif (~440MB, daha eski/zayıf bir Aşama 2 — bkz. Sürüm Geçmişi). Etiketler sabit commit'lere
+işaret eder, ileride değişmez.
 
 ```python
 from transformers import AutoModel, AutoTokenizer
 
-REV = "984e48b757236b43641cd1b77c55aa49b8e2b99d"  # pinlemek için; v6 için "fd002bdd32..." kullanın
+REV = "v8"  # ya da "v6" (tek-gövde, daha küçük/hızlı alternatif)
 m = AutoModel.from_pretrained("iatagun/DizgeBERT-Idiom", trust_remote_code=True,
                                revision=REV).eval()
 tok = AutoTokenizer.from_pretrained("iatagun/DizgeBERT-Idiom", revision=REV)
@@ -109,7 +112,7 @@ print(m.predict_spans(ws, tokenizer=tok))
 - **Aşama 2 — idyomatiklik sınıflandırıcısı (v8'den beri sentetik veriyle eğitildi):** ikinci,
   bağımsız bir ELECTRA gövdesi + span ilk⊕son subword temsili → `Linear(2H, 2)` →
   {literal, idyomatik}. `predict_spans()` bitişik VID adaylarını bundan geçirir; yalnız
-  *güvenli* literal (p(literal) > eşik, varsayılan 0.5) elenir — LVC ve gap'li span'ler
+  *güvenli* literal (p(literal) > eşik, varsayılan **0.3**) elenir — LVC ve gap'li span'ler
   dokunulmaz (LVC yarı-birleşimsel, ayrım anlamsız).
 
 ## Eğitim verisi
@@ -139,9 +142,14 @@ print(m.predict_spans(ws, tokenizer=tok))
    **Kullanılan model:** Claude (Anthropic), Claude Code alt-ajanları aracılığıyla, TDK
    tanımını girdi alan sabit bir üretim istemi ile (script: `data/prepare_synthetic_stage2_pairs.py`,
    istem metni scriptin içinde/alt-ajan çağrılarında, ayrı bir prompt dosyası yayınlanmadı).
-   **Not:** Anthropic'in çıktılarını model eğitiminde kullanma şartları bu kart hazırlanırken
-   bağımsız olarak teyit edilmedi — ticari kullanım düşünen kullanıcıların sağlayıcının güncel
-   kullanım politikasını kendileri kontrol etmesi önerilir.
+   **Önemli lisans notu (2026-09-20'de doğrudan kontrol edildi):** Anthropic'in güncel Usage
+   Policy'si ("Do Not Abuse our Platform" bölümü) şunu açıkça yasaklıyor: *"Utilization of
+   inputs and outputs to train an AI model (e.g., 'model scraping' or 'model distillation')
+   without prior authorization from Anthropic."* Bu, Aşama-2'nin sentetik eğitim verisinin
+   Claude çıktılarından üretilmiş olması nedeniyle **doğrudan ilgili görünüyor** — Anthropic'ten
+   önceden izin alınmadıysa bu kısıt kapsamına girebilir. Bu bir hukuki görüş DEĞİL; modeli
+   ticari amaçla kullanmayı/dağıtmayı düşünenlerin kendi durumlarını Anthropic'in güncel
+   Usage Policy ve (varsa) Commercial Terms belgeleriyle doğrudan teyit etmesi ŞART.
 
 ## Sonuçlar
 
@@ -165,7 +173,7 @@ tanı seti (bkz. `run_cases()`).
 | sistem | PARSEME F1 | CASES (16 vaka) | Çavuşoğlu duyarlılık (gevşek) | Çavuşoğlu yanlış-poz (gevşek) | Çavuşoğlu doğru-ayırt (gevşek) |
 |---|---|---|---|---|---|
 | **yalnız sözlük eşleştirici** (nöral yok) | 10.6 | 7/16 | %18.7 | %23.7 | **%11.6** |
-| **DizgeBERT-Idiom v8** (tam boru hattı, `stage2_thresh=0.3`) | 63.48 (bkz. PARSEME bölümü) | 13/16 | %81.3 | %14.6 | **%68.2** |
+| **DizgeBERT-Idiom v8** (Çavuşoğlu sütunları tam boru hattı `stage2_thresh=0.3`, PARSEME F1 Aşama-1-tek `stage2=False`) | 63.48 | 13/16 | %81.3 | %14.6 | **%68.2** |
 
 **"Gevşek" ve "sıkı" iki ayrı ölçüm, karıştırmayın:** yukarıdaki tablo "gevşek" (cümlede
 HERHANGİ bir span var mı, hedefte olması şart değil) tanımını kullanıyor — sözlük
@@ -204,42 +212,41 @@ ensemble) Aşama 2 KAPALIYKEN çalıştırıp tam boru hattıyla kıyasladık:
 
 Eşleştirilmiş fark: **+39.4pp** (95% GA +30.8pp – +47.5pp, sıfırı içermiyor).
 
-**Kritik metodolojik sorun (2026-09-20, 3. dış inceleme ile fark edildi) — bu "aynı veri"
-DEĞİL.** Aşama 1'in gördüğü literal→hep-O örnekleri `corpus_examples_glu.json`'dan geliyor
-(Leipzig'ten madenlenen doğal cümleler). v8'in Aşama 2'si ise BAMBAŞKA, AYRI bir veri
-kaynağıyla eğitildi: TDK'den seçilen 650 deyim için LLM'e YAZDIRILAN 1866 sentetik
-dengeli-minimal-çift (`_synthetic_stage2_records.jsonl`, Deney Z). Aşama 1 bu sentetik
-çiftleri HİÇ görmedi. Yani yukarıdaki %28.8→%68.2 farkı şunu gösteriyor: **"sentetik dengeli
-minimal çiftlerle eğitilmiş AYRI bir Aşama-2 sınıflandırıcısı katkı sağlıyor"** — "iki
-aşamalı mimarinin kendisi şart, tek aşama prensipte yetersiz" iddiasını KANITLAMIYOR, çünkü
-Aşama 1'e HİÇ bu kaliteli/hedefli veri verilmedi ki adil kıyaslansın.
+**Metodolojik sorun — bu "aynı veri" DEĞİL.** Aşama 1'in gördüğü literal→hep-O örnekleri
+`corpus_examples_glu.json`'dan geliyor (Leipzig'ten madenlenen doğal cümleler). v8'in Aşama
+2'si ise BAMBAŞKA, AYRI bir veri kaynağıyla eğitildi: TDK'den seçilen 650 deyim için LLM'e
+YAZDIRILAN 1866 sentetik dengeli-minimal-çift (`_synthetic_stage2_records.jsonl`, bkz.
+"Eğitim verisi" bölümü). Aşama 1 bu sentetik çiftleri HİÇ görmedi. Yukarıdaki %28.8→%68.2
+farkı bu yüzden "iki aşamalı mimarinin kendisi şart" iddiasını KANITLAMIYOR — Aşama 1'e hiç bu
+hedefli veri verilmemişti.
 
-**Gerçek ablasyon SONUÇLANDI (2026-09-20).** Aynı 1866 sentetik kaydı (literal olanlar
-hep-O'ya çevrilerek) Aşama-1'in standart eğitim verisine (TDK+PARSEME+corpus-glu, `--class-
-weights --tdk-examples --corpus-glu`) EKLEYİP TEK-GÖVDE bir ELECTRA'yı sıfırdan yeniden
-eğittik (`data/build_synthetic_stage1_ablation.py` + `training/train_idiom_bert.py`, 10
-epoch, en iyi epoch 10, dev span-F1 66.32). Bu, hem ELECTRA-tek-gövde (Aslantaş&Güngör'ün
-ilk eleştirisi) HEM sentetik-veriyi-gören (bu bölümün eleştirisi) bir Aşama-1 — gerçekten
-adil bir "tek aşama vs iki aşama" testi:
+**İkinci bir ölçüm yapıldı, ama bu da temiz bir izolasyon DEĞİL.** Aynı 1866 sentetik kaydı
+(literal olanlar hep-O'ya çevrilerek) Aşama-1'in standart eğitim verisine (TDK+PARSEME+
+corpus-glu) EKLEYİP TEK-GÖVDE bir ELECTRA'yı sıfırdan yeniden eğittik
+(`data/build_synthetic_stage1_ablation.py` + `training/train_idiom_bert.py`, 10 epoch, en iyi
+epoch SON epoch — platoya oturduğuna dair bir işaret yok, tek tohum):
 
 | model | doğru-ayırt (Çavuşoğlu, n=198) |
 |---|---|
-| Aşama 1 tek başına, sentetik veri GÖRMEDİ (yukarıdaki ilk satır) | %28.8 (95% GA %22.7–35.4) |
-| **Aşama 1 tek-gövde, sentetik veriyi GÖRDÜ (bu ablasyon, stage2=False)** | **%56.6 (95% GA %49.5–63.1)** |
-| Tam iki-aşamalı boru hattı (v8, Aşama 1 + ayrı Aşama-2 sınıflandırıcısı) | %68.2 (95% GA %61.6–74.7) |
+| Aşama 1, 3-gövde ensemble, sentetik veri GÖRMEDİ | %28.8 (95% GA %22.7–35.4) |
+| **Aşama 1, TEK gövde, sentetik veriyi GÖRDÜ (stage2=False)** | **%56.6 (95% GA %49.5–63.1)** |
+| Tam boru hattı (v8: 3-gövde ensemble + ayrı Aşama-2, eşik=0.3) | %68.2 (95% GA %61.6–74.7) |
+| (referans) tam boru hattı, eşik=0.5 | %65.2 |
 
-**Yorum:** sentetik veriyi Aşama-1'e eklemek tek başına büyük bir kazanç veriyor (%28.8→%56.6,
-+27.8pp) — yani önceki %39.4pp'lik farkın ÇOĞU (yaklaşık %70'i) gerçekten bir VERİ etkisiydi,
-mimari değil, tıpkı bu eleştirinin öngördüğü gibi. AMA ayrı bir Aşama-2 sınıflandırıcısı YİNE
-DE ek bir kazanç sağlıyor (%56.6→%68.2, +11.6pp) — aynı veriyi gören tek-gövde bir modelin
-ulaşamadığı bir yer. Bu ikisi eşleştirilmiş/aynı-198-cümle bir testte DOĞRUDAN kıyaslanmadı
-(ayrı eval koşuları, yalnız nokta tahminleri var) — bu yüzden +11.6pp'nin kendisi için resmi
-bir güven aralığı YOK, yalnız iki bağımsız GA'nın (49.5–63.1 vs 61.6–74.7) kısmen örtüştüğü
-görülebilir. **Savunulabilir sonuç: bu mimaride ve bu veri rejiminde, ayrı bir Aşama-2
-sınıflandırıcısı, aynı veriyi gören tek-gövde bir alternatiften ÖLÇÜLEBİLİR şekilde daha iyi
-— ama önceki "neredeyse tüm kazanç mimariden geliyor" izlenimi YANLIŞTI, kazancın büyük
-kısmı veriden geliyor.** Checkpoint arşivde (`best_idiom_tagger_vAblationSynth.pt`), kanonik
-`best_idiom_tagger.pt` (vL) ve `corpus_examples_glu.json` dokunulmadan geri yüklendi.
+**Bu tablo "veri mi mimari mi" sorusunu AYRIŞTIRMIYOR — iki değişken birden değişiyor.**
+İlk satırdan ikinciye: hem sentetik veri EKLENDİ hem gövde sayısı 3'ten 1'e DÜŞTÜ. İkinciden
+üçüncüye: hem ayrı bir Aşama-2 EKLENDİ hem gövde sayısı 1'den 3'e ÇIKTI. Yani "%56.6→%68.2
+farkının kaynağı Aşama-2 mi yoksa tekrar 3 gövdeye çıkmak mı" belirsiz — bu, "mimarinin katkısı
+~%30" gibi bir sayıya indirgenemez (önceki bir taslakta böyle bir yüzde verilmişti, YANLIŞTI,
+kaldırıldı). +11.6pp'lik fark (56.6→68.2) ayrıca eşleştirilmemiş (ayrı eval koşuları), tek
+tohum ve 0.3 eşiği aynı 198-çiftlik sette seçildi — 0.5 eşiğinde fark +8.6pp'ye düşüyor.
+**Doğru okuma: "tek gövde + sentetik veri %56.6, tam boru hattı %68.2 veriyor; aradaki farkın
+kaynağı (Aşama-2 mi, ensemble-boyutu mu) bu deneyle ayrıştırılmadı."** Temiz bir izolasyon şu
+ikisinden biri gerektirir: (a) TEK gövde + sentetik veri + Aşama-2 (ensemble sabit=1 tutulup
+yalnız Aşama-2 açılıp kapatılır), veya (b) 3-gövde ensemble + sentetik veri, Aşama-2 OLMADAN
+(ensemble sabit=3 tutulup yalnız Aşama-2 açılıp kapatılır) — ikisi de henüz yapılmadı.
+Checkpoint arşivde (`best_idiom_tagger_vAblationSynth.pt`), kanonik `best_idiom_tagger.pt`
+(vL) ve `corpus_examples_glu.json` dokunulmadan geri yüklendi.
 
 **Sürüm notu (hangi sayı hangi sürüme ait):** Aşama 1 (stage2=False, span-tespit gövdeleri)
 **v7'den beri değişmedi** — v8 yalnız Aşama 2'yi (idyomatiklik sınıflandırıcısını) yeniden
@@ -305,7 +312,7 @@ açıkça belirtiyoruz:
 - **Umut, Site, Arslan & Eryiğit (İTÜ, UBMK 2025), "Exploring Turkish Idiomaticity with
   LLMs".** Veri seti/kodu yayınlanmamış (IEEE Xplore, paywall) — doğrudan kıyas mümkün
   olmadı. Yerine, aynı ITU NLP ekosisteminden halka açık bir kaynak kullanıldı: **Dodiom TR**
-  (Eryiğit, Şentaş & Monti, *Natural Language Engineering* 2022,
+  (Eryiğit, Şentaş & Monti, *Natural Language Engineering* 2023,
   [github.com/Dodiom/dodiom](https://github.com/Dodiom/dodiom), 6861 crowdsourced örnek / 36
   deyim). **Bu Umut et al.'ın verisiyle AYNI DEĞİL.** "Dış kaynak, görülmemiş" demiyoruz —
   daha kesin: 36 deyimin **34'ü zaten Aşama-1'in span eğitim havuzunda var**; Aşama-2'nin
@@ -316,29 +323,36 @@ açıkça belirtiyoruz:
   sıfırı içeriyor) — Çavuşoğlu'ndaki net +39.4pp'lik kazanç burada tekrarlanmıyor. **Tam
   sayılar, trade-off dökümü:** [CHANGELOG.md](CHANGELOG.md#dodiom-kıyası--tam-detay).
 
-**Sonuç olarak "iki aşama şart" iddiası BENCHMARK'A BAĞLI VE KISMİ:** Çavuşoğlu'nun ölçtüğü
-keskin, dengeli bağlam-değiştirme senaryosunda güçlü/anlamlı ama (düzeltilmiş ablasyona göre,
-yukarıdaki "Ana metrik" bölümü) kazancın yalnız ~%30'u gerçekten mimariden geliyor (+11.6pp),
-~%70'i veri kalitesinden (+27.8pp, tek-gövde bir modele aynı sentetik veriyi eklemek bile
-işe yarıyor); Dodiom'un doğal, düşük-literal-oranlı dağılımında ise yönü aynı ama büyüklüğü
-bu örneklemde istatistiksel olarak ayırt edilemiyor.
+**Sonuç olarak "iki aşama şart" iddiası BENCHMARK'A BAĞLI:** Çavuşoğlu'nun ölçtüğü keskin,
+dengeli bağlam-değiştirme senaryosunda net bir kazanç var, ama yukarıdaki "Ana metrik"
+bölümündeki ablasyon bunun ne kadarının mimariden (ayrı Aşama-2) ne kadarının sentetik
+veriden geldiğini AYRIŞTIRAMADI (ensemble-boyutu ile eş zamanlı değişti) — tek-gövde bir
+modele aynı sentetik veriyi eklemek bile büyük bir kazanç veriyor (%28.8→%56.6), bu da
+kazancın önemli bir kısmının veri-kalitesinden geldiğini düşündürüyor ama kesin bir oran
+verilemez. Dodiom'un doğal, düşük-literal-oranlı dağılımında ise yönü aynı ama büyüklüğü bu
+örneklemde istatistiksel olarak ayırt edilemiyor.
 
 ### Diğer kıyas noktaları (dikkatli okunmalı — görev tanımları farklı)
 
-**Büyük LLM'lerle kıyas — temkinli okuyun, iki taraf da benchmark'a uyarlanmış.** Çavuşoğlu &
-Çöltekin (2026, Table 2, "Detection" sütunu) büyük dil modellerinin kendi 200-idiom Türkçe
-benchmark'larında ikili idyomatik-mi-değil-mi sınıflandırmasında şu doğrulukları bildiriyor:
-Llama-3 70B-Instruct 0.614, Gemini 2.5-flash 0.609, GPT-4o 0.594, Llama-3 8B-Instruct 0.544,
-Llama-3 3B-Instruct 0.521, Llama-3 1B-Instruct 0.496 (yaklaşık %50-61 aralığı, küçük modeller
-şansa yakın). Bu, DOĞRUDAN karşılaştırılabilir bir sayı değil: (a) LLM'e deyim HEDEFİ verilip
-yalnız ikili karar sorulmuş, bizim modelimiz span'i KENDİSİ bulup sonra karar veriyor (daha
-zor bir görev); (b) bizim birincil metriğimiz (%68.2) ÇİFT düzeyinde ve daha katı ("ikisini de
-doğru yap"), LLM'lerinki tek-cümle doğruluğu; (c) **bizim %68.2'miz AYNI 198-çift
-benchmark'ında eşik-taranarak seçildi** (yukarıdaki "dev-seti gibi" çekincesine bakın) — LLM'ler
-ise sıfır-atış (fine-tuning/eşik-ayarı yok), yani karşılaştırma bizim lehimize ekstra yanlı.
-Daha adil bir kıyas için CÜMLE düzeyinde bakarsak: v8 idyomatik cümlede %81.3, literal cümlede
-%85.4 (=100−yanlış-poz) doğru — ortalama **yaklaşık %83.4**, LLM'lerin ~%50-61 aralığının
-üstünde, ama yukarıdaki üç çekinceyle (özellikle eşik-ayarı yanlılığıyla) birlikte okuyun.
+**Büyük LLM'lerle kıyas — temkinli okuyun.** Çavuşoğlu & Çöltekin (2026, Table 2, "Detection"
+sütunu) büyük dil modellerinin kendi 200-idiom Türkçe benchmark'larında ikili idyomatik-mi-
+değil-mi sınıflandırmasında şu doğrulukları bildiriyor: Llama-3 70B-Instruct 0.614, Gemini
+2.5-flash 0.609, GPT-4o 0.594, Llama-3 8B-Instruct 0.544, Llama-3 3B-Instruct 0.521, Llama-3
+1B-Instruct 0.496 (bu altı değer makalenin PDF'inden birebir doğrulandı). Bu, DOĞRUDAN
+karşılaştırılabilir bir sayı değil: (a) **makalenin kendi prompt'u** ("Does the following
+Turkish sentence contain an idiom which is used figuratively? Answer only with 'yes' or
+'no'.") LLM'e HEDEF DEYİM VERMİYOR — LLM de bizim modelimiz gibi span'i/idiomu kendisi tespit
+etmek zorunda; **bu maddeyi önceki bir taslakta yanlış yazmıştık, düzeltildi.** (b) Negatif
+(literal) sınıfın makalenin 6 alanından (idiom/açıklama/idyomatik-örnek/entailment/non-
+entailment/literal) TAM OLARAK hangisinden derlendiği makale metninde belirtilmiyor; yazarların
+kodu yayınlanmadığı için bu bağımsız doğrulanamadı. (c) bizim birincil metriğimiz (%68.2) ÇİFT
+düzeyinde ve daha katı ("ikisini de doğru yap" + **gevşek span tanımıyla**, bkz. yukarıdaki
+metrik-tanımı notu), LLM'lerinki tek-cümle doğruluğu; (d) **bizim %68.2'miz AYNI 198-çift
+benchmark'ında eşik-taranarak seçildi** (LLM'ler bu sette hiç ayarlanmadı, sıfır-atış basit
+prompt'la ölçüldü) — bu iki farklı rejim doğrudan yan yana konamaz. Daha adil bir kıyas için
+CÜMLE düzeyinde bakarsak: v8 idyomatik cümlede %81.3, literal cümlede %85.4 (=100−yanlış-poz)
+doğru — ortalama **yaklaşık %83.4**, LLM'lerin ~%50-61 aralığının üstünde, ama (b)-(d)
+çekinceleriyle birlikte, temkinli okuyun.
 
 **PARSEME 1.1 shared task kıyası:** en iyi sistem (SHOMA, nöral+CRF) tüm diller ortalamasında
 %58.09 makro-F1 almıştı (bazı diller %23-32, Macarca/Romence %85-90). Bu **doğrudan
@@ -357,6 +371,12 @@ teyit ediyor.
 Gap'li span'lar standart BIO ile **yapısal olarak asla yakalanamazdı** (ilk sürümde recall
 garanti %0); iki-katmanlı şemayla artık kısmen (yaklaşık %30-45) kurtarılıyor.
 
+**Sürümler arası gerileme, açıkça:** PARSEME F1 erken sürümlerde (v4 civarı) ~67-68 idi;
+sonraki turlarda tekrar tekrar Çavuşoğlu doğru-ayırtı için TAKAS edildi (bkz. Sürüm Geçmişi/
+CHANGELOG — bu, proje boyunca defalarca kayıt altına alınmış, bilinçli bir seçim) ve v8'de
+**63.48**'e geriledi (yaklaşık −4 ila −5 F1 puanı). Bu bir yan etki değil, açık bir tasarım
+tercihi: PARSEME bu projede birincil optimize edilen metrik değil.
+
 **Ölçüm yöntemi notu:** yukarıdaki PARSEME metrikleri **exact-match** (span sınırları BİREBİR
 tutmalı). Bu, sınır hatalarını (span'in bir kelime kısa/uzun bulunması) tam-kaçırma ile aynı
 kefeye koyuyor; PARSEME için ayrı bir token-düzeyi/sınır-hatası dökümü henüz yapılmadı. Ancak
@@ -373,11 +393,14 @@ farkı olduğunu gösteriyor). Aynı script PARSEME'ye de uygulanabilir, henüz 
   bu risk ölçüldü (sentetik+doğal karışım denendi, daha kötü çıktı), ama üretim ortamında
   çıktıyı doğrulamadan güvenmeyin. `stage2=False` ile tamamen devre dışı, `stage2_thresh` ile
   eşik ayarlanır (varsayılan 0.3 — yukarıdaki eşik-duyarlılığı tablosuna bakın).
-- **Model seçimi bir iç held-out sette yapıldı, bu artık kör bir test sayılamaz.** Aşama 2'nin
-  epoch seçimi (v3-v7 döneminde) görülmemiş-deyim bir held-out setteki dengeli-doğruluk
-  skoruna göre yapılmıştı — bu seti tekrar tekrar kullanmak onu artık saf bir test kümesi
-  olmaktan çıkarıyor. Kartın birincil kanıtı bu yüzden HER ZAMAN tamamen ayrı, dış bir kaynağa
-  (Çavuşoğlu & Çöltekin) dayanıyor.
+- **İki farklı "kör olmayan test" sorunu var, karıştırmayın.** (1) Aşama 2'nin epoch seçimi
+  (v3-v7 döneminde) görülmemiş-deyim bir İÇ held-out setteki dengeli-doğruluk skoruna göre
+  yapılmıştı — bu artık saf bir test kümesi sayılamaz. (2) **Çavuşoğlu & Çöltekin benchmark'ı
+  da (kartın birincil dış kanıtı) v5→v8 arası ~20 deneyde model-SEÇİMİ için tekrar tekrar
+  kullanıldı** (bkz. "dev-seti gibi" çekincesi, Ana metrik bölümü) — yani bu da artık kör bir
+  tutulmuş test seti DEĞİL, kendi başına bir dev-seti işlevi gördü. Kartın gerçekten kör
+  kaynakları PARSEME (eğitim/test split'i sabit) ve dış-literatür kıyasları (Aslantaş&Güngör,
+  Dodiom) — bunlara Çavuşoğlu'ndan daha çok ağırlık verin.
 - **Aşama 1 hâlâ üç gövdeli bir ensemble, tek bir bütünleşik model değil** — model
   boyutu/gecikmesi buna göre büyük (yaklaşık 2GB, yaklaşık 3×). Daha küçük/hızlı bir alternatif (v6, tek
   gövde, yaklaşık 440MB) var ama Aşama 2'si eski/daha zayıf.
@@ -448,7 +471,7 @@ Bu kartta karşılaştırma için kullanılan dış kaynaklar:
   SIGTURK 2026, s. 38–51.
   [ACL Anthology 2026.sigturk-1.4](https://aclanthology.org/2026.sigturk-1.4/) ·
   [github.com/gozdeaslantas/Turkic_Idiom_Understanding_Benchmark](https://github.com/gozdeaslantas/Turkic_Idiom_Understanding_Benchmark)
-- Eryiğit, G., Şentaş, A. & Monti, J. (2022). *Gamified Crowdsourcing for Idiom Corpora
+- Eryiğit, G., Şentaş, A. & Monti, J. (2023). *Gamified Crowdsourcing for Idiom Corpora
   Construction.* Natural Language Engineering, 29(4), 909–941.
   [github.com/Dodiom/dodiom](https://github.com/Dodiom/dodiom)
 

@@ -144,7 +144,7 @@ sınırlama, "başarısızlık" değil).
 Umut, Site, Arslan & Eryiğit (İTÜ, UBMK 2025), "Exploring Turkish Idiomaticity with LLMs"in
 veri seti/kodu yayınlanmamış (IEEE Xplore, paywall) — doğrudan kıyas mümkün olmadı. Yerine,
 aynı ITU NLP ekosisteminden halka açık bir kaynak kullanıldı: **Dodiom TR** (Eryiğit, Şentaş &
-Monti, *Natural Language Engineering* 2022, [github.com/Dodiom/dodiom](https://github.com/Dodiom/dodiom),
+Monti, *Natural Language Engineering* 2023, [github.com/Dodiom/dodiom](https://github.com/Dodiom/dodiom),
 6861 crowdsourced örnek / 36 deyim, idiom/nonidiom ikili etiket + hedef span). **Bu Umut et
 al.'ın verisiyle AYNI DEĞİL** — yalnız benzer bir dış/insan-etiketli kaynak (`benchmark/
 eval_dodiom.py`). "Dış kaynak, görülmemiş" demiyoruz — daha kesin: 36 deyimin **34'ü zaten

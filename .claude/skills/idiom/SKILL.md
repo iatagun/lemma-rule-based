@@ -74,9 +74,31 @@ BIO span etiketleyici. **Yayınlandı** (`huggingface.co/iatagun/DizgeBERT-Idiom
     Aslantaş/Dodiom) eklendi. Checkpoint arşivde: `best_idiom_tagger_vAblationSynth.pt`.
     Kanonik `best_idiom_tagger.pt` (vL) ve `corpus_examples_glu.json` DOKUNULMADAN geri
     yüklendi (hash doğrulandı).
+  - **Dördüncü düzeltme turu (2026-09-20, dış inceleme #4) — dürüstlük/çerçeveleme
+    düzeltmeleri.** (a) LLM-kıyası "(a)" maddesi YANLIŞTI: makalenin gerçek prompt'u
+    ("Does the following Turkish sentence contain an idiom...") LLM'e hedef deyim VERMİYOR,
+    LLM de span'i kendisi buluyor — düzeltildi, ayrıca negatif-sınıf kompozisyonunun makalede
+    belirtilmediği not edildi (repo yalnız veri, kod yok, doğrulanamadı). (b) Ablasyondaki
+    "~%30 mimari / ~%70 veri" ayrımı GEÇERSİZDİ — 28.8→56.6 adımında hem sentetik veri
+    eklendi hem ensemble 3→1 gövdeye düştü, 56.6→68.2 adımında hem Aşama-2 eklendi hem
+    ensemble 1→3'e çıktı; iki değişken aynı anda değişti, yüzdeler kaldırıldı, "farkın kaynağı
+    ayrıştırılmadı" olarak yeniden yazıldı, temiz izolasyon için 2 öneri eklendi (henüz
+    yapılmadı). (c) Üst özet tablosu dengelendi: Aslantaş stage2=True (0.496) da eklendi
+    (yalnız stage2=False/0.592 vardı), Dodiom/Aslantaş satırlarına sürüm/eşik eklendi, "hiç
+    ayar yok" ifadesi "bu setlerde ayar yapılmadı"ya düzeltildi (0.3 eşiği Çavuşoğlu'nda
+    seçilmişti). (d) Çavuşoğlu'nun başlık metriği "gevşek" olduğu artık AÇIKÇA yazıyor +
+    "sıkı" sayı da var (n=11, stem-eşleştirici kısıtı nedeniyle küçük örneklem). (e) İç
+    çelişki giderildi: kart hem "Çavuşoğlu birincil KÖR kanıt" hem "dev-seti gibi kullanıldı"
+    diyordu — ikinci ifade doğru, birincisi düzeltildi. (f) Eryiğit et al. yılı 2022→2023
+    (Çavuşoğlu makalesinin kendi kaynakçasından doğrulandı). (g) Anthropic Usage Policy
+    doğrudan okundu: "outputs to train an AI model... without prior authorization" açıkça
+    yasaklanıyor — Aşama-2'nin Claude-üretimi sentetik verisi bu kapsama girebilir, kartta
+    somut/nötr biçimde belirtildi (hukuki görüş değil). (h) `revision` kendi-kendine-referans
+    hatası (bir commit kendi hash'ini içeremez) HF etiketleriyle çözüldü: `revision="v6"` ve
+    `revision="v8"` artık kalıcı git tag'leri (doğrulandı, ikisi de doğru state'e çözülüyor).
   - Tam detay + tablolar: `dizgebert_idiom/MODEL_CARD.md` (kısa) + `dizgebert_idiom/CHANGELOG.md`
     (sürüm geçmişi + derin istatistiksel doğrulama), ikisi de HF'ye push edildi
-    (commit c136899).
+    (commit d54d338, HF etiketleri: v6, v8).
     Scriptler: `data/fetch_aslantas_gungor_tr.py`, `data/fetch_dodiom_tr.py`,
     `benchmark/eval_aslantas_gungor.py`, `benchmark/train_ag_electra_baseline.py`,
     `benchmark/reeval_ag_baseline_seqeval.py`, `benchmark/eval_ag_baseline_on_cavusoglu.py`,
