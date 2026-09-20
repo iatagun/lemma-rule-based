@@ -71,6 +71,46 @@ def cluster_proportion_ci(hits: list[bool], cluster_ids: list, n_boot: int = 500
     return point, lo, hi
 
 
+def cluster_paired_balanced_acc_diff_ci(sens_a: list[bool], sens_clusters: list,
+                                         fp_a: list[bool], fp_clusters: list,
+                                         sens_b: list[bool], fp_b: list[bool],
+                                         n_boot: int = 5000, seed: int = 0) -> tuple[float, float, float]:
+    """İki koşulun (örn. stage2 açık/kapalı) AYNI satırlarda ölçülmüş dengelenmiş-doğruluk
+    farkı için deyim-kümesi EŞLEŞTİRİLMİŞ bootstrap GA'sı (b - a). Her yeniden örneklemede
+    kümeler (deyimler) birlikte çekilir, o kümelere ait TÜM satırlar (idiom+nonidiom) her
+    iki koşulda da aynı anda dahil edilir — koşullar arası bağımlılık korunur."""
+    rng = random.Random(seed)
+
+    def group(hits, clusters):
+        d: dict = {}
+        for h, c in zip(hits, clusters):
+            d.setdefault(c, []).append(h)
+        return d
+
+    sens_a_by_c, fp_a_by_c = group(sens_a, sens_clusters), group(fp_a, fp_clusters)
+    sens_b_by_c, fp_b_by_c = group(sens_b, sens_clusters), group(fp_b, fp_clusters)
+    idiom_clusters = list(sens_a_by_c.keys())
+    lit_clusters = list(fp_a_by_c.keys())
+
+    def bal_acc(sens_hits, fp_hits):
+        s = sum(sens_hits) / len(sens_hits) if sens_hits else 0.0
+        f = sum(fp_hits) / len(fp_hits) if fp_hits else 0.0
+        return (s + (1 - f)) / 2
+
+    point = bal_acc(sens_b, fp_b) - bal_acc(sens_a, fp_a)
+    boots = []
+    for _ in range(n_boot):
+        sampled_idiom = [rng.choice(idiom_clusters) for _ in range(len(idiom_clusters))]
+        sampled_lit = [rng.choice(lit_clusters) for _ in range(len(lit_clusters))]
+        sens_a_flat = [h for c in sampled_idiom for h in sens_a_by_c[c]]
+        sens_b_flat = [h for c in sampled_idiom for h in sens_b_by_c[c]]
+        fp_a_flat = [h for c in sampled_lit for h in fp_a_by_c[c]]
+        fp_b_flat = [h for c in sampled_lit for h in fp_b_by_c[c]]
+        boots.append(bal_acc(sens_b_flat, fp_b_flat) - bal_acc(sens_a_flat, fp_a_flat))
+    boots.sort()
+    return point, boots[int(0.025 * n_boot)], boots[int(0.975 * n_boot) - 1]
+
+
 def per_cluster_rates(hits: list[bool], cluster_ids: list) -> dict:
     by_cluster: dict = {}
     for h, c in zip(hits, cluster_ids):

@@ -134,7 +134,8 @@ def main() -> None:
     except ImportError:
         sys.exit("pip install seqeval  (onlarla aynı entity-düzeyi metrik için gerekli)")
 
-    model = AutoModel.from_pretrained(args.hf_repo, trust_remote_code=True).eval()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = AutoModel.from_pretrained(args.hf_repo, trust_remote_code=True).to(device).eval()
     tok = AutoTokenizer.from_pretrained(args.hf_repo)
 
     rows = load_test_rows()

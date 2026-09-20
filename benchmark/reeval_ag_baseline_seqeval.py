@@ -29,6 +29,11 @@ MAX_LEN = 256  # onların config.py'sindeki MAX_LENGTH
 
 
 def main() -> None:
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--ckpt-dir", default=str(CKPT_DIR))
+    args = ap.parse_args()
+
     try:
         from seqeval.metrics import f1_score, precision_score, recall_score
     except ImportError:
@@ -38,8 +43,8 @@ def main() -> None:
     from transformers import AutoModelForTokenClassification, AutoTokenizer
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    tok = AutoTokenizer.from_pretrained(CKPT_DIR)
-    model = AutoModelForTokenClassification.from_pretrained(CKPT_DIR).to(device).eval()
+    tok = AutoTokenizer.from_pretrained(args.ckpt_dir)
+    model = AutoModelForTokenClassification.from_pretrained(args.ckpt_dir).to(device).eval()
     id2label = model.config.id2label
 
     rows = [r for r in csv.DictReader(CSV_PATH.open(encoding="utf-8"))

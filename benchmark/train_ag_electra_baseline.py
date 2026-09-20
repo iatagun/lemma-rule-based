@@ -84,15 +84,19 @@ def main() -> None:
     ap.add_argument("--epochs", type=int, default=5)
     ap.add_argument("--batch-size", type=int, default=8)
     ap.add_argument("--lr", type=float, default=5e-5)
+    ap.add_argument("--seed", type=int, default=42,
+                    help="3-seed reprodüksiyon için: 42, 1, 2 gibi farklı değerlerle koş")
     args = ap.parse_args()
+    out_dir = OUT_DIR if args.seed == 42 else OUT_DIR.parent / f"ag_electra_baseline_seed{args.seed}"
 
     if not CSV_PATH.exists():
         sys.exit(f"{CSV_PATH} yok — önce `python data/fetch_aslantas_gungor_tr.py`.")
 
     import torch
     from transformers import (AutoModelForTokenClassification, AutoTokenizer, Trainer,
-                               TrainingArguments, DataCollatorForTokenClassification)
+                               TrainingArguments, DataCollatorForTokenClassification, set_seed)
 
+    set_seed(args.seed)
     tok = AutoTokenizer.from_pretrained(ENCODER)
     model = AutoModelForTokenClassification.from_pretrained(
         ENCODER, num_labels=len(LABELS), id2label=dict(enumerate(LABELS)), label2id=L2I)
@@ -121,7 +125,8 @@ def main() -> None:
         return {"precision": prec, "recall": rec, "f1": f1}
 
     targs = TrainingArguments(
-        output_dir=str(OUT_DIR / "_hf_out"),
+        output_dir=str(out_dir / "_hf_out"),
+        seed=args.seed,
         num_train_epochs=args.epochs,
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=args.batch_size,
@@ -146,10 +151,10 @@ def main() -> None:
     metrics = trainer.evaluate(test_ds)
     print(metrics)
 
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    model.save_pretrained(OUT_DIR)
-    tok.save_pretrained(OUT_DIR)
-    print(f"\nkaydedildi: {OUT_DIR}")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    model.save_pretrained(out_dir)
+    tok.save_pretrained(out_dir)
+    print(f"\nkaydedildi: {out_dir}")
 
 
 if __name__ == "__main__":

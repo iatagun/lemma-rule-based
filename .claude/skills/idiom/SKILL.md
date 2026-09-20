@@ -40,7 +40,23 @@ BIO span etiketleyici. **Yayınlandı** (`huggingface.co/iatagun/DizgeBERT-Idiom
     "doğru-ayırt"ıyla AYNI ÖLÇEK DEĞİL). 36 deyimin **34'ü Aşama-1 span havuzunda zaten var**
     (span-bulma açısından neredeyse hiç görülmemiş-deyim testi değil); Aşama-2'nin KENDİ
     etiketli havuzuyla örtüşme 0/36 (asıl test edilen bağlam-ayrımı sinyali için dış veri).
-  - Tam detay + tablolar: `dizgebert_idiom/MODEL_CARD.md` (henüz HF'ye push edilmedi).
+  - **İkinci düzeltme turu (2026-09-20, dış inceleme #2):** ilk turun bulguları büyük ölçüde
+    ayakta ama beş nokta daha netleştirildi: (a) Çavuşoğlu benchmark'ı v5-v8 arası ~20 deneyde
+    model-SEÇİMİ için kullanıldı, "dev-seti gibi" okunmalı, kör test değil. (b) Aşama 2'nin
+    etkisi BENCHMARK'A BAĞLI — Çavuşoğlu'nda +39.4pp (anlamlı), Dodiom'da deyim-kümesi
+    eşleştirilmiş bootstrap'la yalnız +2.4pp (95% GA −1.5–+6.1, SIFIRI İÇERİYOR, anlamsız);
+    Dodiom'da Aşama 2 recall'ı (−15.6pp) yanlış-pozitif için (−20.5pp) takas ediyor, net
+    etki belirsiz. (c) Dodiom "Aşama-2 açısından görülmemiş" olarak yeniden adlandırıldı
+    (34/36 zaten Aşama-1 havuzunda). (d) AG test setinde entity-exact (0.592) vs gevşek/
+    token-örtüşmeli (0.795) farkının kaynağı `analyze_ag_errors.py` ile incelendi: 153
+    span-olayının %50.3'ü tam eşleşme, %20.3'ü sınır-farkı (çoğu "Allah ..." dua/beddua
+    kalıpları — onlar tüm cümleyi span sayıyor, biz çekirdek yüklemi), %15.7 gerçek kaçırma,
+    %13.7 gerçek fazladan-işaretleme. (e) AG-ELECTRA-tr reprodüksiyonu 3 tohumla tekrarlandı:
+    F1=0.898±0.031 (0.924/0.864/0.906), onların 0.877'si bu aralıkta — makul reprodüksiyon.
+    Tüm detay: `dizgebert_idiom/MODEL_CARD.md`. Yeni scriptler: `benchmark/analyze_ag_errors.py`,
+    `benchmark/stats_utils.py::cluster_paired_balanced_acc_diff_ci`.
+  - Tam detay + tablolar: `dizgebert_idiom/MODEL_CARD.md` (HF'ye push edildi, commit e223856
+    → ikinci düzeltme turu sonrası yeniden pushlanacak).
     Scriptler: `data/fetch_aslantas_gungor_tr.py`, `data/fetch_dodiom_tr.py`,
     `benchmark/eval_aslantas_gungor.py`, `benchmark/train_ag_electra_baseline.py`,
     `benchmark/reeval_ag_baseline_seqeval.py`, `benchmark/eval_ag_baseline_on_cavusoglu.py`,

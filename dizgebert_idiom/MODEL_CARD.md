@@ -139,9 +139,15 @@ eksiği. Bkz. Kısıtlar.)*
 
 ### Ana metrik: bağlam-bağımlılık (dış kaynak)
 
-**Bağımsız dış kaynak.** Çavuşoğlu & Çöltekin'in (MWE 2026) elle-yazılmış Türkçe deyim
-benchmark'ı (198 deyim, her biri için gerçek idyomatik-kullanım + literal-kullanım cümle
-çifti, eğitim verimizde yok — `benchmark/eval_idiom.py --mode external`) üzerinde:
+**Bağımsız dış kaynak — ama "dev-seti gibi" okuyun.** Çavuşoğlu & Çöltekin'in (MWE 2026)
+elle-yazılmış Türkçe deyim benchmark'ı (198 deyim, her biri için gerçek idyomatik-kullanım +
+literal-kullanım cümle çifti, eğitim verimizde yok — `benchmark/eval_idiom.py --mode
+external`) üzerinde. **Önemli çekince:** bu benchmark, v5→v8 arası ~20 deneyde HANGİ
+adayın promote edileceğine karar vermek için TEKRAR TEKRAR kullanıldı (bkz. Sürüm Geçmişi) —
+yani kör bir tutulmuş test seti değil, fiilen bir model-seçim/dev seti gibi işlev gördü.
+Aşağıdaki mutlak sayılar (özellikle sürümler-arası "kazanç" iddiaları) bu yüzden bir miktar
+iyimser yanlı olabilir; PARSEME ve dış-kaynak (Aslantaş&Güngör, Dodiom) sayıları bu sızıntıdan
+bağımsız, o yüzden onlara daha çok ağırlık verin.
 
 **Tek-aşama ablasyonu (2026-09-20, `benchmark/eval_cavusoglu_stage_ablation.py`):**
 Aşama 1'in TEK BAŞINA (Aşama 2 KAPALI) performansı — "tek aşamalı bir tagger bağlam ayrımı
@@ -162,6 +168,19 @@ Aşama 2 üretiyor. **Not:** bu, tek bir ELECTRA gövdesinin değil, üç-gövde
 başına ölçümü — daha da recall-ağırlıklı olduğu için tek-gövde bir tagger muhtemelen bu kadar
 yüksek yanlış-pozitif vermez, ama muhtemelen daha düşük duyarlılık da verir; net doğru-ayırt
 yönü aynı kalır ama bu spesifik %28.8 rakamı ensemble'a özgü, tek-gövdeye genellenmemeli.
+
+**Sürüm notu (hangi sayı hangi sürüme ait):** Aşama 1 (stage2=False, span-tespit gövdeleri)
+**v7'den beri değişmedi** — v8 yalnız Aşama 2'yi (idyomatiklik sınıflandırıcısını) yeniden
+eğitti. Yani yukarıdaki %28.8 hem v7 hem v8 için geçerli Aşama-1-tek rakamı. `+Aşama 2`
+sütunundaki **%68.2**, v8'in `stage2_thresh=0.3` (güncel varsayılan) ile ölçümü; v8 ilk
+yayınlandığında varsayılan eşik 0.5'ti ve o eşikte **%65.2** ölçülmüştü (aşağıdaki eşik
+tablosuna bakın — aynı model dosyası, yalnız eşik farklı). v4'ün Aşama 1'i BUGÜNKÜ v7/v8'den farklıydı: v4 `corpus_examples_glu.json`'un o zamanki
+(sonradan fark edilen, bkz. proje deney günlüğü "Deney H") sürümünü kullanıyordu — bu dosya
+neredeyse tamamen D-only'ydi (LLM kaynaklı, stale), gerçek literal→hep-O örneği YOK denecek
+kadar azdı. Bu, mimari bir farklılık değil, o dönemki veri dosyasının içeriğiyle ilgiliydi;
+sonraki bir düzeltme (Deney H) temiz, dengeli D+L verisiyle `corpus_examples_glu.json`'u
+yeniden üretti, ve v7'den itibaren Aşama 1 bu temiz veriyle eğitiliyor. Yukarıdaki ablasyon
+bu YENİ (v7/v8) Aşama-1 verisiyle ölçüldü, v4'ün Aşama-1'i DEĞİL.
 
 **stage2_thresh eşik-duyarlılığı** (aynı 198 çift, `p(literal) > eşik` olan span elenir):
 
@@ -220,34 +239,53 @@ açıkça belirtiyoruz:
   ([ACL Anthology 2026.sigturk-1.4](https://aclanthology.org/2026.sigturk-1.4/),
   [github.com/gozdeaslantas/Turkic_Idiom_Understanding_Benchmark](https://github.com/gozdeaslantas/Turkic_Idiom_Understanding_Benchmark)).
   Kod ve veri açık olduğu için **çift yönlü, ölçülmüş** bir kıyas yapıldı (2026-09-20,
-  `benchmark/eval_aslantas_gungor.py`, `benchmark/train_ag_electra_baseline.py`):
+  `benchmark/eval_aslantas_gungor.py`, `benchmark/train_ag_electra_baseline.py`,
+  `benchmark/analyze_ag_errors.py`).
 
-  *DizgeBERT'i onların TR test setinde (131 cümle) çalıştırmak* — onların KENDİ metriğiyle
-  (seqeval, entity-düzeyi exact-match, bizim daha toleranslı token-düzeyi ölçütümüz değil):
+  **Dürüst özet, en başta:** onların TR test setinde (131 cümle), onların KENDİ metriğiyle
+  (seqeval, entity-düzeyi exact-match), DizgeBERT **açıkça geride**: F1=0.592 (tümü),
+  **0.414 gerçekten görülmemiş deyimlerde** — onların in-domain ELECTRA-tr/ConvBERT-tr'sinin
+  0.877/0.880'inin belirgin altında. VID/LVC iki kategorimiz bu kıyas için TEK bir IDIOM
+  sınıfına indirgendi (their span'leriyle karşılaştırılabilir olması için).
 
   | | tümü (n=131) | deyim-kimliği görülmüş (n=71) | gerçekten görülmemiş (n=60) |
   |---|---|---|---|
-  | stage2=False (adil kıyas — onların görevinde bağlam-ayrımı yok) | F1=0.592 (95% GA 0.513–0.672) | F1=0.736 (0.639–0.827) | F1=0.414 (0.300–0.537) |
-  | stage2=True (yayınlanan varsayılan) | F1=0.496 (0.414–0.580) | F1=0.608 (0.504–0.712) | F1=0.372 (0.252–0.496) |
+  | **entity-exact (seqeval, onların metriği), stage2=False** | F1=0.592 (95% GA 0.513–0.672) | F1=0.736 (0.639–0.827) | **F1=0.414** (0.300–0.537) |
+  | entity-exact, stage2=True (yayınlanan varsayılan) | F1=0.496 (0.414–0.580) | F1=0.608 (0.504–0.712) | F1=0.372 (0.252–0.496) |
+  | gevşek/token-örtüşmeli (kısmi sınır hatasına kısmi puan), stage2=False | P=0.887 R=0.721 F1=**0.795** | P=0.933 R=0.848 F1=0.888 | P=0.822 R=0.583 F1=0.682 |
   | **onların ELECTRA-tr/ConvBERT-tr'si (in-domain, kendi eğitimleri)** | **F1=0.877 / 0.880** | — | — |
 
-  131 test idiomunun **71'i (%54) zaten bizim Aşama-1 eğitim havuzumuzda** — yani bu
-  "sıfır-atış" CÜMLE düzeyinde geçerli (bu cümleleri hiç görmedik), DEYİM-kimliği düzeyinde
-  değil. Gerçekten görülmemiş 60 deyimlik dilimde F1 belirgin düşük (0.414). Sonuç: dış
-  test setinde, onların KENDİ ölçütüyle, DizgeBERT açıkça geride — beklenen, çünkü onların
-  modelleri bu göreve (Türkçe TR-only span tespiti) özel eğitildi, bizimki genel amaçlı +
-  ayrı bir bağlam-ayrımı görevi (Aşama 2) taşıyor ve stage2 açıkken görev-uyumsuzluğu
-  (span'i elemek, azaltmak, F1'i düşürüyor) yüzünden ek kayıp var.
+  131 test idiomunun **71'i (%54) zaten bizim Aşama-1 eğitim havuzumuzda** — "sıfır-atış"
+  yalnız CÜMLE düzeyinde geçerli, DEYİM-kimliği düzeyinde değil.
 
-  *Onların backbone'unu (ELECTRA-tr — bizimkiyle AYNI encoder) bizim Çavuşoğlu bağlam-ayrımı
-  benchmark'ımızda çalıştırmak* — checkpoint yayınlamadıkları için (double-blind) kendi TR
-  verileriyle burada yeniden eğitildi; kendi test setlerinde seqeval F1=0.924 (onların 3-seed
-  ortalaması 0.877'ye yakın, makul tek-koşu reprodüksiyonu). Bizim 198-çift benchmark'ımızda:
-  duyarlılık %87.4, yanlış-poz %85.9, **doğru-ayırt yalnız %9.6** — bağlamdan bağımsız, saf
-  yüzey-biçim eşleşmesi (literal kullanımla idyomatik kullanımı hiç ayırt edemiyor, çünkü bu
-  görev için hiç eğitilmedi — bkz. aşağıdaki "tek-aşama ablasyonu" notu, aynı sonucu
-  DOĞRULUYOR ama tek başına "kanıtlamıyor": bu, salt-pozitif eğitilmiş bir tagger'ın davranışı,
-  "tek-aşamalı mimariler prensipte bağlam ayrımı yapamaz" gibi genel bir iddia değil).
+  **Entity-exact (0.592) ile gevşek/token-örtüşmeli (0.795) arasındaki fark ne kadarı sınır
+  konvansiyonundan geliyor?** 131 cümledeki 153 span-olayının elle (`analyze_ag_errors.py`
+  çıktısı okunarak) sınıflandırılması: **%50.3 tam eşleşme (EXACT), %20.3 doğru deyimi buldu
+  ama sınır farklı (BOUNDARY), %15.7 gerçek kaçırma (MISS), %13.7 gerçek fazladan-işaretleme
+  (SPURIOUS).** Yani fark KISMEN sınır-konvansiyonundan (EXACT+BOUNDARY=%70.6 "doğru yerde"),
+  ama önemli bir kısmı GERÇEK kaçırma/fazladan-işaretleme (%29.4). BOUNDARY vakalarının
+  belirgin bir kısmı tek bir örüntüye ait: "Allah ..." ile başlayan dua/beddua kalıpları
+  (*Allah belasını versin*, *Allah korusun*, *Allah mübarek etsin*) — onların anotasyonu
+  TÜM cümleyi (vokatif+fiil) tek span sayıyor, DizgeBERT (TDK sözlük-biçimli VID eğitiminden)
+  yalnız çekirdek yüklemi/nesneyi işaretliyor. Bu, iki farklı "deyim" tanımının (idiom-as-
+  fixed-clause vs idiom-as-lexical-item) sınır anlaşmazlığı — model hatası değil, tanım farkı.
+
+  **Reprodüksiyon, 3 tohum:** onların backbone'unu (ELECTRA-tr — bizimkiyle AYNI encoder,
+  checkpoint yayınlamadıkları için double-blind kendi TR verileriyle burada yeniden eğitildi)
+  3 farklı tohumla (`--seed 42/1/2`) eğitip onların KENDİ metriğiyle ölçtük: **F1 = 0.898 ±
+  0.031** (0.924/0.864/0.906) — onların bildirdiği 3-seed-ortalaması **0.877** bu aralığın
+  içinde, makul bir reprodüksiyon. **Ayrı bir not:** onların makale METNİ "token-level
+  precision/recall/F1/accuracy" diyor ama kodları (`src/modeling/metrics.py`) `seqeval` ile
+  ENTITY-düzeyi hesaplıyor — bu, onların kendi makalesindeki bir terminoloji tutarsızlığı,
+  bizim hatamız değil, ama okuyucunun bilmesi gereken bir nüans.
+
+  Bu backbone'u (kendi TR verisiyle, tek tohumla eğitilmiş hâli) bizim Çavuşoğlu bağlam-ayrımı
+  benchmark'ımızda çalıştırdık: duyarlılık %87.4, yanlış-poz %85.9, **doğru-ayırt yalnız
+  %9.6** — bağlamdan bağımsız, saf yüzey-biçim eşleşmesi. Bu, "salt-pozitif eğitilmiş bir
+  tagger bağlam ayırt edemiyor" gözlemini destekler ama TEK BAŞINA "iki aşama şart" iddiasını
+  KANITLAMAZ (onların modeli literal örnekle hiç eğitilmedi — kendi göreviyle tutarlı bir
+  sınırlama, "başarısızlık" değil). Asıl kanıt aşağıdaki tek-aşama ablasyonu (AYNI veri,
+  yalnız Aşama 2 kapalı/açık).
 
 - **Umut, Site, Arslan & Eryiğit (İTÜ, UBMK 2025), "Exploring Turkish Idiomaticity with
   LLMs".** Veri seti/kodu yayınlanmamış (IEEE Xplore, paywall) — doğrudan kıyas mümkün
@@ -256,6 +294,11 @@ açıkça belirtiyoruz:
   [github.com/Dodiom/dodiom](https://github.com/Dodiom/dodiom), 6861 crowdsourced örnek / 36
   deyim, idiom/nonidiom ikili etiket + hedef span). **Bu Umut et al.'ın verisiyle AYNI DEĞİL**
   — yalnız benzer bir dış/insan-etiketli kaynak olarak kullanıldı (`benchmark/eval_dodiom.py`).
+  **"Dış kaynak, görülmemiş" demiyoruz** — daha kesin: 36 deyimin **34'ü zaten Aşama-1'in
+  span eğitim havuzunda var** (bu, Aşama-1 açısından neredeyse hiç görülmemiş-deyim testi
+  DEĞİL); Aşama-2'nin (bağlam-ayrımı) KENDİ etiketli eğitim havuzuyla örtüşme **0/36** — yani
+  bu **Aşama-2 açısından görülmemiş deyim kimlikleri üzerinde, doğal/crowdsourced cümlelerle**
+  bir test.
 
   | | duyarlılık | yanlış-poz | dengelenmiş doğruluk* |
   |---|---|---|---|
@@ -265,10 +308,20 @@ açıkça belirtiyoruz:
   *dengelenmiş doğruluk = (duyarlılık + (1−yanlış-poz))/2, EŞLEŞTİRİLMEMİŞ cümle-düzeyi bir
   ölçüt — Çavuşoğlu'nun çift-düzeyi "ikisini de doğru ayırt etti" metriğiyle AYNI ölçek
   DEĞİL, doğrudan kıyaslanmamalı. Güven aralıkları deyim-KÜMESİ (36 deyim) bootstrap'ı —
-  etkin örneklem 36'dır, 6861 satır değil. 36 deyimin **34'ü Aşama-1'in span eğitim
-  havuzunda zaten var** (span bulma açısından neredeyse hiç görülmemiş-deyim testi değil);
-  Aşama-2'nin (bağlam-ayrımı) KENDİ etiketli eğitim havuzuyla örtüşme **0/36** — asıl test
-  edilen sinyal (literal/idyomatik bağlam ayrımı) için bu gerçekten dış veri.
+  etkin örneklem 36'dır, 6861 satır değil.
+
+  **Aşama 2'nin net etkisi burada Çavuşoğlu'ndaki kadar net DEĞİL.** Aşama 2 açıldığında
+  duyarlılık %85.5→%69.9 (**−15.6pp, gerçek recall bedeli**) düşerken yanlış-poz %35.6→%15.1
+  (**−20.5pp, gerçek kazanç**) düşüyor — net "dengelenmiş doğruluk" farkı görünürde yalnız
+  +2.5pp (%74.9→%77.4). Deyim-kümesi EŞLEŞTİRİLMİŞ bootstrap ile test edildiğinde: **fark
+  +2.4pp, 95% GA −1.5pp – +6.1pp — SIFIRI İÇERİYOR, bu ölçekte (n=36 deyim kümesi)
+  istatistiksel olarak ayırt edilemiyor.** Yani Dodiom'da Aşama 2'nin doğru anlatımı "recall'ı
+  yanlış-pozitif için takas ediyor, net dengelenmiş-doğruluk etkisi bu örneklemde belirsiz" —
+  Çavuşoğlu'ndaki net +39.4pp'lik (anlamlı) kazanç BURADA tekrarlanmıyor. "İki aşama şart"
+  iddiası bu yüzden benchmark'a göre YUMUŞATILMALI: Çavuşoğlu'nun (deliberate, dengeli
+  idyomatik/literal çiftler) ölçtüğü keskin bağlam-değiştirme senaryosunda güçlü/anlamlı,
+  Dodiom'un (doğal, dengesiz, düşük-literal-oran) senaryosunda yönü aynı ama büyüklüğü
+  istatistiksel olarak belirsiz.
 
 **Tek-aşama ablasyonu, ayrı bir kanıt hattı (2026-09-20):** yukarıdaki iki dış-kaynak
 karşılaştırması "salt-pozitif eğitilmiş bir tagger bağlam ayırt edemiyor" gözlemini
@@ -276,8 +329,14 @@ DOĞRULUYOR (onların modeli literal örnek hiç görmedi). Bunun "iki aşama ş
 dönüşmesi için ayrı bir ablasyon gerekliydi: Aşama 1'i (AYNI veri, literal örnekler zaten
 hep-O olarak var) Aşama 2 OLMADAN çalıştırmak — yukarıdaki "Ana metrik" bölümündeki
 "tek-aşama ablasyonu" tablosuna bakın (doğru-ayırt %28.8 vs %68.2, eşleştirilmiş fark
-+39.4pp, 95% GA sıfırı içermiyor). İkisi birlikte: hem dış-kaynak modelleri hem kendi
-tek-aşama varyantımız aynı sınırı gösteriyor.
++39.4pp, 95% GA sıfırı içermiyor). **Ama bu iddia BENCHMARK'A BAĞLI**: aynı açık/kapalı
+karşılaştırması Dodiom'da tekrarlanınca (yukarı bakın) fark +2.4pp'ye düşüyor ve GA sıfırı
+içeriyor — istatistiksel olarak anlamsız. Okunması gereken doğru cümle "iki aşama her
+zaman/her veri dağılımında şart" değil, **"Çavuşoğlu'nun ölçtüğü türden keskin, dengeli
+idyomatik/literal bağlam-değiştirme senaryosunda Aşama 2'nin katkısı büyük ve anlamlı;
+Dodiom'un doğal, düşük-literal-oranlı dağılımında yönü aynı (daha az yanlış-pozitif) ama
+net dengelenmiş-doğruluk etkisi bu örneklem büyüklüğünde istatistiksel olarak
+ayırt edilemiyor."**
 
 ### Diğer kıyas noktaları (dikkatli okunmalı — görev tanımları farklı)
 
