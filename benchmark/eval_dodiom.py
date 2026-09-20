@@ -76,11 +76,17 @@ def full_training_pool_stems() -> set[tuple]:
 
 
 def stage2_pool_idioms() -> set[str]:
-    p = PROJECT_ROOT / "idiom_data" / "corpus_examples_glu.json"
+    """v8'in Aşama-2'sinin GERÇEKTEN eğitildiği havuz — `_synthetic_stage2_records.jsonl`
+    (Deney Z, 503 deyim). **Düzeltme (2026-09-20, 3. dış inceleme):** önceki sürüm burada
+    `corpus_examples_glu.json`'u okuyordu — o dosyada 'idiom' alanı hiç YOK (yalnız
+    words/tags), yani eski kontrol her zaman boş küme döndürüyor ve "0/36 örtüşme" iddiası
+    hem YANLIŞ dosyaya (Aşama-1'in verisi, Aşama-2'nin değil) hem BOZUK bir sorguya
+    dayanıyordu. Bu, doğru sonuca (gerçekten 0'a yakın örtüşme) tesadüfen yakın çıkmış
+    olabilir ama YÖNTEM güvenilir değildi."""
+    p = PROJECT_ROOT / "idiom_data" / "_synthetic_stage2_records.jsonl"
     if not p.exists():
         return set()
-    pool = json.loads(p.read_text(encoding="utf-8"))
-    return {r["idiom"] for r in pool if r.get("idiom")}
+    return {json.loads(l)["idiom"] for l in p.read_text(encoding="utf-8").splitlines() if l.strip()}
 
 
 def hit_at_target(spans: list[dict], rng: tuple[int, int]) -> bool:

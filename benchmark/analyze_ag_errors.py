@@ -98,6 +98,10 @@ def main() -> None:
     for k in ["EXACT", "BOUNDARY", "MISS", "SPURIOUS"]:
         print(f"  {k}: {counts[k]} (%{100*counts[k]/total:.1f})")
 
+    allah_boundary = sum(1 for words, _, _ in examples["BOUNDARY"]
+                         if any(w.lower().startswith("allah") for w in words))
+    print(f"\n  BOUNDARY içinde 'Allah ...' kalıbı: {allah_boundary}/{counts['BOUNDARY']}")
+
     for cat in ("BOUNDARY", "MISS", "SPURIOUS"):
         print(f"\n--- örnek {cat} vakalar (ilk 8) ---")
         for words, gold_spans, pred_spans in examples[cat][:8]:

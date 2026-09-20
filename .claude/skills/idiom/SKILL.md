@@ -55,8 +55,28 @@ BIO span etiketleyici. **Yayınlandı** (`huggingface.co/iatagun/DizgeBERT-Idiom
     F1=0.898±0.031 (0.924/0.864/0.906), onların 0.877'si bu aralıkta — makul reprodüksiyon.
     Tüm detay: `dizgebert_idiom/MODEL_CARD.md`. Yeni scriptler: `benchmark/analyze_ag_errors.py`,
     `benchmark/stats_utils.py::cluster_paired_balanced_acc_diff_ci`.
-  - Tam detay + tablolar: `dizgebert_idiom/MODEL_CARD.md` (HF'ye push edildi, commit e223856
-    → ikinci düzeltme turu sonrası yeniden pushlanacak).
+  - **Üçüncü düzeltme turu (2026-09-20, dış inceleme #3) — asıl eksik giderildi.** Önceki
+    tek-aşama ablasyonu "aynı veri" DEĞİLDİ (Aşama 1 `corpus_examples_glu.json`'daki doğal-
+    derlem L→hep-O'yu gördü, Aşama 2 ise v8'de TAMAMEN AYRI sentetik 1866-kayıtlık minimal-
+    çift havuzuyla eğitildi — Aşama 1 bu sentetik veriyi hiç görmedi). Gerçek ablasyon
+    (`data/build_synthetic_stage1_ablation.py`): aynı sentetik kayıtlar (literal→hep-O
+    çevrilerek) standart Aşama-1 verisine eklenip TEK-GÖVDE bir ELECTRA sıfırdan eğitildi
+    (10 epoch, en iyi epoch 10, dev F1 66.32). Sonuç: doğru-ayırt %28.8 (sentetik veri yok)
+    → **%56.6** (95% GA %49.5–63.1, sentetik veri VAR, tek gövde) → %68.2 (tam iki-aşamalı
+    boru hattı). **Yorum: önceki +39.4pp farkın ~%70'i (+27.8pp) VERİ etkisiydi, ~%30'u
+    (+11.6pp) gerçekten mimariden geliyor** — "iki aşama şart" iddiası doğru ama daha
+    mütevazı; eleştirinin öngördüğü gibi büyük ölçüde bir veri-confound'du. Ayrıca: (a) Dodiom
+    Aşama-2 örtüşme kontrolü düzeltildi (yanlış dosya + boş sorgu bug'ı, "0/36"→doğru "1/36"),
+    (b) v7'nin kendi eşiği tarandı (en iyisi gerçekten 0.5 çıktı, v8-v7 kıyası zaten yanlı
+    değildi), (c) AG "Allah ..." kalıbı kesin sayıldı (8/31 BOUNDARY vakası), (d) 3-seed
+    reprodüksiyon (F1=0.898±0.031), (e) CHANGELOG.md ayrıldı (kart 565→463 satıra indi),
+    (f) revision= pin + v6 erişim notu, GLU/CASES tanımları, atıflar (Leipzig/Çavuşoğlu/
+    Aslantaş/Dodiom) eklendi. Checkpoint arşivde: `best_idiom_tagger_vAblationSynth.pt`.
+    Kanonik `best_idiom_tagger.pt` (vL) ve `corpus_examples_glu.json` DOKUNULMADAN geri
+    yüklendi (hash doğrulandı).
+  - Tam detay + tablolar: `dizgebert_idiom/MODEL_CARD.md` (kısa) + `dizgebert_idiom/CHANGELOG.md`
+    (sürüm geçmişi + derin istatistiksel doğrulama), ikisi de HF'ye push edildi
+    (commit c136899).
     Scriptler: `data/fetch_aslantas_gungor_tr.py`, `data/fetch_dodiom_tr.py`,
     `benchmark/eval_aslantas_gungor.py`, `benchmark/train_ag_electra_baseline.py`,
     `benchmark/reeval_ag_baseline_seqeval.py`, `benchmark/eval_ag_baseline_on_cavusoglu.py`,
