@@ -102,6 +102,19 @@ etmek, önem vermek, sonuç almak, not almak, bilgi vermek, zarar vermek, görev
 **Ama sınır — bunlar DEYİM** (ad-sözcük anlam aktarımı taşıyor): söz almak, söz vermek,
 yol göstermek, ön ayak olmak. ("söz" ve "yol" mecazi.)
 
+> **KILAVUZUN KENDİ İÇİNDE ÇELİŞKİSİ (2026-09-22'de bulundu, tekrar keşfedilmesin).**
+> Yukarıdaki satır bu dördünü DEYİM sayıyor, ama aşağıdaki eşleme tablosu
+> "EŞDİZİMLİLİK (**söz/yol gibi** anlam-aktarımlı ad + fiil) → B/I-LVC" diyor — aynı
+> örnekler, zıt etiket. Bizim iki eval setimiz uzun süre iki farklı tarafı seçmişti
+> (CASES: söz vermek=LVC, GLU: söz vermek=VID). **Çözüm kuralı: çelişkiyi PARSEME-TR
+> altınıyla kes** (eğitim verimizin otoritesi; eval'in eğitimden farklı konvansiyon
+> dayatması ölçüm hatasıdır):
+> - `söz ver` → PARSEME LVC.full ×10 / VID ×1 → **LVC** (GLU eval düzeltildi)
+> - `ön ayak ol` → PARSEME VID ×1 → **VID** (kılavuzla uyumlu)
+> - `söz al`, `yol göster` → PARSEME'de hiç geçmiyor → kılavuzun **VID**'i korundu
+> PARSEME'de karşılığı olmayan yeni sınır vakalarında aynı sıra izlenir: önce PARSEME,
+> yoksa kılavuzun zor-negatif bölümü.
+
 **Deyim sanılan TERİM** (bitki/kavram adı — O olmalı):
 kara delik, kuşburnu, hanımeli, fare kulağı, aslan ağzı, deve dikeni.
 

@@ -567,6 +567,9 @@ def main() -> None:
     ap.add_argument("--corpus-examples", action="store_true",
                     help="idiom_data/corpus_examples.json'u (Leipzig derleminden madenlenen "
                          "gerçek bağlam cümleleri, prepare_tdk_corpus_examples.py) train'e ekle")
+    # UYARI: glu_hard_examples.json, GLU tanı setiyle AYNI cümlelerden üretiliyor
+    # (prepare_glu_examples.PAIRS) — bu flag açılırsa `eval_idiom --mode glu` train-on-test
+    # olur ve anlamını yitirir. Hiçbir yayınlanmış sürümde kullanılmadı.
     ap.add_argument("--glu-examples", action="store_true",
                     help="idiom_data/glu_hard_examples.json'u (GLU kılavuzu idyomatik/literal "
                          "minimal çiftleri, prepare_glu_examples.py) train'e ekle")

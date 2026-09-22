@@ -73,8 +73,15 @@ PAIRS: list[tuple[str, str | None, str | None]] = [
     ("Bir anda sigortaları attı .", "sigortaları attı", "VID"),
     ("Aşırı yüklenince sigorta attı .", None, None),
     # tek yönlü deyim örnekleri (kılavuz Tablo 30 — "eşdizim sanılan deyim")
+    # DİKKAT — kılavuzun KENDİ İÇİNDE çelişkisi (2026-09-22'de bulundu): zor-negatif
+    # bölümü "söz almak / söz vermek / yol göstermek / ön ayak olmak = DEYİM" diyor,
+    # ama eşleme tablosu "söz/yol gibi anlam-aktarımlı ad + fiil → B/I-LVC" diyor.
+    # Çelişkiyi PARSEME-TR altınıyla çözüyoruz (eğitim verimizin otoritesi):
+    #   söz ver → LVC.full ×10 / VID ×1  → LVC        (aşağıda düzeltildi)
+    #   ön ayak ol → VID ×1              → kılavuzla uyumlu
+    #   söz al / yol göster → PARSEME'de hiç geçmiyor → kılavuzun VID'i korundu
     ("Toplantıda ben de söz aldım .", "söz aldım", "VID"),
-    ("Toplantıda bana da söz verildi .", "söz verildi", "VID"),
+    ("Toplantıda bana da söz verildi .", "söz verildi", "LVC"),
     ("Danışmanım tez çalışmam boyunca bana yol gösterdi .", "yol gösterdi", "VID"),
 ]
 
@@ -138,11 +145,37 @@ def glu_diagnostic_cases():
         label = "glu-deyim" if span else "glu-literal"
         out.append((label, sent, span, cat))
     for sent, kind in HARD_NEG_DIAG:
-        out.append((f"glu-{kind}", sent, None, None))
+        # eşdizim: LVC kabul edilebilir, VID hata (bkz. HARD_NEG_DIAG yorumu +
+        # eval_idiom._check'teki "!VID"). terim / tek-sözcük: hiç span olmamalı.
+        out.append((f"glu-{kind}", sent, None, "!VID" if kind == "eşdizim" else None))
     return out
 
 
+def _selfcheck() -> None:
+    """Tek çalıştırılabilir denetim: tanı setinin biçimi + `_check`'in "!VID" anlambilimi."""
+    from benchmark.eval_idiom import _check
+
+    cases = glu_diagnostic_cases()
+    kinds = {c[0] for c in cases}
+    assert "glu-eşdizim" in kinds, kinds
+    esd = [c for c in cases if c[0] == "glu-eşdizim"]
+    assert esd and all(c[2] is None and c[3] == "!VID" for c in esd), esd
+    # terim / tek-sözcük: hiç span kabul etmez (eski katı davranış korunmalı)
+    oth = [c for c in cases if c[0] in ("glu-terim", "glu-tek-sözcük")]
+    assert oth and all(c[3] is None for c in oth), oth
+
+    lvc = [{"text": "karar verdi", "category": "LVC"}]
+    vid = [{"text": "karar verdi", "category": "VID"}]
+    assert _check(lvc, None, "!VID") == "ok"      # eşdizim LVC → kabul
+    assert _check(vid, None, "!VID") == "fail"    # eşdizim VID → hata
+    assert _check([], None, "!VID") == "ok"       # span yok → kabul
+    assert _check(lvc, None, None) == "fail"      # terim: LVC bile hata
+    assert _check([], None, None) == "ok"
+    print("öz-denetim: tamam (tanı seti biçimi + '!VID' anlambilimi)")
+
+
 def main() -> None:
+    _selfcheck()
     recs = build_training_records()
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
     OUT_JSON.write_text(json.dumps(recs, ensure_ascii=False), encoding="utf-8")
@@ -153,7 +186,8 @@ def main() -> None:
           f"({sum(1 for c in glu_diagnostic_cases() if c[2])} span-beklenen / "
           f"{sum(1 for c in glu_diagnostic_cases() if not c[2])} span-beklenmeyen)")
     print("Sonraki: python benchmark/eval_idiom.py --local --checkpoint <ckpt> --mode glu")
-    print("         python train_idiom_bert.py --class-weights --tdk-examples --glu-examples --epochs 10")
+    print("UYARI: --glu-examples ile EĞİTMEYİN — bu dosya GLU tanı setiyle (glu_diagnostic_cases)")
+    print("       AYNI PAIRS listesinden üretiliyor; train'e eklemek eval'i train-on-test yapar.")
 
 
 if __name__ == "__main__":

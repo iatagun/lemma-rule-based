@@ -110,6 +110,13 @@ BIO span etiketleyici. **Yayınlandı** (`huggingface.co/iatagun/DizgeBERT-Idiom
     `benchmark/eval_dodiom.py`, `benchmark/eval_cavusoglu_stage_ablation.py`,
     `benchmark/stats_utils.py`. **Ölçülmeyen/eksik kalan:** PARSEME'nin kendi VMWE
     lemma-kimlikleri deyim-örtüşme kontrolüne dahil edilmedi (format farkı).
+- **EVAL DÜZELTME TURU (2026-09-22) — GLU kılavuzu yeniden incelendi, 2 puanlama hatası +
+  1 rubrik çelişkisi bulundu; v9 kararı YENİDEN ÖLÇÜLDÜ ve DEĞİŞMEDİ.** GLU vaka skoru
+  eşdizim zor-negatiflerinde LVC'yi hata sayıyordu (kendi yorumuyla çelişiyordu) → düzeltilince
+  HERKES +4: v8 25/35→**29/35**, 900+terim adayı 24/35→**28/35**. Fark (1 puan) ve CASES
+  (13/16 vs 12/16) AYNEN korundu — yani v8'de kalma kararı hatalı ölçüme dayanmıyordu.
+  Ayrıca `söz vermek` rubrik çelişkisi PARSEME altınıyla çözüldü (→LVC). Detay: aşağıdaki
+  "Eval düzeltme turu" bölümü.
 - **ARAŞTIRMA TURU KAPANDI, v9 YAYINLANMADI (2026-09-20) — Deney AA: sentetik havuz 650→900
   deyime ölçeklendi, GLU terim-regresyonu kök-nedeni bulunup kısmen düzeltildi, KULLANICI
   KARARIYLA v8'de kalındı.** En iyi aday (900+terim, thresh=0.6): Çavuşoğlu doğru-ayırt %66.2
@@ -823,6 +830,60 @@ hâlâ mevcut, `_synthetic_candidates.json` kümülatif tutuluyor. Ayrıca **"el
 homonym-literal vakası hâlâ çözülmedi** (terim-negatifinden FARKLI bir kategori — deyimin
 KENDİSİNİN literal/fiziksel okunuşu, bitki/terim adı değil; kendi hedefli hard-negative'i
 gerekebilir).
+
+## Eval düzeltme turu (2026-09-22) — GLU kılavuzunun yeniden incelenmesi:
+## 2 puanlama hatası + 1 rubrik çelişkisi, v9 kararı yeniden ölçüldü (değişmedi)
+
+Kılavuz (`glu_karar_cercevesi.md`) kodla/veriyle satır satır karşılaştırıldı. Faz 1 = yalnız
+eval düzeltmesi + yeniden puanlama, hiçbir yeniden eğitim yok, hiçbir checkpoint'e dokunulmadı.
+
+**Düzeltme 1 — eşdizim zor-negatifinde LVC hata sayılıyordu.** `prepare_glu_examples.py`
+HARD_NEG_DIAG yorumu "LVC kabul edilebilir, VID = hata" diyordu, ama `glu_diagnostic_cases()`
+bu vakaları `(…, None, None)` diye veriyor ve `eval_idiom._check` `phrase is None` için
+HERHANGİ bir span'i fail sayıyordu — kod kendi yorumuyla çelişiyordu. Kılavuzun eşleme tablosu
+da eşdizimliliği zaten B/I-LVC'ye eşliyor. `"!VID"` işareti eklendi (`_check`'te yalnız VID
+span hata). Terim / tek-sözcük vakaları katı kaldı.
+
+**Düzeltme 2 — `söz vermek` rubrik çelişkisi.** Kılavuzun zor-negatif bölümü "söz almak, söz
+vermek, yol göstermek, ön ayak olmak = DEYİM" diyor; eşleme tablosu "söz/yol gibi anlam-
+aktarımlı ad + fiil → B/I-LVC" diyor. Aynı örnekler, zıt etiket — ve bizim iki eval setimiz
+iki farklı tarafı seçmişti (CASES: LVC, GLU: VID). PARSEME-TR altınıyla kesildi: `söz ver` =
+LVC.full ×10 / VID ×1 → GLU eval **LVC**'ye düzeltildi. `ön ayak ol` PARSEME'de VID (kılavuzla
+uyumlu), `söz al`/`yol göster` PARSEME'de hiç geçmiyor (kılavuzun VID'i korundu). Çözüm kuralı
+kılavuz dosyasına yazıldı.
+
+**Düzeltme 3 — `--glu-examples` ayak kapanı.** `glu_hard_examples.json`, GLU tanı setiyle AYNI
+`PAIRS` listesinden üretiliyor; `prepare_glu_examples.main()` bu flag'le eğitmeyi ÖNERİYORDU.
+Hiçbir yayınlanmış sürümde kullanılmamış (kontrol edildi), öneri kaldırıldı + iki tarafa uyarı.
+
+**Yeniden puanlama (v7 3-gövde ensemble sabit, yalnız stage-2 değişiyor):**
+
+| aday | GLU (eski) | **GLU (düzeltilmiş)** | CASES | GLU minimal-çift doğru-ayırt |
+|---|---|---|---|---|
+| **v8 (yayında, vSynthOnly650)** | 25/35 | **29/35** | **13/16** | **%67** |
+| 900+terim, thresh=0.5 | 24/35 | 28/35 | 12/16 | %56 |
+| 900+terim, thresh=0.6 | 24/35 | 28/35 | 12/16 | %56 |
+
+**Sonuç: v9'u reddetme kararı hatalı ölçüme dayanmıyordu.** Düzeltme herkesi eşit kaldırdı
+(+4), fark ve sıralama aynen korundu. Kazanılan asıl bilgi:
+- GLU'nun gerçek seviyesi 29/35'ti; "başarısız" sayılan 6 vakanın 4'ü model doğru LVC
+  üretirken yanlış puanlanıyordu. Geçmiş tüm GLU rakamları (Deney Z/AA dahil) bu yüzden
+  ~4 puan düşük kayıtlı — sürümler arası KIYAS geçerli (hepsi aynı hatayı taşıyor), MUTLAK
+  seviye değil.
+- v8 ile adayın farkı tam olarak **2 kaleme** indi: `kafa tuttu` (CASES) ve `söz aldım` (GLU).
+  İkisinin de kökü aynı ve zaten bilinen: `--synthetic-only` bu eval-deyimlerinin doğal-derlem
+  kapsamını attı, `select()` de sızıntı önlemek için onları sentetik havuza sokmuyor.
+- Aday eşdizim precision'ında GERÇEKTEN daha iyi (`görüş aldık` FP'si adayda yok, v8'de var) —
+  Deney AA'nın terim-negatif düzeltmesinin ölçülmemiş bir kazancı.
+
+**Yan bulgu — CASES'te aynı sınıftan 2 puanlama artefaktı kaldı (İKİSİ DE düzeltilmedi,
+karar bekliyor; ikisi de her iki adayı EŞİT etkiliyor, kıyası bozmuyor):**
+- `Çocuk küçük yaştan beri dili uzundur .` — altın öbek `dili uzun`, model `dili uzundur`
+  buluyor; `_check`'in alt-küme testi çekim eki yüzünden fail veriyor. Saf artefakt.
+- `Doktor gözünü muayene etti .` — "serbest" kategorisinde, altın span YOK; model `muayene
+  etti:LVC` buluyor. Ama kılavuzun Aşama-2 karar tablosuna göre (bileşimsel EVET / anlam
+  aktarımı HAYIR / kalıplaşma EVET) "muayene etmek" tam olarak **EŞDİZİMLİLİK → B/I-LVC**.
+  Yani altın etiket büyük olasılıkla yanlış; düzeltilirse ikisi de +1 alır, fark yine 1.
 
 ## Deney AA (2026-09-20) — 4-gövde ensemble ablasyonu (mimari vs veri izolasyonu) + sentetik
 ## havuzu 650→900 deyime ölçekleme + stage-2 GLU-terim regresyonu kök-neden + düzeltme

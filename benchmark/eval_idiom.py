@@ -65,8 +65,17 @@ def _tokenize(sent: str) -> list[str]:
 
 
 def _check(spans: list[dict], phrase: str | None, tag: str | None) -> str:
-    """→ 'ok' | 'fail'."""
+    """→ 'ok' | 'fail'.
+
+    `tag == "!VID"` (yalnız GLU eşdizim zor-negatifleri): span BEKLENMİYOR ama LVC
+    KABUL EDİLEBİLİR — yalnız VID hata. GLU kılavuzunun eşleme tablosu eşdizimliliği
+    zaten B/I-LVC'ye eşliyor (`glu_karar_cercevesi.md`), ve `prepare_glu_examples.py`
+    HARD_NEG_DIAG yorumu bunu açıkça söylüyor; eskiden bu vakalar "herhangi bir span =
+    fail" diye puanlanıyordu, yani kodun kendi yorumuyla çelişiyordu (2026-09-22).
+    """
     if phrase is None:
+        if tag == "!VID":
+            return "fail" if any(s["category"] == "VID" for s in spans) else "ok"
         return "ok" if not spans else "fail"
     # Alt-küme kontrolü: beklenen öbeğin TÜM kelimeleri tahmin edilen span'de olmalı
     # (yalnız "herhangi bir kelime çakışıyor" değil — bu, "kafa" eksik "yalnız tuttu"
