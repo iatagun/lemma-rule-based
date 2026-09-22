@@ -138,22 +138,83 @@ def find_span_lenient(idiom_seq: list[str], sent_stems: list[str], max_gap: int 
     return None
 
 
-def build() -> None:
+def report() -> None:
+    """Salt-okunur çift-kapsama teşhisi — hiçbir dosya yazmaz.
+
+    Deney Z'nin tüm önermesi "dengeli D+L minimal çift" (GLU kılavuzu: minimal çiftler
+    Aşama-3'ün TEK sinyali). 2026-09-22'de ölçüldüğünde havuzun bu önermeyi tutmadığı
+    görüldü: deyimlerin %44'ünün hiç L cümlesi yok ve ölçekleme turu eğriliği ARTIRDI
+    (2.64:1 → 4.30:1). Span doğrulayıcı de L'yi D'den sert eliyor (yeniden sözcüklenen
+    literal cümleler sıralı eşleşmeyi bozuyor), yani filtre havuzu kendisi D'ye eğiyor.
+    Bu rapor o eğriliğin bir daha sessizce büyümemesi için kalıcıdır."""
+    from data.prepare_tdk_idiom_examples import idiom_stems, stem
+
+    rows = []
+    for rp in sorted(DATA.glob("_synth_raw_*.json")):
+        for it in json.loads(rp.read_text(encoding="utf-8")):
+            seq = idiom_stems(it["idiom"])
+            kept = {"D": 0, "L": 0}
+            made = {"D": len(it.get("D", [])), "L": len(it.get("L", []))}
+            for label, sents in (("D", it.get("D", [])), ("L", it.get("L", []))):
+                for s in sents:
+                    w = s.split()
+                    if len(w) >= 2 and seq and find_span_lenient(seq, [stem(x.lower()) for x in w]):
+                        kept[label] += 1
+            rows.append((rp.name, it["idiom"], made, kept))
+
+    n = len(rows)
+    zero_l = sum(1 for *_, kept in rows if kept["L"] == 0)
+    md, ml = sum(r[2]["D"] for r in rows), sum(r[2]["L"] for r in rows)
+    kd, kl = sum(r[3]["D"] for r in rows), sum(r[3]["L"] for r in rows)
+    print(f"deyim girdisi: {n}")
+    print(f"  kabul sonrası L'si HİÇ olmayan (çift OLUŞTURMAYAN): {zero_l} (%{100*zero_l/n:.0f})")
+    print(f"  D: üretilen {md} → kabul {kd} (eleme %{100*(md-kd)/max(md,1):.1f})")
+    print(f"  L: üretilen {ml} → kabul {kl} (eleme %{100*(ml-kl)/max(ml,1):.1f})"
+          f"   ← L daha sert elenirse havuz D'ye eğilir")
+    print(f"  kabul edilen D:L = {kd/max(kl,1):.2f} : 1")
+    print("  çift oluşturan deyim havuzu (--build --only-paired) "
+          f"→ {n - zero_l} deyim, {sum(r[3]['D'] for r in rows if r[3]['L'])} D / {kl} L")
+
+
+def build(only_paired: bool = False) -> None:
     from data.prepare_tdk_idiom_examples import idiom_stems, stem
 
     raw_files = sorted(DATA.glob("_synth_raw_*.json"))
     if not raw_files:
         sys.exit("idiom_data/_synth_raw_*.json yok — önce --select ve alt-ajan üretim turu.")
 
+    # --only-paired (Deney AB-1): yalnız GERÇEKTEN çift oluşturan deyimler (en az bir L
+    # cümlesi span doğrulamasını geçmiş). Saf SEÇİM — yeni cümle üretilmez. Kanonik havuzu
+    # ezmemek için AYRI dosyaya yazar.
+    out_recs, out_labels = OUT_RECS, OUT_LABELS
+    paired: set[str] | None = None
+    if only_paired:
+        out_recs = DATA / "_synthetic_stage2_paired_records.jsonl"
+        out_labels = DATA / "_synthetic_stage2_paired_labels.tsv"
+        paired = set()
+        for rp in raw_files:
+            for it in json.loads(rp.read_text(encoding="utf-8")):
+                seq = idiom_stems(it["idiom"])
+                if not seq:
+                    continue
+                for s in it.get("L", []):
+                    w = s.split()
+                    if len(w) >= 2 and find_span_lenient(seq, [stem(x.lower()) for x in w]):
+                        paired.add(it["idiom"])
+                        break
+        print(f"--only-paired: {len(paired)} deyim çift oluşturuyor, gerisi atlanacak")
+
     idx = IDX_BASE
     n_recs, n_dropped, dist = 0, 0, {"D": 0, "L": 0}
-    with OUT_RECS.open("w", encoding="utf-8") as rf, OUT_LABELS.open("w", encoding="utf-8") as lf:
+    with out_recs.open("w", encoding="utf-8") as rf, out_labels.open("w", encoding="utf-8") as lf:
         for rp in raw_files:
             items = json.loads(rp.read_text(encoding="utf-8"))
             for it in items:
                 idiom = it["idiom"]
                 seq = idiom_stems(idiom)
                 if not seq:
+                    continue
+                if paired is not None and idiom not in paired:
                     continue
                 for label, sentences in (("D", it.get("D", [])), ("L", it.get("L", []))):
                     for sent in sentences:
@@ -183,8 +244,9 @@ def build() -> None:
                         n_recs += 1
                         dist[label] += 1
     print(f"{len(raw_files)} ham dosya işlendi: {n_recs} kayıt kabul edildi "
-          f"({dist['D']} D / {dist['L']} L), {n_dropped} cümle span bulunamadığı için atlandı")
-    print(f"→ {OUT_RECS.name} + {OUT_LABELS.name}")
+          f"({dist['D']} D / {dist['L']} L, D:L = {dist['D']/max(dist['L'],1):.2f}:1), "
+          f"{n_dropped} cümle span bulunamadığı için atlandı")
+    print(f"→ {out_recs.name} + {out_labels.name}")
     print("Sonraki: python training/train_idiomaticity_clf.py --freeze 8 --dropout 0.3 "
           "--weight-decay 0.05 --epochs 14 --synthetic-file idiom_data/_synthetic_stage2_records.jsonl")
 
@@ -193,16 +255,23 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--select", action="store_true")
     ap.add_argument("--build", action="store_true")
+    ap.add_argument("--report", action="store_true",
+                    help="salt-okunur çift-kapsama teşhisi (hiçbir dosya yazmaz)")
+    ap.add_argument("--only-paired", action="store_true",
+                    help="--build ile: yalnız gerçekten D+L çifti oluşturan deyimler; "
+                         "AYRI dosyaya yazar (_synthetic_stage2_paired_*), kanonik havuz ezilmez")
     ap.add_argument("--n-idioms", type=int, default=150)
     ap.add_argument("--batch-size", type=int, default=25)
     ap.add_argument("--seed", type=int, default=7)
     args = ap.parse_args()
-    if args.select:
+    if args.report:
+        report()
+    elif args.select:
         select(args.n_idioms, args.batch_size, args.seed)
     elif args.build:
-        build()
+        build(only_paired=args.only_paired)
     else:
-        ap.error("--select veya --build gerekli")
+        ap.error("--select, --build veya --report gerekli")
 
 
 if __name__ == "__main__":

@@ -104,11 +104,72 @@ def load_pairs() -> tuple[list[dict], list[dict]]:
         sp = span_from_tags(r["tags"])
         if sp is None:
             continue
-        rec = {"words": r["words"], "s": sp[0], "e": sp[1], "y": 1 if lb == "D" else 0, "idx": i}
+        rec = {"words": r["words"], "s": sp[0], "e": sp[1], "y": 1 if lb == "D" else 0,
+               "idx": i, "idiom": r.get("idiom", "")}
         is_test = (r["idiom"] in holdout_idioms if holdout_idioms is not None
                    else " ".join(r["words"]) in test_texts)
         (test if is_test else train).append(rec)
     return train, test
+
+
+def drop_eval_idioms(rows: list[dict]) -> list[dict]:
+    """`--exclude-eval-idioms` — CASES / GLU / Çavuşoğlu eval deyimlerini DOĞAL-derlem
+    train'inden atar.
+
+    Neden: doğal-derlem havuzunda eval-dışlaması hiçbir zaman sıkı uygulanmamıştı (v7 ve
+    öncesi stage-2'leri "kafa tutmak"/"söz almak" gibi eval deyimlerini oradan görüyordu),
+    oysa sentetik havuz `prepare_synthetic_stage2_pairs.select()` ile bunları BİLEREK
+    dışlıyor. Doğal veriyi kısmen geri katan her deney (bkz. `--natural-l-only`) bu yüzden
+    önce burayı geçmek zorunda — aksi halde v7↔v8 kıyası gibi sızıntı açısından eşitsiz
+    bir karşılaştırma daha üretiriz.
+
+    Ölçüt: deyim adı Çavuşoğlu kıyas listesinde birebir geçiyorsa, YA DA deyimin gövdeleri
+    herhangi bir eval cümlesinde SIRALI bir span olarak bulunuyorsa (`find_span`, küçük
+    ara-söz toleransıyla) kayıt atılır.
+
+    NOT (2026-09-22): ilk sürüm "gövde kümesi ⊆ cümle gövde kümesi" kullanıyordu; bu
+    ölçüt 9694 doğal kaydın 9450'sini atıyordu (yaygın gövdeler uzun cümlelerde rastgele
+    eşleşiyor). Sıralı span eşleşmesi sızıntının gerçek tanımı — deyim o cümlede GEÇİYOR
+    mu — ve seyrek eşleşiyor."""
+    import csv
+
+    from data.prepare_tdk_idiom_examples import find_span, idiom_stems, stem
+
+    from benchmark.eval_idiom import CASES
+    from data.prepare_glu_examples import HARD_NEG_DIAG, PAIRS
+
+    sents = [c[1] for c in CASES] + [p[0] for p in PAIRS] + [h[0] for h in HARD_NEG_DIAG]
+    names: set[str] = set()
+    bench = DATA / "raw" / "turkish_idioms_benchmark.tsv"
+    if bench.exists():
+        # YALNIZ gerçek eval çiftleri: hem `sample` hem `literal` dolu olan satırlar (198).
+        # tsv'nin tamamı TDK deyim listesi — hepsini almak doğal train'in %97'sini atıyordu
+        # (`prepare_synthetic_stage2_pairs._excluded_idioms()` de aynı ölçütü kullanıyor).
+        for r in csv.DictReader(bench.open(encoding="utf-8"), delimiter="	"):
+            if not (r.get("sample", "").strip() and r.get("literal", "").strip()):
+                continue
+            if r.get("idiom", "").strip():
+                names.add(r["idiom"].strip())
+            sents += [r["sample"], r["literal"]]
+    sent_stems = [[stem(w.lower()) for w in s.split()] for s in sents]
+
+    verdict: dict[str, bool] = {}   # deyim adı → atılsın mı (aynı deyim binlerce kayıtta)
+    kept, dropped_idioms = [], set()
+    for r in rows:
+        nm = r.get("idiom", "")
+        if nm not in verdict:
+            seq = idiom_stems(nm) if nm else []
+            verdict[nm] = bool(nm) and (
+                nm in names
+                or bool(seq) and any(find_span(seq, ss, max_gap=2) for ss in sent_stems)
+            )
+        if verdict[nm]:
+            dropped_idioms.add(nm)
+            continue
+        kept.append(r)
+    print(f"--exclude-eval-idioms: {len(rows)}→{len(kept)} kayıt "
+          f"({len(dropped_idioms)} farklı deyim atıldı: CASES+GLU+Çavuşoğlu)")
+    return kept
 
 
 def load_synthetic(records_path: Path) -> list[dict]:
@@ -425,6 +486,16 @@ def main() -> None:
                     help="Deney Z: data/prepare_synthetic_stage2_pairs.py --build çıktısı "
                          "(_synthetic_stage2_records.jsonl) — yalnız TRAIN'e eklenir, test hiç "
                          "etkilenmez")
+    ap.add_argument("--natural-l-only", action="store_true",
+                    help="Deney AB-2: doğal-derlem train'inden YALNIZ literal (y=0) kayıtları "
+                         "tut, doğal D'yi at. Deney Z'nin 'tam karışım daha kötü' bulgusuyla "
+                         "'sentetik-yalnız' arasındaki hiç denenmemiş orta yol — sentetik "
+                         "havuzun literal kapsamı (667 L / 326 çift deyim) doğal havuzunkinin "
+                         "(5712 L / 2989 deyim) çok altında")
+    ap.add_argument("--exclude-eval-idioms", action="store_true",
+                    help="doğal-derlem train'inden CASES/GLU/Çavuşoğlu eval deyimlerini at "
+                         "(doğal havuzda eval-dışlaması hiç sıkı uygulanmamıştı — "
+                         "bkz. drop_eval_idioms)")
     ap.add_argument("--synthetic-only", action="store_true",
                     help="Deney Z ablasyonu: doğal-derlem train kayıtlarını AT, yalnız "
                          "--synthetic-file ile eğit (üslup-kayması riskini izole etmek için)")
@@ -441,7 +512,16 @@ def main() -> None:
         before = len(train_rows)
         train_rows = [r for r in train_rows if r["idx"] >= args.min_idx]
         print(f"--min-idx {args.min_idx}: train {before}→{len(train_rows)}")
+    if args.exclude_eval_idioms:
+        train_rows = drop_eval_idioms(train_rows)
+    if args.natural_l_only:
+        before = len(train_rows)
+        train_rows = [r for r in train_rows if r["y"] == 0]
+        print(f"--natural-l-only: doğal D atıldı, train {before}→{len(train_rows)} (hepsi literal)")
     if args.synthetic_only:
+        if args.natural_l_only:
+            sys.exit("--synthetic-only ile --natural-l-only birlikte anlamsız (biri doğal "
+                     "veriyi tamamen atıyor, diğeri bir dilimini tutuyor)")
         print(f"--synthetic-only: doğal-derlem train ({len(train_rows)} kayıt) ATILDI")
         train_rows = []
     if args.synthetic_file:
