@@ -831,6 +831,72 @@ homonym-literal vakası hâlâ çözülmedi** (terim-negatifinden FARKLI bir kat
 KENDİSİNİN literal/fiziksel okunuşu, bitki/terim adı değil; kendi hedefli hard-negative'i
 gerekebilir).
 
+## Deney AB (2026-09-22) — minimal-çift SAFLIĞI: havuzu %40'a budamak Çavuşoğlu'nda
+## +6.1pp (ANLAMLI) getirdi — PROMOTE ADAYI (v9), henüz yayınlanmadı
+
+GLU kılavuzunun yeniden incelenmesinden çıktı: kılavuz minimal çiftleri "Aşama-3'ün TEK
+sinyali" sayıyor, ama havuz bunu tutmuyordu. **Yeni veri ÜRETİLMEDİ** (kullanıcı kısıtı:
+alt-ajanla veri üretimi yasak) — her şey mevcut veriden seçim/filtreleme.
+
+**Teşhis (`--report`, kalıcı):** span doğrulamasından sonra 920 deyimin **594'ü (%65)**
+D-only; kabul edilen D:L = 2.77:1; ölçekleme turu eğriliği ARTIRDI (tur1 2.64:1 → tur2
+4.30:1, tur2'de deyimlerin %53'ü L-siz). Span doğrulayıcı L'yi D'den sert eliyor (%41.5 vs
+%31.6) — yeniden sözcüklenen literal cümleler sıralı eşleşmeyi bozuyor, yani kalite filtresi
+havuzu KENDİSİ D'ye eğiyor. Bu eğrilik hiç ölçülmemişti.
+
+**AB-1 — yalnız çift oluşturan deyimler** (`--build --only-paired`, saf seçim):
+920→**326 deyim**, 2515→**1498 kayıt**, D:L 2.77:1→**1.25:1**. Stage-2 v8'in kazanan
+reçetesiyle yeniden eğitildi (`best_idiomaticity_clf_vPairedOnly.pt`, dev best macro 70.5).
+
+**AB-2 — `--natural-l-only`** (sentetik havuzun tamamı + doğal derlemin YALNIZ L kayıtları,
+doğal D atıldı, + `--exclude-eval-idioms` ile 156 eval deyimi çıkarıldı): D:L 0.41:1.
+(`best_idiomaticity_clf_vNatLOnly.pt`, dev best macro 55.5.)
+
+| eksen | v8 (yayında) | **AB-1 (aday)** | AB-2 |
+|---|---|---|---|
+| Çavuşoğlu doğru-ayırt | %65.2 | **%71.2** | %53.0 |
+| Çavuşoğlu yanlış-poz | %21.2 | **%14.6** | %21.2 |
+| PARSEME ALL F1 | 63.48 | **64.09** | 50.24 |
+| PARSEME VID F1 | — | 55.88 | **9.14 (recall %5.5)** |
+| CASES | 14/16 | **14/16 (eşit)** | 11/16 |
+| GLU vaka | **29/35** | 28/35 | 24/35 |
+
+**Eşleştirilmiş bootstrap (yeni altyapı: `eval_idiom --dump-hits` + `benchmark/compare_runs.py`):**
+AB-1 − v8 = **+6.1pp, 95% GA +1.0/+11.1 → ANLAMLI** (19 çift kazanıldı, 7 kaybedildi, net +12).
+Deney Z'den (v8) beri ilk anlamlı Çavuşoğlu kazancı.
+
+**Kritik: AB-1, v9'u öldüren recall bedelini ÖDEMİYOR.** CASES'teki 2 hatası v8'inkiyle
+birebir aynı (`söz verdi` stage-1 kategori hatası, `dili uzundur` bilinen artefakt) — yani
+`kafa tuttu` kaçmıyor. Deney AA'nın terim-negatifleri karar sınırını temkinli yöne itip
+recall'a mal olmuştu; havuzu çift-saflığına göre BUDAMAK aynı precision kazancını
+(yanlış-poz %21.2→%14.6) bu bedel olmadan veriyor. GLU'daki −1 `eli kolu bağlanarak`
+FP'si — hiçbir sürümde çözülmemiş homonym-literal vakası, yeni gerileme değil.
+
+**Üç nokta aynı eksende temiz bir eğri çiziyor (asıl bulgu):**
+
+| havuz | D:L | Çavuşoğlu doğru-ayırt |
+|---|---|---|
+| AB-2 (L-ağır) | 0.41:1 | %53.0 |
+| **AB-1 (dengeli)** | **1.25:1** | **%71.2** |
+| v8 (D-ağır) | 2.77:1 | %65.2 |
+
+Kazanç "daha az/daha çok veri" değil **dengeye yakınlık**. Ters-frekans sınıf ağırlıklandırması
+(`train_idiomaticity_clf.py`) ÜÇ koşuda da açıktı — sorun kayıpta değil, hangi bağlamların hiç
+GÖRÜLMEDİĞİnde: ağırlık, olmayan çifti yaratamıyor. **Bu, Deney AA'nın "TERİM zor-negatifi
+eksikti" teşhisinin yerine geçen daha basit ve daha genel bir açıklama** — ve "10061 TDK
+deyimine ölçekle" fikrinin yönünü değiştiriyor: kapsam değil, ÇİFT SAFLIĞI.
+
+**DURUM: promote edilmedi, karar kullanıcıda.** Yayın öncesi proje disiplini gereği eksik
+olan tek şey **3-tohum reprodüksiyon** (tek tohumla ölçüldü). Ayrıca Çavuşoğlu ~20 deneyde
+model SEÇİMİ için kullanıldı ("dev-seti gibi okunmalı" çekincesi MODEL_CARD'da) — ama
+PARSEME (+0.61) ve CASES (eşit) bağımsız eksenler ve kazancı çürütmüyor. Aşama 1 (v7 3-gövde
+ensemble) DEĞİŞMEDİ; bu saf bir stage-2 takası, paket boyutu aynı. Kanonik
+`best_idiom_tagger.pt` (vL), HF ve Space DOKUNULMADI.
+
+Kalıcı kod: `prepare_synthetic_stage2_pairs.py` (`--report`, `--build --only-paired`),
+`train_idiomaticity_clf.py` (`--natural-l-only`, `--exclude-eval-idioms`, `drop_eval_idioms`),
+`eval_idiom.py` (`--dump-hits`), `benchmark/compare_runs.py` (eşleştirilmiş bootstrap).
+
 ## Eval düzeltme turu (2026-09-22) — GLU kılavuzunun yeniden incelenmesi:
 ## 2 puanlama hatası + 1 rubrik çelişkisi, v9 kararı yeniden ölçüldü (değişmedi)
 

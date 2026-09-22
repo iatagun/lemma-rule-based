@@ -201,7 +201,10 @@ def run_cases(predict) -> None:
 #  bağımlılık (idyomatik/literal ayrımı) testi.
 # ═══════════════════════════════════════════════════════════════════════
 def run_external(predict, idiom_filter: set[tuple[str, ...]] | None = None, label: str = "",
-                  max_gap: int = 0) -> None:
+                  max_gap: int = 0, dump_hits: str | None = None) -> None:
+    """`dump_hits`: her çiftin doğru-ayırt (gevşek) sonucunu JSON'a yazar —
+    `benchmark/compare_runs.py` ile İKİ koşu arasında eşleştirilmiş bootstrap yapmak için
+    (proje disiplini: promote kararından önce farkın anlamlılığı ölçülür)."""
     import csv
 
     tsv_path = _PROJECT / "idiom_data" / "raw" / "turkish_idioms_benchmark.tsv"
@@ -236,6 +239,7 @@ def run_external(predict, idiom_filter: set[tuple[str, ...]] | None = None, labe
 
     n = sample_hit = literal_hit = both_correct = 0           # gevşek: cümlede herhangi bir span
     ns = s_hit_t = l_hit_t = both_t = n_located = 0           # sıkı: span hedef deyimde
+    hits: list[dict] = []
     for r in rows:
         sw, lw = r["sample"].split(), r["literal"].split()
         if len(sw) < 2 or len(lw) < 2:
@@ -244,6 +248,8 @@ def run_external(predict, idiom_filter: set[tuple[str, ...]] | None = None, labe
         sh, lh = bool(ss), bool(ls_)
         n += 1
         sample_hit += sh; literal_hit += lh; both_correct += sh and not lh
+        hits.append({"idiom": r["idiom"], "both": bool(sh and not lh),
+                     "sample": sh, "literal": lh})
 
         srng, lrng = target_range(r["idiom"], sw), target_range(r["idiom"], lw)
         if srng is not None and lrng is not None:   # hedef her iki cümlede konumlanabildi
@@ -251,6 +257,10 @@ def run_external(predict, idiom_filter: set[tuple[str, ...]] | None = None, labe
             sht, lht = hit_at_target(ss, srng), hit_at_target(ls_, lrng)
             s_hit_t += sht; l_hit_t += lht; both_t += sht and not lht
 
+    if dump_hits:
+        import json as _json
+        Path(dump_hits).write_text(_json.dumps(hits, ensure_ascii=False), encoding="utf-8")
+        print(f"  → çift-düzeyi sonuçlar yazıldı: {dump_hits} ({len(hits)} çift)")
     print(f"  işlenen: {n}")
     if n == 0:
         print("  UYARI: uygun satır yok (hepsi tek-kelimelik filtreye takıldı).")
@@ -515,6 +525,9 @@ def main() -> None:
     ap.add_argument("--ensemble", default=None,
                     help="Deney O — virgülle ayrılmış birden çok yerel .pt checkpoint; "
                          "--checkpoint yerine bunların aday span birleşimi kullanılır")
+    ap.add_argument("--dump-hits", default=None,
+                    help="Çavuşoğlu çift-düzeyi sonuçlarını bu JSON'a yaz — iki koşuyu "
+                         "benchmark/compare_runs.py ile eşleştirilmiş bootstrap'layabilmek için")
     ap.add_argument("--ensemble-min-votes", type=int, default=1,
                     help="--ensemble ile: bir span'in kabulü için gereken minimum model oyu "
                          "(1=birleşim/recall-odaklı, N=tam-oybirliği/precision-odaklı)")
@@ -561,7 +574,7 @@ def main() -> None:
     if args.mode in ("all", "cases"):
         run_cases(predict)
     if args.mode in ("all", "external"):
-        run_external(predict, idiom_filter, filter_label, args.gap)
+        run_external(predict, idiom_filter, filter_label, args.gap, args.dump_hits)
     if args.mode in ("all", "glu"):
         run_glu(predict)
 
