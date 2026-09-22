@@ -110,7 +110,13 @@ BIO span etiketleyici. **Yayınlandı** (`huggingface.co/iatagun/DizgeBERT-Idiom
     `benchmark/eval_dodiom.py`, `benchmark/eval_cavusoglu_stage_ablation.py`,
     `benchmark/stats_utils.py`. **Ölçülmeyen/eksik kalan:** PARSEME'nin kendi VMWE
     lemma-kimlikleri deyim-örtüşme kontrolüne dahil edilmedi (format farkı).
-- **YAYINLANDI v8 (2026-09-19, en güncel): Aşama-2 SENTETİK MİNİMAL ÇİFTLERLE yeniden eğitildi
+- **ARAŞTIRMA TURU KAPANDI, v9 YAYINLANMADI (2026-09-20) — Deney AA: sentetik havuz 650→900
+  deyime ölçeklendi, GLU terim-regresyonu kök-nedeni bulunup kısmen düzeltildi, KULLANICI
+  KARARIYLA v8'de kalındı.** En iyi aday (900+terim, thresh=0.6): Çavuşoğlu doğru-ayırt %66.2
+  (v8: %65.2), yanlış-poz %17.2 (v8: %21.2) — AMA CASES 12/16 ve GLU 24/35 (v8: 13/16, 25/35),
+  2 gerçek deyim (kafa tuttu, söz aldım) kaçırılıyor. Kullanıcı bu bedeli kabul etmedi.
+  Checkpoint'ler arşivde, HF/Space DOKUNULMADI. Detay: aşağıdaki "Deney AA" bölümü.
+- **YAYINLANDI v8 (2026-09-19): Aşama-2 SENTETİK MİNİMAL ÇİFTLERLE yeniden eğitildi
   (Deney Z) — Çavuşoğlu doğru-ayırt rekoru %65.2 (tam) / %65.0 (unseen), v7'den +7pp.**
   10 ardışık stage-2 reddinden sonraki İLK gerçek kazanç: LLM'e doğal cümle etiketletmek
   yerine 650 TDK deyimi için dengeli idyomatik+literal cümle YAZDIRILDI, doğal derlem verisi
@@ -809,11 +815,134 @@ yeniden eğitildi (`best_idiomaticity_clf_vSynthOnly650.pt`, doğal veri sıfır
   aynı deyimi tekrar seçmesini önler), `training/train_idiomaticity_clf.py`
   (`load_synthetic`, `--synthetic-file`, `--synthetic-only`).
 
-**Sonraki oturum için not:** kazanç 150→650 deyimde monoton büyüdü, doygunluk işareti YOK —
-tam ~11k TDK listesine (ya da en azından 2000-3000 deyime) ölçeklemek daha da kazanç
-verebilir. Rate-limit nedeniyle bu turda yalnız 650/900 seçilen deyim gerçekten üretildi;
-`_synthetic_candidates.json` zaten kümülatif tutulduğu için sonraki tur `--select` çağrısı
-otomatik olarak YENİ deyimlerden devam eder.
+**Sonraki oturum için not (güncellendi 2026-09-20):** 650→900 deyim turu tamamlandı (aşağı
+bak) — kazanç yönü hâlâ pozitif ama artık doygunlaşmaya başlamış olabilir (PARSEME/Çavuşoğlu
+net iyi, ama 900-deyim stage-2'nin PARSEME/CASES rakamları terim-düzeltmeli sürüm için hâlâ
+ÖLÇÜLMEDİ — bir sonraki oturumda önce bu tamamlanmalı). Kalan ~10061 dokunulmamış TDK deyimi
+hâlâ mevcut, `_synthetic_candidates.json` kümülatif tutuluyor. Ayrıca **"eli kolu bağlanarak"
+homonym-literal vakası hâlâ çözülmedi** (terim-negatifinden FARKLI bir kategori — deyimin
+KENDİSİNİN literal/fiziksel okunuşu, bitki/terim adı değil; kendi hedefli hard-negative'i
+gerekebilir).
+
+## Deney AA (2026-09-20) — 4-gövde ensemble ablasyonu (mimari vs veri izolasyonu) + sentetik
+## havuzu 650→900 deyime ölçekleme + stage-2 GLU-terim regresyonu kök-neden + düzeltme
+
+Dördüncü düzeltme turunun kapattığı "karışık-değişken" sorununu (28.8→56.6→68.2 basamağında
+mimari VE veri aynı anda değişmişti) temiz izole eval'lerle (yeni eğitim yok, mevcut
+checkpoint'lerle) çözdü:
+
+| kurulum | stage-2 | doğru-ayırt (gevşek) |
+|---|---|---|
+| vL tek, sentetik yok | kapalı | %43.9 |
+| vAblationSynth tek (+sentetik, aynı mimari) | kapalı | **%56.6 (+12.7pp — temiz veri-etkisi)** |
+| union(vE,vL,vX3) 3-gövde, sentetik yok | kapalı | **%28.8 (mimari TEK BAŞINA zararlı — union stage-2'siz sadece FP getiriyor)** |
+| vAblationSynth tek + v8 stage-2 | açık | %61.1 (v8'in %65.2'sinden 4.1pp altında, 3× ucuz) |
+| union(vE,vL,vX3,vAblationSynth) 4-gövde + v8 stage-2 | açık | %65.7 |
+
+**Sonuç:** sentetik verinin katkısı gerçek ve mimariden bağımsız; ensemble'ın katkısı stage-2
+olmadan aslında NEGATİF (union daha çok FP getiriyor, temizleyecek şey yok). 4-gövde adayı
+tam doğrulandı (PARSEME F1 62.50 vs v8 63.48 [-0.98], CASES 13/16=13/16 eşit, GLU 25/35=25/35
+eşit, eşleştirilmiş Çavuşoğlu farkı +0.5pp [95% GA -1.0/+2.5, **anlamsız**]) → **PROMOTE
+EDİLMEDİ**, v7 (3-gövde) DEĞİŞMEDEN kaldı. `best_idiom_tagger_vAblationSynth.pt` arşivde.
+
+**Sentetik havuz ölçekleme:** önceki turda seçilmiş ama rate-limit yüzünden hiç üretilmemiş
+10 parça (batch 26-35, 250 deyim) Claude Code alt-ajanlarıyla (ücretsiz, aynı yöntem)
+tamamlandı → sentetik havuz 650→**900 deyim, 1866→2475 kayıt (1848 D / 627 L)**. Stage-2
+(v8'in kazanan reçetesi: `--synthetic-only`, doğal veri sıfır) bu genişletilmiş havuzla
+yeniden eğitildi (`best_idiomaticity_clf_vSynth900.pt`, best macro 70.0):
+
+| metrik | v8 (650-deyim stage-2, yayında) | 900-deyim stage-2 (aday) |
+|---|---|---|
+| PARSEME ALL F1 | 63.48 | **65.73 (+2.25)** |
+| Çavuşoğlu doğru-ayırt | %65.2 | %66.7 (+1.5pp, GA -3.5/+6.6 — anlamsız ama yön tutarlı) |
+| Çavuşoğlu yanlış-poz | %21.2 | %20.7 |
+| CASES (16) | 13/16 | 13/16 (eşit) |
+| **GLU vaka (35)** | **25/35** | **21/35 (-4, gerileme)** |
+
+**GLU regresyonunun kök nedeni (satır-satır diff ile bulundu):** 4 vaka bozuldu, hepsi FP —
+"eli kolu bağlanarak" (literal), "sigorta attı" (literal), "aslan ağzı" ve "deve dikeni"
+(glu-terim: bitki adı, deyim DEĞİL). Sebep: `--synthetic-only` rejimi (Deney Z'nin kazanan
+reçetesi) doğal-derlem verisini TAMAMEN atıyor — ve doğal-derlem etiketleme sürecinin GLU
+rubric'i (`glu_karar_cercevesi.md` / `filter_corpus_idiomaticity.py` TASK metni) "TERİM /
+ÖZEL AD / bitki-canlı adı"nı açıkça N (deyim-değil) sayıyordu, bu yüzden eski doğal-veri-
+karışık stage-2 modelleri dolaylı olarak terim-negatif görmüştü. Sentetik ÜRETİM süreci
+(`prepare_synthetic_stage2_pairs.py`) ise YALNIZ aynı-deyimin D/L çiftlerini üretiyor — hiçbir
+zaman "yapısal olarak deyime benzeyen ama aslında bambaşka kategori" negatifi üretmiyor. Havuz
+büyüdükçe paylaşılan karar sınırı "kalıp deyime benziyorsa D" yönüne kaymış.
+
+**Ucuz hedefli düzeltme:** elle derlenmiş 20 terim (bitki/hayvan/teknik terim, ör. "aslan
+ağzı", "deve dikeni", "kırlangıç kuyruğu", "balık kılçığı") için 40 L-cümlesi (D=[] hep boş —
+terim asla idyomatik okunmaz) `idiom_data/_synth_raw_100.json`'a elle yazılıp (`--select`
+gerekmedi, TDK deyim havuzunun dışında) `--build`'e eklendi (900 deyim → 2515 kayıt, +40 L).
+Stage-2 yeniden eğitildi (`best_idiomaticity_clf_vSynth900terim.pt`):
+
+| metrik | v8 (yayında) | 900 (terim-fix yok) | **900+terim (düzeltme)** |
+|---|---|---|---|
+| GLU vaka (35) | 25/35 | 21/35 | **24/35 (+3, 4 hedeflenen vakanın 3'ü düzeldi)** |
+| Çavuşoğlu doğru-ayırt | %65.2 | %66.7 | %65.7 (v8'in hâlâ üstünde) |
+| Çavuşoğlu yanlış-poz | %21.2 | %20.7 | **%16.7 (en iyi, gerçek precision kazancı)** |
+| PARSEME / CASES | 63.48 / 13/16 | 65.73 / 13/16 | **ÖLÇÜLMEDİ (sonraki oturumda tamamlanmalı)** |
+
+Hedeflenen 4 vakadan 3'ü düzeldi (aslan ağzı, deve dikeni, sigorta attı) ama "eli kolu
+bağlanarak" DÜZELMEDİ (bu bir terim değil, deyimin kendisinin homonym-literal okunuşu — farklı
+kategori, kendi hard-negative'i gerekir) ve küçük bir YAN ETKİ oluştu: "Toplantıda ben de söz
+aldım" (gerçek VID) artık kaçırılıyor (yeni FN) — bunu "Uzmandan görüş aldık" (yanlış FP)
+düzelmesi dengeledi. Net +3 GLU, ama v8'in 25'ine hâlâ 1 eksik.
+
+**PARSEME/CASES tamamlandı + eşik taraması yapıldı (900+terim, thresh=0.5):** PARSEME ALL F1
+**64.07** (v8: 63.48, +0.59 — no-fix 900'ün 65.73'ünden düşük, terim-negatifin recall maliyeti
+burada da görünüyor), CASES **12/16 (-1 vs v8)** — yeni FN: "Öğrenci öğretmenine kafa tuttu"
+artık kaçırılıyor (terim-negatifi eklemek karar sınırını hafifçe tutucu yöne kaydırmış, aynı
+mekanizma GLU'daki "söz aldım" FN'iyle aynı kök). Yani terim-fix üç ekseni (PARSEME, Çavuşoğlu
+doğru-ayırt, yanlış-poz) düzeltirken iki ekseni (CASES, GLU) 1'er puan bedelle ödüyor — klasik
+precision/recall takası.
+
+**Eşik taraması (`--stage2-thresh`, 0.55/0.6/0.65/0.7, yalnız external+cases+glu, ucuz
+eval-only):** Çavuşoğlu doğru-ayırt 0.5'te %65.7 → **0.6'da %66.2 (en iyi, yanlış-poz %17.2)**
+→ 0.65'te %65.2 → 0.7'de %64.6 (düşüyor). AMA CASES/GLU'daki "kafa tuttu"/"söz aldım" FN'leri
+0.6'da DA kaybolmuş durumda (12/16, 24/35 — DEĞİŞMEDİ) — bu iki vakanın p(literal) güveni
+0.5-0.7 aralığının üstünde kalıyor, yani kayıp kalibrasyon artefaktı DEĞİL, gerçek bir
+doğruluk bedeli.
+
+**Final üç-yönlü tablo (2026-09-20 turu sonu):**
+
+| aday | Çavuşoğlu doğru-ayırt | yanlış-poz | PARSEME F1 | CASES | GLU |
+|---|---|---|---|---|---|
+| v8 (yayında) | %65.2 | %21.2 | 63.48 | 13/16 | 25/35 |
+| 900+terim, thresh=0.5 | %65.7 | %16.7 | 64.07 | 12/16 | 24/35 |
+| **900+terim, thresh=0.6 (en dengeli aday)** | **%66.2** | %17.2 | ölçülmedi (0.5'e yakın beklenir) | 12/16 | 24/35 |
+| 900+terim, thresh=0.3 (2026-09-20 ek test) | %63.1 | **%14.1** | 61.42 (−2pp vs v8) | 12/16 | **25/35** |
+
+**KARAR (2026-09-20, kullanıcı): v8'de KAL, v9 yayınlanmadı.** thresh=0.6 900+terim adayının
+CASES/GLU'daki 2 puanlık gerçek-deyim-kaçırma bedeli (kafa tuttu, söz aldım) kabul edilmedi —
+Çavuşoğlu/yanlış-poz kazancı bunu telafi etmedi. Kanonik `best_idiom_tagger.pt` (vL) ve
+yayındaki v8 paketi (HF/Space) DOKUNULMADI, tüm bu tur (Deney AA) tamamen yerel araştırma
+olarak arşivde kaldı. Checkpoint'ler: `best_idiom_tagger_vAblationSynth.pt`,
+`best_idiomaticity_clf_vSynth900.pt`, `best_idiomaticity_clf_vSynth900terim.pt`.
+
+**(a) fikri araştırıldı ve KAPATILDI (2026-09-20, aynı gün takip).** "kafa tuttu" ve "söz
+aldım" FN'lerinin kök nedeni bulundu: bu cümleler UYDURMA test-vakaları değil, **doğrudan
+CASES (`benchmark/eval_idiom.py:42`) ve GLU (`data/prepare_glu_examples.py:76`) eval
+setlerinin kendi metni.** `data/prepare_synthetic_stage2_pairs.py::select()` eval/frozen/
+holdout'taki deyimleri sentetik havuzdan BİLEREK dışlıyor (test-sızıntısını önlemek için —
+bu doğru davranış). Yani "kafa tutmak"/"söz almak" 900-deyimlik sentetik havuzda hiç yok;
+grep ile doğrulandı (`_synth_raw_*.json` içinde "kafa tut"/"söz al" araması boş döndü).
+v8'in stage-2'si bu iki deyimi doğal-derlem madenli `corpus_examples_glu.json`'dan (eval-
+dışlama bu kadar sıkı uygulanmamış) öğrenmişti; `--synthetic-only` bu kaynağı tamamen
+attığı için kapsamı kaybetti. **Sonuç: bu "hard-negative eklemekle" düzeltilecek bir veri
+boşluğu değil — düzeltmenin tek yolu ya eval-dışlamayı gevşetmek (CASES/GLU'yu kirletir,
+kabul edilemez) ya da doğal-derlem verisini sentetik-yalnız rejimine GERİ katmak (Deney Z'nin
+temel önermesini bozar). Düşük-öncelik listesinden çıkarıldı, tekrar denenmeyecek.**
+
+**(b) açık kaldı (düşük öncelik, henüz denenmedi):** sentetik havuzu kalan ~10061 dokunulmamış
+TDK deyimine doğru ölçeklemeye devam.
+
+**Ek eşik testi (thresh=0.3, aynı gün, kullanıcı isteğiyle):** daha agresif filtreleme "eli
+kolu bağlanarak" GLU yanlış-pozitifini düzeltti ve yanlış-poz'u %14.1'e (en düşük ölçüm)
+indirdi, GLU vaka skoru v8'i yakaladı (25/35) — ama Çavuşoğlu doğru-ayırt %63.1'e (v8'den
+bile kötü) ve PARSEME F1 61.42'ye (v8'den −2pp, thresh=0.5'ten −2.65pp) geriledi. Hiçbir eşik
+diğerlerini domine etmiyor, salt precision/recall eğrisinde farklı bir nokta. Karar değişmedi:
+v8'de kalınıyor.
 
 ## Deney W (2026-09-19) — anlaşmazlık-ağırlıklı ensemble distilasyonu: TEK modelde ensemble'ın
 ## Çavuşoğlu doğru-ayırtını (%57.1) YAKALADI, PARSEME'de ensemble'ı bile geçti — PROMOTE ADAYI,
