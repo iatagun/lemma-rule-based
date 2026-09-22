@@ -176,17 +176,30 @@ def report() -> None:
           f"→ {n - zero_l} deyim, {sum(r[3]['D'] for r in rows if r[3]['L'])} D / {kl} L")
 
 
-def build(only_paired: bool = False) -> None:
+def build(only_paired: bool = False, raw_max_index: int | None = None) -> None:
+    import re as _re
+
     from data.prepare_tdk_idiom_examples import idiom_stems, stem
 
     raw_files = sorted(DATA.glob("_synth_raw_*.json"))
     if not raw_files:
         sys.exit("idiom_data/_synth_raw_*.json yok — önce --select ve alt-ajan üretim turu.")
+    # --raw-max-index: geçmiş bir havuzu BİREBİR geri kurmak için (ör. v8'in 650-deyimlik
+    # havuzu = parça 0-25; parça 26-35 Deney AA'nın +250'si, parça 100 terim-negatifleri).
+    # Kıyas dosyalarını dondurma disiplini: kanonik havuz sonradan üzerine yazıldığı için
+    # eski sürümlerin reçetesi ancak böyle yeniden üretilebiliyor.
+    if raw_max_index is not None:
+        raw_files = [f for f in raw_files
+                     if int(_re.search(r"_synth_raw_(\d+)", f.name).group(1)) <= raw_max_index]
+        print(f"--raw-max-index {raw_max_index}: {len(raw_files)} ham parça kullanılacak")
 
     # --only-paired (Deney AB-1): yalnız GERÇEKTEN çift oluşturan deyimler (en az bir L
     # cümlesi span doğrulamasını geçmiş). Saf SEÇİM — yeni cümle üretilmez. Kanonik havuzu
     # ezmemek için AYRI dosyaya yazar.
     out_recs, out_labels = OUT_RECS, OUT_LABELS
+    if raw_max_index is not None:
+        out_recs = DATA / f"_synthetic_stage2_upto{raw_max_index}_records.jsonl"
+        out_labels = DATA / f"_synthetic_stage2_upto{raw_max_index}_labels.tsv"
     paired: set[str] | None = None
     if only_paired:
         out_recs = DATA / "_synthetic_stage2_paired_records.jsonl"
@@ -257,6 +270,9 @@ def main() -> None:
     ap.add_argument("--build", action="store_true")
     ap.add_argument("--report", action="store_true",
                     help="salt-okunur çift-kapsama teşhisi (hiçbir dosya yazmaz)")
+    ap.add_argument("--raw-max-index", type=int, default=None,
+                    help="--build ile: yalnız _synth_raw_<=N parçalarını kullan (geçmiş havuzu "
+                         "birebir geri kurmak için; v8'in 650-deyimlik havuzu = 25). AYRI dosyaya yazar.")
     ap.add_argument("--only-paired", action="store_true",
                     help="--build ile: yalnız gerçekten D+L çifti oluşturan deyimler; "
                          "AYRI dosyaya yazar (_synthetic_stage2_paired_*), kanonik havuz ezilmez")
@@ -269,7 +285,7 @@ def main() -> None:
     elif args.select:
         select(args.n_idioms, args.batch_size, args.seed)
     elif args.build:
-        build(only_paired=args.only_paired)
+        build(only_paired=args.only_paired, raw_max_index=args.raw_max_index)
     else:
         ap.error("--select, --build veya --report gerekli")
 

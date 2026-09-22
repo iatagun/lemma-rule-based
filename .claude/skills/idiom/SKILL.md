@@ -882,8 +882,29 @@ n=198 çift bu büyüklükteki (~+3.5pp) bir farkı sertifikalamaya YETMİYOR. D
 4-gövde adayıyla (GA sıfırı içerdiği için reddedilmişti) aynı durumdayız — dev macro üç
 tohumda 70.5/70.4/70.4 ile çok sıkı olmasına rağmen.
 
-**AYRICA eksik kalan kıyas kusuru:** v8'in %65.2'si de TEK ve TOHUMSUZ bir koşu. Adil
-kıyas için v8 reçetesinin de 3 tohumla ölçülmesi gerekir (ortalama-ortalama). Yapılmadı.
+**v8 REÇETESİ DE 3 TOHUMLA ÖLÇÜLDÜ (kullanıcı talebiyle) — asıl fark +6.1pp DEĞİL, +2.0pp.**
+v8'in eğitim havuzu Deney AA'da kanonik dosyanın üzerine yazıldığı için repoda artık yoktu;
+ham parçalardan `--raw-max-index 25` ile BİREBİR geri kuruldu (1866 kayıt, 1354 D / 512 L —
+belgelenen rakamla aynı).
+
+| reçete | tohum 1 | 2 | 3 | **ortalama ± sd** | tek-koşu kaydı |
+|---|---|---|---|---|---|
+| v8 (650 deyim, D:L 2.64:1) | %66.2 | %67.2 | %67.2 | **%66.87 ± 0.58** | yayındaki ckpt %65.2 |
+| AB-1 (326 çift, D:L 1.25:1) | %68.7 | %68.2 | %69.7 | **%68.87 ± 0.76** | tohumsuz koşu %71.2 |
+
+Tohum-eşleşmeli bootstrap: +2.5 / +1.0 / +2.5 pp — **üçü de ANLAMSIZ** (GA sıfırı içeriyor).
+Üç tohumun ortalamasıyla çift-düzeyi bootstrap: **+2.02pp, 95% GA −0.51/+4.71 → ANLAMSIZ.**
+
+**İlk ölçümün +6.1pp'si ~3 kat şişmiş çıktı:** yayındaki v8 checkpoint'i KENDİ dağılımının
+ALT ucunda (%65.2 vs reçete ortalaması %66.87), AB-1'in ilk koşusu ise ÜST ucunda (%71.2 vs
+%68.87). İki uç birbirine karşı ölçülmüş.
+
+**METODOLOJİK DERS (bu projedeki geçmiş kararları da etkiliyor):** stage-2 tohum varyansı
+(sd ~0.6-0.8, uçtan uca ~1.5pp) bu projenin karar verdiği fark büyüklükleriyle AYNI MERTEBEDE.
+Deney AA'da v9 ±1-1.5pp'lik farklarla değerlendirilmişti — o farklar gürültü bandının içinde.
+Bundan sonra ~2pp altındaki tek-koşu farkları KARAR SAYILMAMALI. Ayrıca yayındaki v8'in kendi
+reçete ortalamasının 1.7pp altında olması şu tuzağı doğuruyor: v8'i AYNI reçeteyle yeniden
+eğitmek bile ~1.7pp "kazandırır" — yöntem hakkında hiçbir şey söylemeden.
 
 **Kritik: AB-1, v9'u öldüren recall bedelini ÖDEMİYOR.** CASES'teki 2 hatası v8'inkiyle
 birebir aynı (`söz verdi` stage-1 kategori hatası, `dili uzundur` bilinen artefakt) — yani
@@ -920,7 +941,12 @@ eval deyiminin kesişimi TAM SIFIR (`select()` bunu bilerek sağlıyor), yani %6
 stage-2'nin hiç görmediği deyimlerde. UYARI: bu kırılım tohumsuz (üst uç) checkpoint'le
 ölçüldü, mutlak değerler ~2pp şişkin; model-içi seen-vs-unseen kıyası etkilenmez.
 
-**DURUM: promote EDİLMEDİ.** 3-tohum reprodüksiyonu kazancı sertifikalamadı (yukarı bak).
+**DURUM: promote EDİLMEDİ (2026-09-23 kesin karar).** Çift-saflığına göre budama küçük,
+TUTARLI ama KANITLANMAMIŞ bir iyileşme veriyor: altı ölçümün (3 tohum × 2 reçete) hepsinde
+yön pozitif, üç tohum eşleşmesinde de kazanılan çift kaybedilenden fazla (9/4, 11/9, 10/5),
+ama n=198 çift +2pp'yi sertifikalamıyor. Deney AA'daki 4-gövde adayıyla aynı gerekçeyle
+arşive alındı. Diğer eksenlerdeki avantaj (PARSEME +0.61, yanlış-poz −6.6pp, CASES eşit)
+tek tohumla ölçüldüğü için aynı çekinceyi taşıyor.
 Ayrıca Çavuşoğlu ~20 deneyde
 model SEÇİMİ için kullanıldı ("dev-seti gibi okunmalı" çekincesi MODEL_CARD'da) — ama
 PARSEME (+0.61) ve CASES (eşit) bağımsız eksenler ve kazancı çürütmüyor. Aşama 1 (v7 3-gövde
