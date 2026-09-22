@@ -862,8 +862,28 @@ doğal D atıldı, + `--exclude-eval-idioms` ile 156 eval deyimi çıkarıldı):
 | GLU vaka | **29/35** | 28/35 | 24/35 |
 
 **Eşleştirilmiş bootstrap (yeni altyapı: `eval_idiom --dump-hits` + `benchmark/compare_runs.py`):**
-AB-1 − v8 = **+6.1pp, 95% GA +1.0/+11.1 → ANLAMLI** (19 çift kazanıldı, 7 kaybedildi, net +12).
-Deney Z'den (v8) beri ilk anlamlı Çavuşoğlu kazancı.
+İlk (TOHUMSUZ) koşu: AB-1 − v8 = +6.1pp, 95% GA +1.0/+11.1 → anlamlı görünüyordu.
+
+**⚠ 3-TOHUM REPRODÜKSİYONU BUNU ÇÜRÜTTÜ (aynı gün, kullanıcı talebiyle).** `--seed` bayrağı
+eklendi (eğitim o güne dek HİÇ tohumlanmıyordu — geçmiş tüm tek-koşu kıyaslarında ölçülmemiş
+bir tohum varyansı var demektir) ve aynı reçete 3 tohumla tekrarlandı:
+
+| tohum | Çavuşoğlu doğru-ayırt | yanlış-poz | v8'e göre eşleştirilmiş fark |
+|---|---|---|---|
+| (tohumsuz ilk koşu) | %71.2 | %14.6 | +6.1pp (GA +1.0/+11.1) — ANLAMLI |
+| 1 | %68.7 | %16.7 | +3.5pp (GA −1.5/+8.6) — **ANLAMSIZ** |
+| 2 | %68.2 | %13.6 | +3.0pp (GA −2.5/+8.6) — **ANLAMSIZ** |
+| 3 | %69.7 | %14.6 | +4.5pp (GA −0.5/+9.6) — **ANLAMSIZ** |
+| **ortalama** | **%68.9 ± 0.8** | — | **+3.0/+4.5pp, hiçbiri anlamlı değil** |
+
+**Yorum:** ilk koşunun %71.2'si dağılımın üst ucuydu; gerçek seviye %68.9 ± 0.8. Yön ÜÇ
+tohumda da pozitif ve üçünde de kazanılan çift kaybedilenden fazla (16/9, 18/12, 18/9), ama
+n=198 çift bu büyüklükteki (~+3.5pp) bir farkı sertifikalamaya YETMİYOR. Deney AA'daki
+4-gövde adayıyla (GA sıfırı içerdiği için reddedilmişti) aynı durumdayız — dev macro üç
+tohumda 70.5/70.4/70.4 ile çok sıkı olmasına rağmen.
+
+**AYRICA eksik kalan kıyas kusuru:** v8'in %65.2'si de TEK ve TOHUMSUZ bir koşu. Adil
+kıyas için v8 reçetesinin de 3 tohumla ölçülmesi gerekir (ortalama-ortalama). Yapılmadı.
 
 **Kritik: AB-1, v9'u öldüren recall bedelini ÖDEMİYOR.** CASES'teki 2 hatası v8'inkiyle
 birebir aynı (`söz verdi` stage-1 kategori hatası, `dili uzundur` bilinen artefakt) — yani
@@ -886,8 +906,22 @@ GÖRÜLMEDİĞİnde: ağırlık, olmayan çifti yaratamıyor. **Bu, Deney AA'nı
 eksikti" teşhisinin yerine geçen daha basit ve daha genel bir açıklama** — ve "10061 TDK
 deyimine ölçekle" fikrinin yönünü değiştiriyor: kapsam değil, ÇİFT SAFLIĞI.
 
-**DURUM: promote edilmedi, karar kullanıcıda.** Yayın öncesi proje disiplini gereği eksik
-olan tek şey **3-tohum reprodüksiyon** (tek tohumla ölçüldü). Ayrıca Çavuşoğlu ~20 deneyde
+**GENELLEME KIRILIMI (kullanıcı sorusu — `--seen-idioms-file`, düzeltilmiş split):**
+
+| model | seen (143 çift) | unseen (59 çift) | unseen yanlış-poz |
+|---|---|---|---|
+| v8 | %63.6 | %67.8 | %15.3 |
+| AB-1 (tohumsuz ckpt) | %70.6 | %72.9 | **%8.5** |
+
+İki gözlem: (a) kazanç HER İKİ dilimde de var (seen +7.0, unseen +5.1) — ezberin keskinleşmesi
+değil. (b) İKİ modelde de unseen > seen — yani "görülmüş deyim" avantajı YOK, hatta ters.
+Stage-2 açısından zaten tamamı görülmemiş: AB-1'in 326 eğitim deyimiyle Çavuşoğlu'nun 198
+eval deyiminin kesişimi TAM SIFIR (`select()` bunu bilerek sağlıyor), yani %68.9'un tamamı
+stage-2'nin hiç görmediği deyimlerde. UYARI: bu kırılım tohumsuz (üst uç) checkpoint'le
+ölçüldü, mutlak değerler ~2pp şişkin; model-içi seen-vs-unseen kıyası etkilenmez.
+
+**DURUM: promote EDİLMEDİ.** 3-tohum reprodüksiyonu kazancı sertifikalamadı (yukarı bak).
+Ayrıca Çavuşoğlu ~20 deneyde
 model SEÇİMİ için kullanıldı ("dev-seti gibi okunmalı" çekincesi MODEL_CARD'da) — ama
 PARSEME (+0.61) ve CASES (eşit) bağımsız eksenler ve kazancı çürütmüyor. Aşama 1 (v7 3-gövde
 ensemble) DEĞİŞMEDİ; bu saf bir stage-2 takası, paket boyutu aynı. Kanonik

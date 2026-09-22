@@ -486,6 +486,10 @@ def main() -> None:
                     help="Deney Z: data/prepare_synthetic_stage2_pairs.py --build çıktısı "
                          "(_synthetic_stage2_records.jsonl) — yalnız TRAIN'e eklenir, test hiç "
                          "etkilenmez")
+    ap.add_argument("--seed", type=int, default=None,
+                    help="tohum (head başlatma + DataLoader karıştırma). Verilmezse ESKİSİYLE "
+                         "AYNI (tohumsuz/deterministik değil) — geriye dönük uyum. 3-tohum "
+                         "reprodüksiyon için açıkça ver.")
     ap.add_argument("--natural-l-only", action="store_true",
                     help="Deney AB-2: doğal-derlem train'inden YALNIZ literal (y=0) kayıtları "
                          "tut, doğal D'yi at. Deney Z'nin 'tam karışım daha kötü' bulgusuyla "
@@ -501,6 +505,13 @@ def main() -> None:
                          "--synthetic-file ile eğit (üslup-kayması riskini izole etmek için)")
     args = ap.parse_args()
     out_ckpt = Path(args.out)
+    if args.seed is not None:
+        import random as _random
+        _random.seed(args.seed)
+        np.random.seed(args.seed)
+        torch.manual_seed(args.seed)
+        torch.cuda.manual_seed_all(args.seed)
+        print(f"seed={args.seed}")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
