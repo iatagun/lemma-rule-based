@@ -48,7 +48,11 @@ CASES: list[tuple[str, str, str | None, str | None]] = [
 
     # ── serbest birleşim / ilgisiz (span beklenmez) ──
     ("serbest", "Çocuk okula gitti .", None, None),
-    ("serbest", "Doktor gözünü muayene etti .", None, None),
+    # "muayene etmek" kılavuzun Aşama-2 karar tablosunda EŞDİZİMLİLİK (bileşimsel EVET /
+    # anlam aktarımı HAYIR / kalıplaşma EVET) → B/I-LVC. Bu vakanın asıl amacı "gözünü"
+    # çeldiricisine karşı göz-DEYİMİ ateşlenmemesi; o yüzden altın "span yok" değil "!VID":
+    # VID hata, LVC kabul (2026-09-22 — eskiden LVC de fail sayılıyordu).
+    ("serbest", "Doktor gözünü muayene etti .", None, "!VID"),
     ("serbest", "Kafasını yastığa dayadı .", None, None),
     ("serbest", "Eline kalemi aldı .", None, None),
 

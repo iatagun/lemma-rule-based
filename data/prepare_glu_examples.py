@@ -171,7 +171,13 @@ def _selfcheck() -> None:
     assert _check([], None, "!VID") == "ok"       # span yok → kabul
     assert _check(lvc, None, None) == "fail"      # terim: LVC bile hata
     assert _check([], None, None) == "ok"
-    print("öz-denetim: tamam (tanı seti biçimi + '!VID' anlambilimi)")
+
+    # CASES'teki "muayene etti" vakası da "!VID" olmalı (kılavuz: eşdizimlilik → LVC);
+    # sessizce None'a dönerse bu assert yakalar.
+    from benchmark.eval_idiom import CASES
+    muayene = [c for c in CASES if "muayene" in c[1]]
+    assert len(muayene) == 1 and muayene[0][3] == "!VID", muayene
+    print("öz-denetim: tamam (tanı seti biçimi + '!VID' anlambilimi + CASES muayene vakası)")
 
 
 def main() -> None:

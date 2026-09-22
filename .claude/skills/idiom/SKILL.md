@@ -858,11 +858,11 @@ Hiçbir yayınlanmış sürümde kullanılmamış (kontrol edildi), öneri kald�
 
 **Yeniden puanlama (v7 3-gövde ensemble sabit, yalnız stage-2 değişiyor):**
 
-| aday | GLU (eski) | **GLU (düzeltilmiş)** | CASES | GLU minimal-çift doğru-ayırt |
-|---|---|---|---|---|
-| **v8 (yayında, vSynthOnly650)** | 25/35 | **29/35** | **13/16** | **%67** |
-| 900+terim, thresh=0.5 | 24/35 | 28/35 | 12/16 | %56 |
-| 900+terim, thresh=0.6 | 24/35 | 28/35 | 12/16 | %56 |
+| aday | GLU (eski) | **GLU (düz.)** | CASES (eski) | **CASES (düz.)** | GLU minimal-çift doğru-ayırt |
+|---|---|---|---|---|---|
+| **v8 (yayında, vSynthOnly650)** | 25/35 | **29/35** | 13/16 | **14/16** | **%67** |
+| 900+terim, thresh=0.5 | 24/35 | 28/35 | 12/16 | 13/16 | %56 |
+| 900+terim, thresh=0.6 | 24/35 | 28/35 | 12/16 | 13/16 | %56 |
 
 **Sonuç: v9'u reddetme kararı hatalı ölçüme dayanmıyordu.** Düzeltme herkesi eşit kaldırdı
 (+4), fark ve sıralama aynen korundu. Kazanılan asıl bilgi:
@@ -876,14 +876,18 @@ Hiçbir yayınlanmış sürümde kullanılmamış (kontrol edildi), öneri kald�
 - Aday eşdizim precision'ında GERÇEKTEN daha iyi (`görüş aldık` FP'si adayda yok, v8'de var) —
   Deney AA'nın terim-negatif düzeltmesinin ölçülmemiş bir kazancı.
 
-**Yan bulgu — CASES'te aynı sınıftan 2 puanlama artefaktı kaldı (İKİSİ DE düzeltilmedi,
-karar bekliyor; ikisi de her iki adayı EŞİT etkiliyor, kıyası bozmuyor):**
-- `Çocuk küçük yaştan beri dili uzundur .` — altın öbek `dili uzun`, model `dili uzundur`
-  buluyor; `_check`'in alt-küme testi çekim eki yüzünden fail veriyor. Saf artefakt.
-- `Doktor gözünü muayene etti .` — "serbest" kategorisinde, altın span YOK; model `muayene
-  etti:LVC` buluyor. Ama kılavuzun Aşama-2 karar tablosuna göre (bileşimsel EVET / anlam
-  aktarımı HAYIR / kalıplaşma EVET) "muayene etmek" tam olarak **EŞDİZİMLİLİK → B/I-LVC**.
-  Yani altın etiket büyük olasılıkla yanlış; düzeltilirse ikisi de +1 alır, fark yine 1.
+**Düzeltme 4 (kullanıcı kararı) — CASES `muayene etti` altını.** `Doktor gözünü muayene
+etti .` "serbest" kategorisindeydi ve altın span YOK'tu; model `muayene etti:LVC` buluyor.
+Kılavuzun Aşama-2 karar tablosuna göre (bileşimsel EVET / anlam aktarımı HAYIR / kalıplaşma
+EVET) "muayene etmek" tam olarak **EŞDİZİMLİLİK → B/I-LVC**, yani altın yanlıştı. Vakanın
+ASIL amacı ("gözünü" çeldiricisine karşı göz-DEYİMİ ateşlenmemesi) korunacak şekilde aynı
+`"!VID"` mekanizması verildi — VID hata, LVC kabul. İkisi de +1 aldı, fark yine 1.
+
+**Kalan tek artefakt (düzeltilmedi, her iki adayı EŞİT etkiliyor):** `Çocuk küçük yaştan beri
+dili uzundur .` — altın öbek `dili uzun`, model `dili uzundur` buluyor; `_check`'in alt-küme
+testi çekim eki yüzünden fail veriyor. En küçük çözüm altın öbeği yüzey biçime (`dili
+uzundur`) çekmek olur; `_check`'i gevşetmek DEĞİL — katılık, sınır hatalarını gizlememek için
+bilerek konmuştu (bkz. fonksiyonun kendi yorumu).
 
 ## Deney AA (2026-09-20) — 4-gövde ensemble ablasyonu (mimari vs veri izolasyonu) + sentetik
 ## havuzu 650→900 deyime ölçekleme + stage-2 GLU-terim regresyonu kök-neden + düzeltme
