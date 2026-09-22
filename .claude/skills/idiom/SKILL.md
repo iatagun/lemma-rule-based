@@ -831,6 +831,58 @@ homonym-literal vakası hâlâ çözülmedi** (terim-negatifinden FARKLI bir kat
 KENDİSİNİN literal/fiziksel okunuşu, bitki/terim adı değil; kendi hedefli hard-negative'i
 gerekebilir).
 
+## Faz 3 sondası (2026-09-23) — yüklem düşmesi hipotezi ÇÜRÜTÜLDÜ, ama yerine
+## çok daha büyük bir kapsam kaybı bulundu: katı `find_span` TDK örneklerinin %73'ünü atıyor
+
+Salt ölçüm — hiçbir boru hattı değiştirilmedi, eğitim yok. Yer-gerçeği TDK'nın KENDİ örnek
+cümleleri (örnek, tanımı gereği o deyimin kullanımıdır; `find_span` bulamıyorsa KAÇIRMA'dır).
+Leipzig derlemi yerelde olmadığı için bu kaynak kullanıldı — aslında daha temiz, çünkü
+her cümlenin hangi deyime ait olduğu kesin.
+
+**(1) Yüklem düşmesi hipotezi ÇÜRÜTÜLDÜ — madde kapatıldı.** TDK'nın %19.5'i (2188 deyim)
+düşebilir bir yardımcı fiille bitiyor ve `find_span` tüm gövdeleri şart koştuğu için bunları
+yüklemi düşmüş hâlde YAPISAL olarak bulamıyor (GLU eval'deki "Proje aylardır rölantide."
+vakası bunu doğruluyor). AMA pratikte neredeyse hiç ısırmıyor:
+
+| | örnek | kaçan | oran |
+|---|---|---|---|
+| yardımcı fiille biten deyimler | 1120 | 834 | %74.5 |
+| diğer deyimler | 4068 | 2865 | %70.4 |
+
+Fark yalnız **4.1pp** — yani yardımcı-fiilli deyimler diğerlerinden anlamlı ölçüde daha çok
+kaçmıyor. Kaçan 834'ün içinde gerçek yüklem-düşmesi imzası (ad-kısmı var + yüklem konumunda)
+taşıyan yalnız **15 vaka** (%1.8; tüm örneklerin %0.3'ü). Sözlük örnekleri deyimi tam biçimde
+kullanıyor. **Opt-in eşleştirici yazmaya değmez, madde kapandı.**
+
+**(2) Asıl bulgu — katı eşleşme kapsamın üçte ikisini atıyor.** Aynı ölçümde ortaya çıktı:
+
+| eşleştirici | eşleşen örnek | oran | kapsanan farklı deyim |
+|---|---|---|---|
+| `find_span` (şu anki, katı) | 1400 / 5196 | %26.9 | 1325 |
+| `find_span` + `max_gap=2` | 1497 / 5196 | %28.8 | 1421 |
+| **`find_span_lenient`** (Deney Z'den, önek-toleranslı) | **3772 / 5196** | **%72.6** | **3546** |
+
+**2.69× kayıt, 2.68× deyim kapsamı.** Doğrulama: gerçek boru hattı çıktıları
+(`tdk_examples_train/dev/test.json` = 1394+43+53 = 1490) sondanın rakamıyla birebir uyuşuyor,
+yani ölçüm sadık.
+
+Kök neden Deney Z'de ZATEN bulunmuştu: Türkçe snowball stemmer çekim eklerinin çoğunu
+atmıyor, katı gövde-eşitliği gerçek kullanımda tutmuyor. Deney Z bunu sentetik havuzda
+çözmüş (%17 → %87) ama düzeltmeyi bilerek O SCRIPT'E hapsetmişti ("paylaşılan `find_span`
+dokunulmadı"). Aynı kusur paylaşılan boru hattında hâlâ duruyor. Örnek yeni yakalananlar
+(20/20 elle kontrol, hepsi doğru span): `zayıf düşmekten`, `gözüne kestirdiği`,
+`çaba harcıyordu`, `payidar kalacaktır`, `göklere çıkarıyorlardı`, `ortaklık kurarsak`.
+
+**ÖNERİ (yapılmadı, ayrı bir deney olmalı):** TDK boru hattına opsiyonel gevşek eşleşme
+(`--lenient`) ekleyip Aşama 1'i yeniden eğitmek. **Ama peşinen kazanç varsayılmamalı** —
+Deney N'de Leipzig 3M→8M genişletmesi REGRESYON vermişti; bu projede daha çok veri otomatik
+olarak daha iyi değil. Ayrıca Aşama 1 yeniden eğitimi bu turun tüm stage-2 koşularından
+pahalı. Gerekirse önce küçük bir pilot.
+
+**Yan düzeltme — bayat kayıt:** proje notlarındaki "TDK 2.629 train / 313+313" rakamı
+BAYAT (TDK sitesi yeniden tasarlanıp yeniden tarandıktan sonra güncellenmemiş). Güncel
+gerçek: train 1394 / dev 43 / test 53.
+
 ## Deney AB (2026-09-22) — minimal-çift SAFLIĞI: havuzu %40'a budamak Çavuşoğlu'nda
 ## +6.1pp (ANLAMLI) getirdi — PROMOTE ADAYI (v9), henüz yayınlanmadı
 
