@@ -201,13 +201,13 @@ def run_cases(predict) -> None:
 #  bağımlılık (idyomatik/literal ayrımı) testi.
 # ═══════════════════════════════════════════════════════════════════════
 def run_external(predict, idiom_filter: set[tuple[str, ...]] | None = None, label: str = "",
-                  max_gap: int = 0, dump_hits: str | None = None) -> None:
+                  max_gap: int = 0, dump_hits: str | None = None, tsv: str | None = None) -> None:
     """`dump_hits`: her çiftin doğru-ayırt (gevşek) sonucunu JSON'a yazar —
     `benchmark/compare_runs.py` ile İKİ koşu arasında eşleştirilmiş bootstrap yapmak için
     (proje disiplini: promote kararından önce farkın anlamlılığı ölçülür)."""
     import csv
 
-    tsv_path = _PROJECT / "idiom_data" / "raw" / "turkish_idioms_benchmark.tsv"
+    tsv_path = Path(tsv) if tsv else _PROJECT / "idiom_data" / "raw" / "turkish_idioms_benchmark.tsv"
     if not tsv_path.exists():
         print(f"\nUYARI: {tsv_path} yok — önce `python fetch_turkish_idioms_benchmark.py`. Atlanıyor.")
         return
@@ -221,7 +221,8 @@ def run_external(predict, idiom_filter: set[tuple[str, ...]] | None = None, labe
     tag = f" [{label}]" if label else ""
     if max_gap:
         tag += f" [gap={max_gap}]"
-    print(f"\n=== Dış kaynak: Çavuşoğlu & Çöltekin (MWE 2026){tag}, {len(rows)} deyim çifti ===")
+    src = f"ek set {tsv_path.name}" if tsv else "Çavuşoğlu & Çöltekin (MWE 2026)"
+    print(f"\n=== Dış kaynak: {src}{tag}, {len(rows)} deyim çifti ===")
 
     def target_range(idiom: str, words: list[str]) -> tuple[int, int] | None:
         """Hedef deyimin cümledeki kelime aralığı (gövde-eşleştirme) — bulunamazsa None."""
@@ -549,6 +550,9 @@ def main() -> None:
     ap.add_argument("--dump-hits", default=None,
                     help="Çavuşoğlu çift-düzeyi sonuçlarını bu JSON'a yaz — iki koşuyu "
                          "benchmark/compare_runs.py ile eşleştirilmiş bootstrap'layabilmek için")
+    ap.add_argument("--external-tsv", default=None,
+                    help="--mode external için Çavuşoğlu yerine aynı biçimde (idiom/sample/literal) "
+                         "başka bir çift seti — ör. benchmark/minpairs_ek_v1.tsv (2026-09-23)")
     ap.add_argument("--ensemble-min-votes", type=int, default=1,
                     help="--ensemble ile: bir span'in kabulü için gereken minimum model oyu "
                          "(1=birleşim/recall-odaklı, N=tam-oybirliği/precision-odaklı)")
@@ -595,7 +599,7 @@ def main() -> None:
     if args.mode in ("all", "cases"):
         run_cases(predict)
     if args.mode in ("all", "external"):
-        run_external(predict, idiom_filter, filter_label, args.gap, args.dump_hits)
+        run_external(predict, idiom_filter, filter_label, args.gap, args.dump_hits, args.external_tsv)
     if args.mode in ("all", "glu"):
         run_glu(predict)
 

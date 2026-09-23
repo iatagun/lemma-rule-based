@@ -407,6 +407,21 @@ farkı olduğunu gösteriyor). Aynı script PARSEME'ye de uygulanabilir, henüz 
   tutulmuş test seti DEĞİL, kendi başına bir dev-seti işlevi gördü. Kartın gerçekten kör
   kaynakları PARSEME (eğitim/test split'i sabit) ve dış-literatür kıyasları (Aslantaş&Güngör,
   Dodiom) — bunlara Çavuşoğlu'ndan daha çok ağırlık verin.
+- **Eğitim tohumu varyansı, kartın tek-koşu rakamlarıyla aynı mertebede.** v8'in Aşama-2
+  reçetesi sonradan (2026-09-22/23) 3 tohumla yeniden eğitildi: Çavuşoğlu doğru-ayırt
+  %66.2 / %67.2 / %67.2 (ort. %66.9 ± 0.6, eşik 0.5). Yayındaki checkpoint (%65.2) bu
+  dağılımın alt ucunda — yani yayındaki sürüm reçetesinin şanssız bir örneği; aynı reçeteyle
+  yeniden eğitmek bile ~1.5pp "kazandırır". Kartta tek koşuyla ölçülen, ~2pp'nin altındaki
+  sürüm farkları (ör. eşik tablosunun komşu satırları) bu gürültünün içindedir. v7→v8 farkı
+  (+10pp) bu bandın çok üstünde kalıyor, o bulgu etkilenmiyor. 198 çiftlik bir sette
+  eşleştirilmiş bootstrap ~±2.5pp'den küçük farkları ayırt edemiyor; birkaç aday (3 tohumla
+  tutarlı ama +1-2pp) bu yüzden yayınlanmadı.
+- **LLM'in yazdığı değerlendirme cümleleri Aşama 2'yi olduğundan iyi gösteriyor.** Aynı
+  ensemble, eğitimde görülmemiş 126 deyimden oluşan, LLM'in yazdığı bir minimal-çift setinde
+  %90.5 doğru-ayırt (yanlış-poz %5.6, eşik 0.3) veriyor; insan yazımı Çavuşoğlu setinde aynı
+  eşikte %68.2 (yanlış-poz %14.6). Aşama 1 iki sette de literal cümlelerin benzer bir kısmında span buluyor
+  (%73 vs %67), fark Aşama 2'nin elemesinde. Aşama 2 sentetik (LLM) veriyle eğitildiği için bu
+  üsluba iyi uyum sağlıyor; doğal metinde beklenen performans için Çavuşoğlu rakamı esas alınmalı.
 - **Aşama 1 hâlâ üç gövdeli bir ensemble, tek bir bütünleşik model değil** — model
   boyutu/gecikmesi buna göre büyük (yaklaşık 2GB, yaklaşık 3×). Daha küçük/hızlı bir alternatif (v6, tek
   gövde, yaklaşık 440MB) var ama Aşama 2'si eski/daha zayıf.

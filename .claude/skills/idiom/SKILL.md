@@ -1006,6 +1006,62 @@ epoch'ta ~0.005'e iniyor (havuz ezberleniyor), seçilen epoch hep erken (5/3/2).
 Checkpoint'ler `best_idiomaticity_clf_pair1_s{1,2,3}.pt` arşivde; v8/HF/Space dokunulmadı.
 **Stage-2 tavanına karşı üçüncü ardışık anlamsız/negatif sonuç (AB, AD, AE).**
 
+## Ek minimal-çift seti + TDK-test −2.8 teşhisi + model kartı tohum notu (2026-09-23)
+
+Değerlendirme turundan çıkan öneri: stage-2'de yeni ayar denemeyi bırakıp önce değerlendirmenin
+ayırt etme gücünü artırmak. Kullanıcı kısıtı: alt-ajanla veri üretimi yok (ya sor ya da
+~100-200, maliyetsiz). Buna uygun olarak cümleleri ana oturum kendisi yazdı.
+
+**`benchmark/minpairs_ek_v1.tsv` — 126 D/L çifti (commit'lenir, Çavuşoğlu biçiminde).**
+Deyimler TDK'dan; `_synth_raw_*` (900 havuzun tamamı) ve Çavuşoğlu'nun 198 çiftiyle KESİŞİM
+SIFIR, yani stage-2 için tamamı görülmemiş. 145 taslaktan 19'u elendi (L'de deyim sözcükleri
+geçmiyor / D-L ters / belirsiz). `eval_idiom --mode external --external-tsv <tsv>` ile koşulur.
+
+**Sonuç: set, LLM üslubu yüzünden stage-2 için ÇOK KOLAY — değerlendirme aracı olarak zayıf.**
+
+| | ek set (126) | Çavuşoğlu (198) |
+|---|---|---|
+| stage-1 ensemble, stage-2 kapalı: literalde span | %73.0 | %66.7 |
+| prod v8 (thr 0.3): doğru-ayırt / yanlış-poz | **%90.5 / %5.6** | %68.2 / %14.6 |
+
+Stage-1 bu literal cümlelerde Çavuşoğlu kadar (hatta daha çok) yanılıyor; fark tamamen
+stage-2'nin elemesinde. Stage-2 LLM-üretimi sentetik çiftlerle eğitildiği için LLM'in yazdığı
+literal cümleleri kolayca tanıyor. **Ders: LLM'in yazdığı bir eval seti stage-2'yi şişirir;
+stage-2 kararlarında insan yazımı veri esas alınmalı.** (Model kartına Kısıtlar maddesi eklendi.)
+
+Varyant sıralaması (thr 0.3, prod stage-1 ensemble):
+
+| stage-2 | s1 / s2 / s3 | eşleştirilmiş fark (tohum-eşli) |
+|---|---|---|
+| v8 reçetesi `upto25` | 86.5 / 84.9 / 84.1 | — |
+| pair λ=1 (AE) | 84.9 / 86.5 / 85.7 | −1.6 / +1.6 / +1.6, hepsi anlamsız |
+| bodyx2 (AD) | 85.7 / 84.9 / 83.3 | −0.8 / 0.0 / −0.8, hepsi anlamsız |
+| AB-1 `vPairedOnly` (tohumsuz) | 86.5 | prod'a göre −4.0 (GA −8.7/+0.0) |
+| **prod `vSynthOnly650`** | **90.5** | — |
+
+İki gözlem: (a) yayındaki checkpoint burada kendi reçetesinin 3 tohumunun 4-6pp ÜSTÜNDE,
+Çavuşoğlu'da ise 1.7pp ALTINDA. Aynı checkpoint'in sıralaması sete göre ters dönüyor, yani
+tek bir checkpoint'in reçetesine göre "şanslı/şanssız" olması set-özgü gürültü. (b) AB-1'in
+Çavuşoğlu'daki tutarlı +2pp'si burada −4'e dönüyor. **Hiçbir varyant iki sette birden v8'i
+geçmiyor → v8'de kalma kararı güçlendi.** Havuz AB/AD/AE ekseni kapandı.
+
+**TDK-test −2.8 (Deney AC) teşhisi — yaklaşık yarısı gold artefaktı.** vLbase vs vLen, 3
+tohum, 53 test cümlesi (scratchpad betiği): F1 61.7→59.3, 57.4→52.4, 57.4→55.2 (yeniden
+üretildi). Fark yalnız 1-2 TP + 2-4 FP. Gevşek modelin "fazladan" span'leri çoğunlukla gerçek
+MWE: `Treni kaçırmak`, `kanına girmem`, `çılgına döndürür`, `düşman kesilir`, `musallat
+olmuştu`, `sözü dinlenmez`. TDK-test gold'u cümle başına YALNIZ örneklenen deyimi etiketliyor,
+bunlar FP sayılıyor. Gerçek kayıp tarafı fiilsiz kalıplar: `ne kadar`, `buz gibi`, `Ne olursa
+olsun`, `Ne yazık ki`, `cennet gibi`. Gevşek eşleşme fiilli (çekimli) deyim örneklerini ~2.6×
+çoğalttığı için model fiilsiz/zarf kalıplardan uzaklaşmış. **TDK-test F1 küçük ve eksik
+etiketli; stage-1 kararında tek başına kullanılmamalı.** Gevşek TDK'yı ileride kullanmak
+istenirse fiilsiz kalıpları katı eşleşmeden koruyarak (ör. yalnız fiilli deyimlere gevşeklik)
+denenebilir. Denenmedi.
+
+**Model kartı (`dizgebert_idiom/MODEL_CARD.md`, Kısıtlar):** iki madde eklendi. (1) Tohum
+varyansı: v8 reçetesi 3 tohumla %66.9±0.6, yayındaki %65.2 alt uçta; <~2pp tek-koşu farkları
+gürültü; v7→v8 (+10pp) etkilenmez. (2) LLM-yazımı eval'in stage-2'yi şişirdiği. **HF'ye henüz
+push edilmedi** (kullanıcı onayı bekleniyor).
+
 ## Deney AB (2026-09-22) — minimal-çift SAFLIĞI: havuzu %40'a budamak Çavuşoğlu'nda
 ## +6.1pp (ANLAMLI) getirdi — PROMOTE ADAYI (v9), henüz yayınlanmadı
 
