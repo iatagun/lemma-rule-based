@@ -32,8 +32,9 @@ def main() -> None:
     ap.add_argument("a"); ap.add_argument("b")
     ap.add_argument("--names", nargs=2, default=["A", "B"])
     ap.add_argument("--field", default="both",
-                    choices=["both", "sample", "literal"],
-                    help="both=doğru-ayırt (varsayılan), sample=duyarlılık, literal=yanlış-poz")
+                    choices=["both", "sample", "literal", "both_t", "sample_t", "literal_t"],
+                    help="both=doğru-ayırt (varsayılan), sample=duyarlılık, literal=yanlış-poz; "
+                         "*_t = hedef-konumlu sürümleri (yalnız iki koşuda da konumlanan çiftler)")
     args = ap.parse_args()
 
     A = json.loads(Path(args.a).read_text(encoding="utf-8"))
@@ -41,8 +42,11 @@ def main() -> None:
     if [r["idiom"] for r in A] != [r["idiom"] for r in B]:
         sys.exit("çiftler hizalanmıyor — iki koşu AYNI tsv ve AYNI filtreyle yapılmalı")
 
-    ha = [bool(r[args.field]) for r in A]
-    hb = [bool(r[args.field]) for r in B]
+    keep = [i for i, (ra, rb) in enumerate(zip(A, B)) if args.field in ra and args.field in rb]
+    if len(keep) < len(A):
+        print(f"  ({args.field}: {len(keep)}/{len(A)} çift konumlandı, yalnız bunlar kıyaslanıyor)")
+    ha = [bool(A[i][args.field]) for i in keep]
+    hb = [bool(B[i][args.field]) for i in keep]
     na, nb = args.names
     for nm, h in ((na, ha), (nb, hb)):
         p, lo, hi = proportion_ci(h)

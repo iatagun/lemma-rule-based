@@ -926,6 +926,35 @@ hedeflenirse değerli: tek gövde %59.9 vs ensemble %65.2, fark hâlâ büyük. 
 stage-1 turlarında TDK verisi gevşek kurulabilir (tek gövdede zararsız-pozitif) ama
 TDK-test'teki −2.8 nedeni bilinmiyor.
 
+## Yanlış-poz analizi + hedef-konumlu metrik (2026-09-23)
+
+Prod ensemble'ın 42 Çavuşoğlu yanlış-pozu tek tek döküldü (scratchpad betiği, commit
+edilmedi). Elle sınıflama: **~34 gerçek stage-2 hatası** (hedef VID, stage-2 idyomatik
+dedi), 3 metrik artefaktı (cümlede başka GERÇEK eşdizim bulunmuş: "rahat et", "dikkat
+et", "koşu yap"), 2 hedef-dışı gerçek FP, 2 hedef-LVC (stage-2 LVC'ye bakmıyor), ~3
+şüpheli altın ("Alıcı çıktı geldi" deyimin kendi anlamı, "anası ağladı" iki okumalı,
+"ağzının lokması yok").
+- Stage-2 bu literal vakaları SIRALIYOR ama eşik altında bırakıyor: hedef p(literal)
+  medyanı literalde 0.22 (max 0.45 — hiçbiri 0.5'i geçmiyor), idyomatikte 0.06. Eşik
+  0.3: 23 FP'nin 8'i yakalanır, 126 idyomatiğin 19'u kaybedilir — eşik yolu yine kapalı.
+- İpucu (anlamlı DEĞİL, n=42): vücut-parçalı deyimler FP'lerin %52'si, doğru elenenlerin
+  %37'si; sentetik stage-2 havuzunda L cümlesi olan deyimlerin yalnız %21'i vücut-parçalı.
+  Literal okumaları fiziksel ("başımı ağrıttı", "boğazımı sıkıyor"). Sonraki aday: havuzu
+  yeni veri üretmeden bu türe doğru yeniden dengelemek (3 tohum şart).
+
+**Hedef-konumlu metrik (`eval_idiom --mode external`, üçüncü satır):** eski "sıkı" satır
+katı `find_span` yüzünden 198 çiftin yalnız **11**'ini konumlayabiliyordu (çekim eki,
+parantezli deyim metni, "ağladı." gibi yapışık noktalama). Yeni satır `find_span_lenient`
++ noktalama ayıklama ile **136/198** konumluyor (12/12 rastgele kontrol doğru; kalan 62 =
+kısa gövde `al-` önek güvenliği, parantezli alternatifler, farklı fiil biçimi — güvenlik
+kuralı bilerek gevşetilmedi). Eski iki satır birebir aynı (geçmişle kıyas korunur).
+`--dump-hits` artık `sample_t/literal_t/both_t` da yazar; `compare_runs --field both_t`.
+
+Prod ensemble, aynı 136 çiftte: yanlış-poz gevşek %19.1 → hedef-konumlu **%16.9**, ama
+duyarlılık da %83.8 → %81.6 (gevşek metrik idyomatik cümlede başka bir span'i de "bulundu"
+sayıyordu) → doğru-ayırt %66.2 → **%65.4**. **İki şişme birbirini götürüyor; başlık
+metriği (gevşek doğru-ayırt) pratikte yansız — geçmiş kararlar etkilenmez.**
+
 ## Deney AB (2026-09-22) — minimal-çift SAFLIĞI: havuzu %40'a budamak Çavuşoğlu'nda
 ## +6.1pp (ANLAMLI) getirdi — PROMOTE ADAYI (v9), henüz yayınlanmadı
 

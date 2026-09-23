@@ -212,7 +212,7 @@ def run_external(predict, idiom_filter: set[tuple[str, ...]] | None = None, labe
         print(f"\nUYARI: {tsv_path} yok — önce `python fetch_turkish_idioms_benchmark.py`. Atlanıyor.")
         return
 
-    from data.prepare_tdk_idiom_examples import idiom_stems, find_span, stem
+    from data.prepare_tdk_idiom_examples import idiom_stems, find_span, find_span_lenient, stem
 
     rows = [r for r in csv.DictReader(tsv_path.open(encoding="utf-8"), delimiter="\t")
             if r.get("sample", "").strip() and r.get("literal", "").strip()]
@@ -228,6 +228,14 @@ def run_external(predict, idiom_filter: set[tuple[str, ...]] | None = None, labe
         seq = idiom_stems(idiom)
         return find_span(seq, [stem(w.lower()) for w in words], max_gap=max_gap) if seq else None
 
+    def target_range_lenient(idiom: str, words: list[str]) -> tuple[int, int] | None:
+        """Hedef-konumlu metrik (2026-09-23): katı `target_range` çekim eki, parantezli deyim
+        metni ve cümleye yapışık noktalama ("ağladı.") yüzünden 198 çiftin yalnız 11'inde
+        konumlanabiliyordu. Önek-toleranslı eşleştirici + noktalama ayıklama ile konumlar.
+        Yalnız ölçüm içindir; modele giden `words` değişmez."""
+        seq = idiom_stems(idiom)
+        return find_span_lenient(seq, [stem(w.strip(".,!?;:'\"").lower()) for w in words]) if seq else None
+
     def hit_at_target(spans: list[dict], rng: tuple[int, int] | None) -> bool:
         """rng=None → 'cümlede herhangi bir span' (gevşek). Aksi halde span hedefle çakışmalı."""
         if not spans:
@@ -239,6 +247,7 @@ def run_external(predict, idiom_filter: set[tuple[str, ...]] | None = None, labe
 
     n = sample_hit = literal_hit = both_correct = 0           # gevşek: cümlede herhangi bir span
     ns = s_hit_t = l_hit_t = both_t = n_located = 0           # sıkı: span hedef deyimde
+    s_hit_h = l_hit_h = both_h = n_loc_h = 0                  # hedef-konumlu (gevşek konumlama)
     hits: list[dict] = []
     for r in rows:
         sw, lw = r["sample"].split(), r["literal"].split()
@@ -248,8 +257,15 @@ def run_external(predict, idiom_filter: set[tuple[str, ...]] | None = None, labe
         sh, lh = bool(ss), bool(ls_)
         n += 1
         sample_hit += sh; literal_hit += lh; both_correct += sh and not lh
-        hits.append({"idiom": r["idiom"], "both": bool(sh and not lh),
-                     "sample": sh, "literal": lh})
+        hit = {"idiom": r["idiom"], "both": bool(sh and not lh), "sample": sh, "literal": lh}
+
+        hs_, hl_ = target_range_lenient(r["idiom"], sw), target_range_lenient(r["idiom"], lw)
+        if hs_ is not None and hl_ is not None:
+            n_loc_h += 1
+            sht, lht = hit_at_target(ss, hs_), hit_at_target(ls_, hl_)
+            s_hit_h += sht; l_hit_h += lht; both_h += sht and not lht
+            hit.update(sample_t=sht, literal_t=lht, both_t=bool(sht and not lht))
+        hits.append(hit)
 
         srng, lrng = target_range(r["idiom"], sw), target_range(r["idiom"], lw)
         if srng is not None and lrng is not None:   # hedef her iki cümlede konumlanabildi
@@ -274,6 +290,11 @@ def run_external(predict, idiom_filter: set[tuple[str, ...]] | None = None, labe
         print(f"    duyarlılık: {s_hit_t}/{n_located} = %{100*s_hit_t/n_located:.1f}   "
               f"yanlış-poz: {l_hit_t}/{n_located} = %{100*l_hit_t/n_located:.1f}   "
               f"doğru-ayırt: {both_t}/{n_located} = %{100*both_t/n_located:.1f}")
+    if n_loc_h:
+        print(f"  [hedef-konumlu — span hedefle çakışıyor, gevşek konumlama, {n_loc_h}/{n} satır]")
+        print(f"    duyarlılık: {s_hit_h}/{n_loc_h} = %{100*s_hit_h/n_loc_h:.1f}   "
+              f"yanlış-poz: {l_hit_h}/{n_loc_h} = %{100*l_hit_h/n_loc_h:.1f}   "
+              f"doğru-ayırt: {both_h}/{n_loc_h} = %{100*both_h/n_loc_h:.1f}")
 
 
 # ═══════════════════════════════════════════════════════════════════════
