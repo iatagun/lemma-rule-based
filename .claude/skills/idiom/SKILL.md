@@ -955,6 +955,34 @@ duyarlılık da %83.8 → %81.6 (gevşek metrik idyomatik cümlede başka bir sp
 sayıyordu) → doğru-ayırt %66.2 → **%65.4**. **İki şişme birbirini götürüyor; başlık
 metriği (gevşek doğru-ayırt) pratikte yansız — geçmiş kararlar etkilenmez.**
 
+## Deney AD (2026-09-23) — stage-2 havuzunu vücut-parçalı deyimlere yeniden dengeleme: NEGATİF
+
+Yukarıdaki ipucunun testi. Yeni cümle YOK: v8 havuzunda (`upto25`, 503 deyim) vücut-
+parçalı 107 deyimin TÜM kayıtları (D+L) ×2 çoğaltıldı → kayıt payı %23 → %37.5
+(benchmark ~%40); deyim-içi D:L değişmedi, genel D:L 2.64 → 2.49 (yan etki). Regex
+eşleşmeleri elle gözden geçirildi (arkadaş/başka/bela… hariç). Builder: scratchpad
+`build_bodyup.py` (commit edilmedi; çıktı `idiom_data/_synthetic_stage2_bodyx2_*`).
+v8 reçetesi (`--synthetic-only --freeze 8 --dropout 0.3 --weight-decay 0.05 --epochs 14`),
+tohum 1/2/3, prod stage-1 ensemble ile:
+
+| | baz (v8 havuzu) | bodyx2 |
+|---|---|---|
+| Çavuşoğlu doğru-ayırt | 66.2 / 67.2 / 67.2 → **%66.8** | 68.2 / 63.6 / 66.7 → **%66.2** |
+| yanlış-poz | %18.2 | %20.0 (DÜŞMEDİ, arttı) |
+| duyarlılık | %83.5 | %84.8 |
+| 3-tohum çift-düzeyi fark | | **−0.67pp (GA −2.86/+1.52, ANLAMSIZ)** |
+| vücut-parçalı Çavuşoğlu dilimi (n=88) yanlış-poz | %19.7 | %22.0 |
+
+Baz, önceki turun v8 3-tohum sonuçlarıyla BİREBİR aynı çıktı (66.2/67.2/67.2) — reçete
+doğrulandı. **Hipotez çürüdü:** hedef dilimde bile yanlış-poz düşmedi, arttı. Geniş
+regex'le vücut dilimi ile diğerleri arasındaki FP farkı zaten küçük (%19.7 vs %17.0) —
+n=42'deki %52/%37 ipucu büyük ölçüde örneklem gürültüsüymüş. Tohum 1 tek başına
++2.0 gösteriyordu (yine tek-tohum tuzağı). Stage-2 checkpoint'leri
+`best_idiomaticity_clf_{upto25,bodyx2}_s{1,2,3}.pt` arşivde; v8/HF/Space dokunulmadı.
+**Veri-dağılımı yeniden dengeleme ekseni (AB-1 çift-saflığı dahil) artık ikinci kez
+anlamsız çıktı** — stage-2'nin literal vakaları eşik altında bırakması (p medyan 0.22)
+havuz kompozisyonuyla düzelmiyor.
+
 ## Deney AB (2026-09-22) — minimal-çift SAFLIĞI: havuzu %40'a budamak Çavuşoğlu'nda
 ## +6.1pp (ANLAMLI) getirdi — PROMOTE ADAYI (v9), henüz yayınlanmadı
 
