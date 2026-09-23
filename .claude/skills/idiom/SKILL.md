@@ -983,6 +983,29 @@ n=42'deki %52/%37 ipucu büyük ölçüde örneklem gürültüsüymüş. Tohum 1
 anlamsız çıktı** — stage-2'nin literal vakaları eşik altında bırakması (p medyan 0.22)
 havuz kompozisyonuyla düzelmiyor.
 
+## Deney AE (2026-09-23) — çift-karşılaştırmalı stage-2 (sıralama kaybı): NEGATİF, yanlış-poz ARTTI
+
+Fikir: stage-2 literal vakaları doğru sıralıyor ama eşik altında bırakıyor → aynı deyimin
+D/L cümlelerini çiftleyip CE'ye RankNet kaybı ekle (`softplus(-(z_D − z_L))`, z =
+idyomatik−literal logit), fark büyüsün, literaller eşiğin üstüne itilsin.
+`train_idiomaticity_clf.py --pair-loss λ --pair-batch 8` (λ=0 = eskisi; sentetik
+kayıtlar artık `idiom` taşıyor). v8 havuzu: 1436 çift / 220 deyim. Önceden belirlenen
+tek λ=1.0, v8 reçetesi, tohum 1/2/3, baz = Deney AD'nin `upto25` koşuları:
+
+| | baz | pair λ=1 | 3-tohum çift-düzeyi fark |
+|---|---|---|---|
+| Çavuşoğlu doğru-ayırt | %66.8 | %66.2 (65.2/66.7/66.7) | −0.67pp (GA −2.36/+1.01, anlamsız) |
+| duyarlılık | %83.5 | %84.8 | |
+| **yanlış-poz** | %18.2 | **%20.4** | **+2.19pp (GA +0.84/+3.70, ANLAMLI — kötüleşme)** |
+| hedef-konumlu doğru-ayırt / yanlış-poz (136) | %65.4 / %15.9 | %65.0 / %17.9 | |
+
+Beklenenin TERSİ: model genel olarak "idyomatik" yönüne kaydı. Muhtemel neden: sıralama
+kaybı yalnız FARKI büyütüyor, mutlak konumu bağlamıyor — D'yi yukarı itmek L'yi aşağı
+itmekten kolay (havuz D:L 2.64:1), fark D tarafından karşılanıyor. Ayrıca kayıp 14
+epoch'ta ~0.005'e iniyor (havuz ezberleniyor), seçilen epoch hep erken (5/3/2).
+Checkpoint'ler `best_idiomaticity_clf_pair1_s{1,2,3}.pt` arşivde; v8/HF/Space dokunulmadı.
+**Stage-2 tavanına karşı üçüncü ardışık anlamsız/negatif sonuç (AB, AD, AE).**
+
 ## Deney AB (2026-09-22) — minimal-çift SAFLIĞI: havuzu %40'a budamak Çavuşoğlu'nda
 ## +6.1pp (ANLAMLI) getirdi — PROMOTE ADAYI (v9), henüz yayınlanmadı
 

@@ -196,7 +196,8 @@ def load_synthetic(records_path: Path) -> list[dict]:
         sp = span_from_tags(r["tags"])
         if sp is None:
             continue
-        out.append({"words": r["words"], "s": sp[0], "e": sp[1], "y": 1 if lb == "D" else 0, "idx": i})
+        out.append({"words": r["words"], "s": sp[0], "e": sp[1], "y": 1 if lb == "D" else 0, "idx": i,
+                    "idiom": r.get("idiom")})
     return out
 
 
@@ -237,6 +238,7 @@ class ClfDS(Dataset):
                 "sf": first[r["s"]], "sl": last[r["e"] - 1], "y": r["y"],
                 "lex_input_ids": lex_enc["input_ids"], "lex_attention_mask": lex_enc["attention_mask"],
                 "lf": lfirst[0], "ll": llast[max(llast)],
+                "grp": r.get("idiom"),  # --pair-loss için deyim kimliği (collate kullanmaz)
             }
             if feats_for is not None:
                 from data.tag_idiom_morph_feats import morph_deviation_vec
@@ -500,6 +502,12 @@ def main() -> None:
                     help="doğal-derlem train'inden CASES/GLU/Çavuşoğlu eval deyimlerini at "
                          "(doğal havuzda eval-dışlaması hiç sıkı uygulanmamıştı — "
                          "bkz. drop_eval_idioms)")
+    ap.add_argument("--pair-loss", type=float, default=0.0,
+                    help="Deney AE: CE'ye ek çift sıralama kaybı ağırlığı (0=kapalı, eskisiyle "
+                         "birebir aynı). Aynı deyimin D ve L cümleleri çiftlenir, "
+                         "softplus(-(z_D - z_L)) ile D'nin idyomatiklik logit farkı L'ninkinden "
+                         "büyük olmaya zorlanır. Yalnız 'idiom' alanı olan (sentetik) kayıtlar.")
+    ap.add_argument("--pair-batch", type=int, default=8, help="adım başına çift sayısı")
     ap.add_argument("--synthetic-only", action="store_true",
                     help="Deney Z ablasyonu: doğal-derlem train kayıtlarını AT, yalnız "
                          "--synthetic-file ile eğit (üslup-kayması riskini izole etmek için)")
@@ -580,6 +588,30 @@ def main() -> None:
     train_dl = DataLoader(train_ds, batch_size=BATCH, shuffle=True, collate_fn=collate(pad_id))
     print(f"train_ds {len(train_ds)}  class-weights {w.tolist()}")
 
+    pairs: list[tuple[int, int]] = []
+    if args.pair_loss > 0:
+        import random as _prandom
+        by_grp: dict[str, tuple[list[int], list[int]]] = {}
+        for i, it in enumerate(train_ds.items):
+            if it.get("grp"):
+                by_grp.setdefault(it["grp"], ([], []))[it["y"]].append(i)
+        pairs = [(d, l) for ls, ds in by_grp.values() for d in ds for l in ls]
+        if not pairs:
+            sys.exit("--pair-loss: hiç D/L çifti yok (sentetik havuz gerekli)")
+        prng = _prandom.Random(args.seed)
+        pair_order: list[tuple[int, int]] = []
+        pcoll = collate(pad_id)
+        print(f"pair-loss λ={args.pair_loss}: {len(pairs)} çift / "
+              f"{sum(1 for ls, ds in by_grp.values() if ls and ds)} deyim, adım başına {args.pair_batch}")
+
+        def next_pair_batch():
+            nonlocal pair_order
+            if len(pair_order) < args.pair_batch:
+                pair_order = pairs[:]
+                prng.shuffle(pair_order)
+            chunk, pair_order = pair_order[:args.pair_batch], pair_order[args.pair_batch:]
+            return pcoll([train_ds.items[d] for d, _ in chunk] + [train_ds.items[l] for _, l in chunk])
+
     opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad],
                             lr=args.lr, weight_decay=args.weight_decay)
     total = len(train_dl) * args.epochs
@@ -596,6 +628,14 @@ def main() -> None:
                            b["lex_input_ids"], b["lex_attention_mask"], b["lf"], b["ll"],
                            b.get("morph_vec"))
             loss = F.cross_entropy(logits, b["y"], weight=w)
+            if pairs:
+                pb = {k: v.to(device) for k, v in next_pair_batch().items()}
+                pl = model(pb["input_ids"], pb["attention_mask"], pb["sf"], pb["sl"],
+                           pb["lex_input_ids"], pb["lex_attention_mask"], pb["lf"], pb["ll"],
+                           pb.get("morph_vec"))
+                z = pl[:, 1] - pl[:, 0]
+                k = z.shape[0] // 2
+                loss = loss + args.pair_loss * F.softplus(-(z[:k] - z[k:])).mean()
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step(); sch.step()
