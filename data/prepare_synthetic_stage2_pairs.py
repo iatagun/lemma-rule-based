@@ -100,42 +100,7 @@ def select(n_idioms: int, batch_size: int, seed: int) -> None:
           "çalıştır (önceki turların _synth_raw_*.json'ları da otomatik dahil edilir).")
 
 
-def _stem_match(a: str, b: str) -> bool:
-    """Gevşek eşleşme: eşit VEYA biri diğerinin öneki (Turkish snowball stemmer bazı çekim
-    eklerini — özellikle '-yor' şimdiki zaman ekini — atmıyor, bkz. proje notu "aorist hâlâ
-    kaçıyor"; serbest üretilen cümlelerde bu, katı eşit-stem eşleşmesini %17'ye düşürdü,
-    önek toleransıyla %87'ye çıktı). Kısa token'larda (len<3, "su"/"mu" gibi) yanlış-pozitif
-    önek eşleşmesini önlemek için önek kuralı yalnız her iki taraf da ≥3 karakterse geçerli."""
-    if a == b:
-        return True
-    if len(a) < 3 or len(b) < 3:
-        return False
-    return a.startswith(b) or b.startswith(a)
-
-
-def find_span_lenient(idiom_seq: list[str], sent_stems: list[str], max_gap: int = 3) -> tuple[int, int] | None:
-    """`data/prepare_tdk_idiom_examples.py::find_span`'ın gevşek-eşleşme varyantı — yalnız bu
-    scriptte (sentetik, serbest üretilmiş cümleler) kullanılır; paylaşılan TDK/derlem boru
-    hattına dokunulmaz (`find_span` değişmedi)."""
-    n = len(idiom_seq)
-    if n == 0:
-        return None
-    L = len(sent_stems)
-    for start in range(L):
-        if not _stem_match(sent_stems[start], idiom_seq[0]):
-            continue
-        pos, matched, gaps = start, 1, 0
-        while matched < n and pos + 1 < L:
-            pos += 1
-            if _stem_match(sent_stems[pos], idiom_seq[matched]):
-                matched += 1
-            else:
-                gaps += 1
-                if gaps > max_gap:
-                    break
-        if matched == n:
-            return start, pos + 1
-    return None
+from data.prepare_tdk_idiom_examples import find_span_lenient  # noqa: E402  (paylaşılan modüle taşındı)
 
 
 def report() -> None:

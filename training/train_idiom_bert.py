@@ -564,6 +564,12 @@ def main() -> None:
                     help="idiom_data/tdk_examples.json'u (TDK sözlüğü gömülü örnekleri, "
                          "isim/sıfat deyimler dahil) train'e ekle")
     ap.add_argument("--tdk-mult", type=int, default=1, help="TDK verisi tekrar sayısı")
+    ap.add_argument("--tdk-file", default="tdk_examples.json",
+                    help="idiom_data/ altındaki TDK dosyası (ör. tdk_examples_lenient.json)")
+    ap.add_argument("--seed", type=int, default=None,
+                    help="tohum (verilmezse eskisi gibi tohumsuz)")
+    ap.add_argument("--out", default="best_idiom_tagger.pt",
+                    help="en iyi checkpoint'in idiom_data/ altındaki adı (kanonik dosyayı ezmemek için)")
     ap.add_argument("--corpus-examples", action="store_true",
                     help="idiom_data/corpus_examples.json'u (Leipzig derleminden madenlenen "
                          "gerçek bağlam cümleleri, prepare_tdk_corpus_examples.py) train'e ekle")
@@ -584,6 +590,12 @@ def main() -> None:
                          "üretilmiş idiom_data/upos_labels.json + kayıtların 'upos' alanı) "
                          "ELECTRA temsiline ek özellik olarak katar (precision denemesi)")
     args = ap.parse_args()
+    if args.seed is not None:
+        import random
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+        torch.manual_seed(args.seed)
+        torch.cuda.manual_seed_all(args.seed)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
@@ -629,7 +641,7 @@ def main() -> None:
     dev_ds = IdiomDataset(DATA_DIR / "dev.json", tokenizer, ls)
     weight_sources = [DATA_DIR / "train.json"]
 
-    tdk_path = DATA_DIR / "tdk_examples.json"
+    tdk_path = DATA_DIR / args.tdk_file
     if args.distill_lambda > 0.0 and (DATA_DIR / "tdk_examples_distill.json").exists():
         tdk_path = DATA_DIR / "tdk_examples_distill.json"
     if args.tdk_examples and tdk_path.exists():
@@ -723,7 +735,7 @@ def main() -> None:
         }
         if is_best:
             save_atomic({**meta, "model": model.state_dict()},
-                        DATA_DIR / "best_idiom_tagger.pt")
+                        DATA_DIR / args.out)
             print("  → best kaydedildi")
         save_atomic({**meta, "model": model.state_dict(),
                      "scheduler": scheduler.state_dict()},

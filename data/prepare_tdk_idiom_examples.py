@@ -153,11 +153,53 @@ def find_span(idiom_seq: list[str], sent_stems: list[str], max_gap: int = 0) -> 
     return None
 
 
+def _stem_match(a: str, b: str) -> bool:
+    """Gevşek eşleşme: eşit VEYA biri diğerinin öneki (Turkish snowball stemmer bazı çekim
+    eklerini — özellikle '-yor' şimdiki zaman ekini — atmıyor, bkz. proje notu "aorist hâlâ
+    kaçıyor"; serbest üretilen cümlelerde bu, katı eşit-stem eşleşmesini %17'ye düşürdü,
+    önek toleransıyla %87'ye çıktı). Kısa token'larda (len<3, "su"/"mu" gibi) yanlış-pozitif
+    önek eşleşmesini önlemek için önek kuralı yalnız her iki taraf da ≥3 karakterse geçerli."""
+    if a == b:
+        return True
+    if len(a) < 3 or len(b) < 3:
+        return False
+    return a.startswith(b) or b.startswith(a)
+
+
+def find_span_lenient(idiom_seq: list[str], sent_stems: list[str], max_gap: int = 3) -> tuple[int, int] | None:
+    """`find_span`'ın gevşek-eşleşme varyantı (Deney Z'de sentetik havuz için yazıldı).
+    TDK boru hattında yalnız `--lenient` ile açılır (Faz 3 sondası: katı eşleşme TDK
+    örneklerinin %73'ünü atıyor, bu varyant %27'ye indiriyor). `find_span` değişmedi."""
+    n = len(idiom_seq)
+    if n == 0:
+        return None
+    L = len(sent_stems)
+    for start in range(L):
+        if not _stem_match(sent_stems[start], idiom_seq[0]):
+            continue
+        pos, matched, gaps = start, 1, 0
+        while matched < n and pos + 1 < L:
+            pos += 1
+            if _stem_match(sent_stems[pos], idiom_seq[matched]):
+                matched += 1
+            else:
+                gaps += 1
+                if gaps > max_gap:
+                    break
+        if matched == n:
+            return start, pos + 1
+    return None
+
+
 def main() -> None:
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("--max-gap", type=int, default=0,
                      help="Deney B: find_span'a sınırlı ara-söz toleransı (0=orijinal katı-bitişik)")
+    ap.add_argument("--lenient", action="store_true",
+                     help="find_span_lenient (önek-toleranslı) kullan. YALNIZ train parçasını "
+                          "tdk_examples_lenient.json'a yazar; kanonik dosyalar ve frozen dev/test "
+                          "dokunulmaz (--max-gap yok sayılır, lenient kendi gap=3'ünü kullanır)")
     args = ap.parse_args()
 
     if not IN_CSV.exists():
@@ -184,7 +226,8 @@ def main() -> None:
                 stats["cümle_kısa_atlandı"] += 1
                 continue
             sent_stems = [stem(tr_lower(w)) for w in words]
-            span = find_span(idiom_seq, sent_stems, max_gap=args.max_gap)
+            span = (find_span_lenient(idiom_seq, sent_stems) if args.lenient
+                    else find_span(idiom_seq, sent_stems, max_gap=args.max_gap))
             if span is None:
                 stats["eşleşme_bulunamadı"] += 1
                 continue
@@ -222,6 +265,8 @@ def main() -> None:
         print(f"FROZEN SPLIT: dev/test mevcut dosyalardan sabitlendi "
               f"(dev {len(split_keys['dev'])} deyim / test {len(split_keys['test'])} deyim), "
               f"kalan {len(split_keys['train'])} deyim → train")
+    elif args.lenient:
+        sys.exit("--lenient frozen dev/test ister (tdk_examples_{dev,test}.json yok)")
     else:
         import random
         idiom_keys = sorted(by_idiom)  # deterministik sıra, sonra sabit seed'le karıştır
@@ -236,6 +281,38 @@ def main() -> None:
             "train": set(idiom_keys[n_dev + n_test:]),
         }
     splits = {name: [rec for k in keys for rec in by_idiom[k]] for name, keys in split_keys.items()}
+
+    if args.lenient:
+        # Frozen dev/test bayt bayt aynı kalmalı (versiyonlar-arası kıyas) → yalnız train yazılır.
+        # Aşağıdaki sızıntı döngüsü train'i öncelikli tutar; burada tersi gerekir: frozen
+        # dev/test'te geçen HER cümle train'den atılır.
+        banned = frozen["dev"] | frozen["test"]
+        # Aynı cümle birden çok deyimin örneği olabiliyor: tekilleştirip ikinci deyimi O'ya
+        # düşürmek yerine çakışmayan span'ler tek kayıtta birleştirilir.
+        by_text: dict[str, dict] = {}
+        merged = 0
+        for rec in splits["train"]:
+            text = " ".join(rec["words"])
+            if text in banned:
+                continue
+            if text not in by_text:
+                by_text[text] = {"words": rec["words"], "tags": list(rec["tags"])}
+                continue
+            cur = by_text[text]["tags"]
+            idx = [i for i, tg in enumerate(rec["tags"]) if tg != "O"]
+            if all(cur[i] == "O" for i in idx) and any(tg != "O" for tg in cur):
+                for i in idx:
+                    cur[i] = rec["tags"][i]
+                merged += 1
+        train = list(by_text.values())
+        print(f"çok-deyimli cümle: {merged} ek span birleştirildi")
+        out = PROJECT_ROOT / "idiom_data" / "tdk_examples_lenient.json"
+        out.write_text(json.dumps(train, ensure_ascii=False), encoding="utf-8")
+        print(f"LENIENT: {out.relative_to(PROJECT_ROOT)}  ({len(train)} kayıt, "
+              f"{len(split_keys['train'])} deyim); frozen dev/test ve kanonik dosyalar yazılmadı")
+        for k in ("örnek_bulundu", "eşleşti", "eşleşme_bulunamadı", "cümle_kısa_atlandı"):
+            print(f"  {k}: {stats[k]}")
+        return
 
     # Cümle-düzeyi sızıntı koruması: TDK'de AYNI alıntı cümle birden fazla farklı deyime
     # örnek olarak geçebiliyor (örn. "... el ayak çekilmişti ..." hem "el ayak çekilmek"

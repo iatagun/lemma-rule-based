@@ -883,6 +883,49 @@ pahalı. Gerekirse önce küçük bir pilot.
 BAYAT (TDK sitesi yeniden tasarlanıp yeniden tarandıktan sonra güncellenmemiş). Güncel
 gerçek: train 1394 / dev 43 / test 53.
 
+## Deney AC (2026-09-23) — gevşek TDK eşleşmesi ile Aşama 1: tek gövdede ANLAMLI
+## (+4.55pp, 3 tohum), yayındaki 3-gövde ensemble'da ERİYOR (+0.84pp) — promote YOK
+
+Faz 3'ün önerisi uygulandı. `find_span_lenient` paylaşılan `prepare_tdk_idiom_examples.py`'e
+taşındı (sentetik betik oradan içe aktarıyor, `--report` birebir aynı çıktı → davranış
+korundu). `--lenient` yalnız `tdk_examples_lenient.json` yazar; frozen dev/test ve kanonik
+dosyalar md5 ile doğrulandı, dokunulmadı. Frozen dev/test cümleleri train'den atılır; aynı
+cümle birden çok deyimin örneğiyse span'ler birleştirilir (eskiden ikinci deyim O'ya
+düşüyordu). TDK train **1394 → 3632 kayıt / 3452 deyim**. Yeni sınır genişlemesi YOK:
+yeni span'lerin %94'ü deyim uzunluğunda, kalanı gerçek araya-söz kullanımları. Nadir
+önek hatası var (`düzelttim` → "çulu düzmek").
+
+`train_idiom_bert.py`'ye `--tdk-file`, `--seed`, `--out` eklendi (stage-1 o güne dek hiç
+tohumlanmıyordu). vL reçetesi (`--class-weights --tdk-examples --corpus-glu --epochs 10`),
+baz = katı TDK, tohum 1/2/3 × 2 koşul, hepsi v8 stage-2 ile:
+
+| eksen | baz (ort) | gevşek (ort) | fark | tohum başına |
+|---|---|---|---|---|
+| **Çavuşoğlu doğru-ayırt, tek gövde** | %55.4 | %59.9 | **+4.55pp (GA +1.18/+8.25, ANLAMLI)** | +8.1 / +2.5 / +3.0 |
+| Çavuşoğlu yanlış-poz | %14.6 | %14.1 | −0.5 | — |
+| PARSEME ALL F1 | 61.2 | 61.9 | +0.7 | −0.7 / +1.5 / +1.4 |
+| **TDK-test F1** | 58.5 | 55.6 | **−2.8 (3 tohumda da aynı yön)** | −1.9 / −5.0 / −1.6 |
+| CASES / GLU | 13.3 · 28.7 | 13.7 · 29.0 | ~eşit | — |
+
+Baz tohum 1 = %54.0, belgelenmiş vL ile birebir (reprodüksiyon tuttu). Sızıntı değil:
+gevşek verinin TDK train'e yeni soktuğu 57 Çavuşoğlu deyiminde +7.0pp, dokunulmayan
+141'de +8.5pp (tohum 1). Recall-skew deseni YOK (yanlış-poz artmadı). Tek tohum yine
+yanılttı: tohum 1 tek başına +8.1 "anlamlı"ydı, gerçek büyüklük ~yarısı.
+
+**Yayındaki ensemble'da (vE + vL→vLen_sN + vX3, v8 stage-2):** prod %65.2 (birebir
+yeniden üretildi) → %65.7 / %66.2 / %66.2; 3-tohum ort **+0.84pp (GA −1.01/+2.86,
+ANLAMSIZ)**, net kazanılan çift yalnız +1/+2/+2. Ensemble'ın birleşik duyarlılığı zaten
+%84.8 — diğer iki gövde gevşek verinin getirdiği kapsamı çoktan sağlıyor. Yanlış-poz
+%21.2'de sabit kalıyor.
+
+**Karar: promote YOK.** Kanonik vL, v8 paketi, HF/Space dokunulmadı. Checkpoint'ler
+arşivde: `best_idiom_tagger_vLen_s{1,2,3}.pt`, `best_idiom_tagger_vLbase_s{1,2,3}.pt`.
+**Ders:** ensemble'da stage-1 recall artık darboğaz değil (%85); kalan hata yanlış-poz
+(%21) = stage-2 tarafı. Gevşek veri yalnız tek-gövde (ucuz, 1× gecikme) bir sürüm
+hedeflenirse değerli: tek gövde %59.9 vs ensemble %65.2, fark hâlâ büyük. Sonraki
+stage-1 turlarında TDK verisi gevşek kurulabilir (tek gövdede zararsız-pozitif) ama
+TDK-test'teki −2.8 nedeni bilinmiyor.
+
 ## Deney AB (2026-09-22) — minimal-çift SAFLIĞI: havuzu %40'a budamak Çavuşoğlu'nda
 ## +6.1pp (ANLAMLI) getirdi — PROMOTE ADAYI (v9), henüz yayınlanmadı
 
