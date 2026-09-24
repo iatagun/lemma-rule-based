@@ -171,7 +171,7 @@ def test(a):
 
     device = "cuda"
     tok = AutoTokenizer.from_pretrained(DEP_ID, revision=DEP_REV)
-    ck = torch.load(f"{RUN}/best.pt", map_location="cpu")
+    ck = torch.load(f"{RUN}/best.pt", map_location="cpu", weights_only=False)  # kendi checkpoint'imiz (val sözlüğünde numpy skaler)
     m = G2PTTS(); m.load_state_dict(ck["state"]); m.to(device)
     te = load("test")
     res, preds = evaluate(m, te, tok, device, tau=ck["val"]["tau"])

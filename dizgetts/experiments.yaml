@@ -52,7 +52,7 @@ experiments:
 
   # ---- dizge-g2p-tts: cümle bazlı G2P (fonem = dizge kuralı; vurgu + sınır = model). TTS eğitimi DEĞİL, ön uç modeli. ----
   - id: g2ptts-v1
-    status: planned
+    status: done
     hypothesis: >-
       DizgeBERT-Dep kodlayıcısından başlatılan (alt 6 katman + gömme dondurulmuş) iki başlıklı sözcük sınıflandırıcısı,
       (a) SINIR: Antalia kayıtlarından ölçülen sözcük-sınırı sessizliğini (>=60 ms) noktalamasız sınırlarda Dep kuralından (dep_K2) daha iyi tahmin eder;
@@ -64,3 +64,9 @@ experiments:
       SINIR başlığı yayınlanır ancak test noktalamasız F1 - dep_K2 farkının klip-bootstrap %95 alt sınırı > 0 ise; değilse pakette sınır = dep_K2 kuralı.
       VURGU başlığı yayınlanır ancak kural uyumu >= %97 (UD test) ve gold'da M1b'den (33/35) en çok 1 eksikse; değilse pakette vurgu = kural modülü.
     note: tek koşu, tek tohum; ikinci varyant ancak sonuç yorumlanınca.
+    result: >-
+      SINIR GEÇTİ: test noktalamasız F1 0,491 (P 0,405 R 0,624, tau 0,25 val'den) vs dep_K2 0,347; fark %95 GA [+0,089, +0,197] (82 klip, 2276 sınır) -> sınır başlığı pakete girer.
+      VURGU KALDI: UD test kural uyumu %97,7 (son-dışı %86,5), Antalia %98,9 (son-dışı %94,6) eşiği geçti AMA stress_gold 12/35 (M1b 33/35).
+      Tanı: üretken biçimbilim kuralları öğrenildi (koşaç, Ins, kişi eki, belirteç şimdi/belki); sözlük istisnaları (lokanta, İstanbul, -en belirteçleri) ve
+      seyrek örüntüler (pekiştirme, -CIk sıfat) hep son hece -> eğitim verisinde örnek yok. Karar kuralı: pakette vurgu = kural modülü.
+      Seçim çelişkisi: sınır val F1 ep1'de tepe (0,597 -> 0,549), vurgu ep3'te (son-dışı UD %91,5) -> tek checkpoint iki başlığa en iyi olamaz.
