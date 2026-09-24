@@ -10,8 +10,10 @@ Kural sırası (ilk eşleşen kazanır; her kural kendi etiketiyle sayılır):
        alıntı / yer adı (güçlü-zayıf sözcük): sondan 2. H ise o; değilse sondan 3. H ise o; ikisi de L (zayıf) ise sondan 2.
      Uzun ünlü yazıda görünmez (esasen) ve dizge de işaretlemez -> sözlük biçimi şapkayla yazılır (esâsen); eşleme şapkasız yapılır.
   --- M1b: morfolojik özellik (DizgeBERT-Morph UPOS+FEATS) KAPILI, ek sınırı yüzey biçimiyle; `tiers` ile açılıp kapatılır ---
-  4a. pekiştirme sıfatı (ADJ/ADV; kıp+kırmızı, ap+açık, ter+temiz) -> İLK seslem   (kullanıcı kuralı)
-  4b. -CIk türemiş sıfat (ADJ; ince-cik, ufa-cık, küçü-cük)          -> İLK seslem   (kullanıcı kuralı; addaki küçültme -cık DEĞİL)
+  4a. pekiştirme sıfatı (kıp+kırmızı, ap+açık, ter+temiz)  -> İLK seslem   (kullanıcı kuralı)
+  4b. -CIk türemiş sıfat (ince-cik, ufa-cık, küçü-cük)      -> İLK seslem   (kullanıcı kuralı; addaki küçültme -cık DEĞİL)
+      4a/4b UPOS'a DEĞİL sıfat sözlüğüne kapılı (resources/adj_lemmas.txt, UD ADJ lemmaları): taban gerçek bir sıfat olmalı. UPOS kapısı UD'de
+      arasında/emekli/usulca/serseri'yi pekiştirme sayıyordu (g2ptts-v1 etiket gürültüsü); sözlük kapısı Morph'suz da çalışır (g2ptts tagger).
   4. -Iyor (ön-vurgulu)                   -> "yor"dan hemen önceki ünlü (literatür; kullanıcı listesinde YOK, onaysız)
   5. olumsuz fiil (Polarity=Neg)          -> olumsuzluk -mA'dan önceki seslem   (kullanıcı listesi)
   6. Case=Ins (-(y)lA)                    -> -(y)lA'dan önceki seslem          (kullanıcı listesi)
@@ -94,11 +96,12 @@ class StressRules:
                 self._cap_only.add(root)
         self.clitics = {tr_lower(r[0]) for r in _rows(RES / "clitics.tsv")}
         self._roots_longest_first = sorted(self.roots, key=len, reverse=True)
+        self.adj = {l for l in (RES / "adj_lemmas.txt").read_text(encoding="utf8").splitlines() if l and not l.startswith("#")}
 
     @staticmethod
     def version() -> str:
         h = hashlib.sha1()
-        for f in ("stress_roots.tsv", "clitics.tsv"):
+        for f in ("stress_roots.tsv", "clitics.tsv", "adj_lemmas.txt"):
             h.update((RES / f).read_bytes())
         h.update(Path(__file__).read_bytes())
         return h.hexdigest()[:8]
@@ -117,7 +120,7 @@ class StressRules:
         for r in self._roots_longest_first:
             if (cap or r not in self._cap_only) and w.startswith(r) and len(w) > len(r) and _SUFFIX_CHAIN.match(w[len(r):]):
                 return self.roots[r][0], "kök+ek"
-        mr = _morph_rule(w, upos, feats, tiers)
+        mr = _morph_rule(w, upos, feats, tiers, self.adj)
         if mr and mr[0] < n:
             return mr
         return n - 1, "varsayılan_son"
@@ -158,15 +161,29 @@ _CIK = re.compile(r"[cç][ıiuü][kğ]")
 TIERS = ("pek", "cik", "yor", "neg", "ins", "person")
 
 
-def _morph_rule(w: str, upos: str | None, feats: dict[str, str] | None, tiers) -> tuple[int, str] | None:
+def _adj_base(s: str, adj: set[str]) -> bool:
+    """s bir sıfat tabanı mı: tam sözcük ya da sıfat + makul ek zinciri (kıpkırmızı-ydı)."""
+    return s in adj or any(s.startswith(a) and _SUFFIX_CHAIN.match(s[len(a):]) for a in adj if len(a) >= 4 and s[:4] == a[:4])  # dul+ar, ter+e değil
+
+
+def _cik_stem_is_adj(stem: str, adj: set[str]) -> bool:
+    """-CIk öncesi gövde bir sıfattan mı: ince(cik), küçü+k(cük), ufa+k(cık), dar+a(cık), genç~gence(cik), az+ı(cık)."""
+    cands = {stem, stem + "k", stem[:-1], stem[:-1].replace("c", "ç")} if stem[-1:] in VOWEL_LETTERS else {stem}
+    return any(len(c) >= 2 and c in adj for c in cands)
+
+
+def _morph_rule(w: str, upos: str | None, feats: dict[str, str] | None, tiers, adj: set[str] = frozenset()) -> tuple[int, str] | None:
     """M1b: (vurgulu seslem indeksi BAŞTAN, kural etiketi) ya da None. w = küçük harfli yazım."""
-    if "pek" in tiers and upos in ("ADJ", "ADV"):
+    if "pek" in tiers:
         m = _PEK.match(w)
-        if m and m.group(2).startswith(m.group(1)) and _n_vowels(m.group(2)) >= 2:
+        g1, base = (m.group(1), m.group(2)) if m else ("", "")
+        # taban ilk seslemi tekrar eder; araya giren ünsüz tabanın o noktadaki ünsüzünden FARKLI (ser+seri, sersem pekiştirme değil)
+        ok_cons = w[len(g1)] == "p" if g1 in VOWEL_LETTERS else base[len(g1):len(g1) + 1] != w[len(g1)]  # ünlü başlı taban yalnız p alır: ap+açık, up+uzun (a+r+ada değil)
+        if m and base.startswith(g1) and _n_vowels(base) >= 2 and ok_cons and _adj_base(base, adj):
             return 0, "pekiştirme"
-    if "cik" in tiers and upos == "ADJ":
+    if "cik" in tiers:
         m = _CIK.search(w)
-        if m and _vowels_before(w, m.start()) >= 2:  # küçük (kü+çük) -CIk DEĞİL; küçü+cük, ince+cik, ufa+cık
+        if m and _vowels_before(w, m.start()) >= 2 and _cik_stem_is_adj(w[:m.start()], adj):  # küçük (kü+çük) -CIk DEĞİL
             return 0, "cık_sıfat"
     verbal = upos in ("VERB", "AUX")
     if "yor" in tiers and (upos is None or verbal):

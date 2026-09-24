@@ -2,7 +2,7 @@
   python -X utf8 -m dizgetts.g2ptts.tagger "Şimdi gelme; belki yarın İstanbul'a gideriz."
 
 Vurgu = SÖZLÜK ÖNCELİKLİ KARMA (g2ptts-v1 kararı, experiments.yaml): kural modülü belirleyici bir sonuç veriyorsa (kök sözlüğü + ağırlık kuralı,
-clitic, ünlüsüz) o; varsayılan son heceye düşen sözcükte model (damıtılmış biçimbilim: koşaç, kişi eki, Ins, olumsuzluk...). DizgeBERT-Morph gerekmez.
+clitic, ünlüsüz, sözlüğe kapılı pekiştirme ve -CIk sıfat) o; varsayılan son heceye düşen sözcükte model (damıtılmış biçimbilim: koşaç, kişi eki, Ins, olumsuzluk...). DizgeBERT-Morph gerekmez.
 Sınır = model (sesten ölçülen duraklamalarla eğitildi; eşik val'den) + noktalama; son sözcük hep "cümle".
 Fonem: dizge birincil okuma; dizge birden çok okuma döndürdüyse `variants` (özenli / gündelik söyleyiş, bilinçli tasarım) — seçim kullanıcının.
 """
@@ -22,6 +22,7 @@ from dizgetts.g2ptts.train import RUN, G2PTTS
 
 PUNCT_BOUNDARY = {",": "ip", ";": "IP", ".": "cümle", "?": "cümle", "!": "cümle"}
 RANK = ("0", "ip", "IP", "cümle")
+LEXICAL_TIERS = ("pek", "cik")  # sıfat sözlüğüne kapılı, Morph gerektirmeyen katmanlar (pekiştirme, -CIk sıfat)
 
 
 class Tagger:
@@ -44,7 +45,7 @@ class Tagger:
 
     def stress(self, word: str, model_cls: int) -> tuple[int | None, str]:
         """(vurgulu seslem SONDAN sırası ya da None, kaynak)."""
-        k, tag = self.rules.syllable(word)
+        k, tag = self.rules.syllable(word, tiers=LEXICAL_TIERS)
         n = _n_vowels(tr_lower(word))
         if tag != "varsayılan_son":
             return (None if k is None else n - 1 - k), f"kural:{tag}"
