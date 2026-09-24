@@ -9,25 +9,9 @@ import collections, json, os, random, re
 import yaml
 
 from dizgetts.frontend.normalize import tr_lower
-from dizgetts.frontend.stress import VOWEL_LETTERS, StressRules
+from dizgetts.frontend.stress import VOWEL_LETTERS, StressRules, syllabify
 
 HERE = os.path.join(os.path.dirname(__file__), "..")
-
-
-def syllabify(w: str) -> list[str]:
-    """Görüntüleme için basit Türkçe hece bölme: her ünlü bir çekirdek; ünlüler arası tek ünsüz sonraki heceye, 2+ ünsüzde ilki öncekine."""
-    v = [i for i, c in enumerate(w) if c in VOWEL_LETTERS]
-    if len(v) <= 1:
-        return [w]
-    cuts = []
-    for a, b in zip(v, v[1:]):
-        gap = b - a - 1
-        cuts.append(b if gap == 0 else b - 1 if gap == 1 else a + 2)  # ünlü-ünlü: araya; tek ünsüz sonraki heceye; 2+ ünsüzde ilki öncekine
-    parts, start = [], 0
-    for c in cuts:
-        parts.append(w[start:c]); start = c
-    parts.append(w[start:])
-    return parts
 
 
 def main():

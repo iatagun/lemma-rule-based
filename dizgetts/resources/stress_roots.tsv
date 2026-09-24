@@ -1,19 +1,25 @@
 # Düzensiz vurgulu KÖKLER. Vurgu kökün BAŞTAN kaçıncı seslemesinde (0 = ilk). Ek alınca vurgu kökte kalır (kökten ekli biçimler de eşleşir).
-# Kaynak: kullanıcı (dilbilimci) açıklaması 2026-09-24; sıra değerlerini açıklamadan BEN türettim -> durum "onaysız" olanlar doğrulama bekler.
-# Sütunlar: kök<TAB>başlangıçtan_seslem_indeksi<TAB>kategori<TAB>kaynak<TAB>durum
-lokanta	1	ödünçleme	kullanıcı örneği (lo-KAN-ta)	onaysız
-istanbul	1	yer adı	kullanıcı örneği (is-TAN-bul)	onaysız
-pırasa	1	düzensiz	kullanıcı örneği (pı-RA-sa)	onaysız
+# İkinci sütun "ağırlık" ise sıra seslem ağırlığından hesaplanır (frontend/stress.py weight_stress; kullanıcı kuralı 2026-09-24):
+#   kategoride "-en" varsa -en belirteç kuralı, yoksa alıntı/yer adı (güçlü-zayıf sözcük) kuralı. Uzun ünlüyü şapkayla yazın (esâsen).
+# Kaynak: kullanıcı (dilbilimci) açıklaması 2026-09-24. Sayısal sıraları açıklamadan BEN türettim -> "onaysız" olanlar doğrulama bekler.
+# Sütunlar: kök<TAB>başlangıçtan_seslem_indeksi|ağırlık<TAB>kategori<TAB>kaynak<TAB>durum
+lokanta	ağırlık	ödünçleme	kullanıcı örneği (lo-KAN-ta: sondan 2. ağır)	kural onaylı
+istanbul	ağırlık	yer adı	kullanıcı örneği (is-TAN-bul: sondan 2. ağır)	kural onaylı
+pırasa	ağırlık	ödünçleme	kullanıcı örneği (pı-RA-sa: zayıf sözcük)	kural onaylı
+futbol	ağırlık	ödünçleme	kullanıcı örneği (FUT-bol)	kural onaylı
+ordu	ağırlık	yer adı	kullanıcı örneği (OR-du)	kural onaylı
+bebek	ağırlık	yer adı	kullanıcı örneği (BE-bek: zayıf sözcük)	kural onaylı
+naklen	ağırlık	Arapça kökenli -en belirteç	kullanıcı örneği (NAK-len)	kural onaylı
+esâsen	ağırlık	Arapça kökenli -en belirteç	kullanıcı örneği (e-SA-sen)	kural onaylı
+istinâden	ağırlık	Arapça kökenli -en belirteç	kullanıcı örneği (is-ti-NA-den)	kural onaylı
+münhâsıran	ağırlık	Arapça kökenli -en belirteç	kullanıcı örneği (mün-HA-sı-ran)	kural onaylı
+müştereken	ağırlık	Arapça kökenli -en belirteç	kullanıcı örneği (müş-TE-re-ken)	kural onaylı
+nispeten	ağırlık	Arapça kökenli -en belirteç	kullanıcı örneği (NİS-pe-ten)	kural onaylı
 şimdi	0	belirteç	kullanıcı örneği (ŞİM-di)	onaysız
 belki	0	belirteç	kullanıcı örneği (BEL-ki)	onaysız
-futbol	0	ödünçleme	kullanıcı örneği (FUT-bol)	onaysız
-ordu	0	yer adı	kullanıcı örneği (OR-du)	onaysız
-bebek	0	yer adı	kullanıcı örneği (BE-bek)	onaysız
 hangi	0	soru sözcüğü	kullanıcı örneği (HAN-gi)	onaysız
 nasıl	0	soru sözcüğü	kullanıcı örneği (NA-sıl)	onaysız
-kapkara	0	pekiştirme	kullanıcı örneği (KAP-ka-ra)	onaysız
-asosyal	0	ödünçleme önek	kullanıcı örneği (A-sos-yal)	onaysız
+kapkara	0	pekiştirme	kullanıcı örneği (KAP-ka-ra; pekiştirme = ilk seslem)	kural onaylı
+asosyal	0	ödünçleme önek	kullanıcı örneği (A-sos-yal; alıntı kuralı a-SOS-yal derdi -> önek istisnası mı?)	onaysız
 bugün	0	bileşik	kullanıcı örneği (BU-gün)	onaysız
 başbakan	0	bileşik	kullanıcı örneği (BAŞ-ba-kan)	onaysız
-naklen	0	Arapça kökenli -en belirteç	kullanıcı örneği (NAK-len)	onaysız
-nispeten	1	Arapça kökenli -en belirteç	kullanıcı örneği (nis-PE-ten; -en vurgusuz, benim türetmem)	onaysız

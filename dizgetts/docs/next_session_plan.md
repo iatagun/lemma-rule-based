@@ -45,3 +45,7 @@ Komutlar: `python -X utf8 -m dizgetts.eval.status`, `python -X utf8 dizgetts/eva
 - Adım 2 başladı: `python -X utf8 -m dizgetts.eval.stress_intrinsic` (son_hece / m1a / m1b / espeak). stress_gold.tsv (28): 14,3 / 71,4 / 89,3 / 28,6 %.
   DÖNGÜSEL: gold kökleri stress_roots.tsv'de de var -> yalnız regresyon kontrolü. Bağımsız sayı için annotation sheet gerekli (sheet okuyucu, sheet dolunca yazılacak).
 - Kullanıcı onayı: stress_gold.tsv'deki kullanıcı örnekleri son-hece istisnasıdır. Konum (hangi seslem) 3+ seslemlilerde onaysız: pırasa, ufacık, semracığım, lokanta, kapkara, başbakan.
+- Kullanıcı kuralı (seslem ağırlığı) UYGULANDI: `weight_stress` (-en belirteç: sondan 2. H ise o, L ise sondan 3.; alıntı/yer adı: güçlü-zayıf sözcük),
+  stress_roots.tsv'de sıra yerine `ağırlık`; uzun ünlü şapkayla (esâsen). M1b'ye `pek` (pekiştirme) ve `cik` (-CIk türemiş sıfat) katmanları -> ilk seslem.
+  Gold 35 sözcük: son_hece 11,4 / m1a 68,6 / m1b 94,3 / espeak 28,6 % (hâlâ döngüsel). Parity 1053/1053.
+  Açık: uzun ünlü sözlüğü (dizge uzunluk işaretlemiyor); asosyal (A-sos-yal) alıntı kuralına aykırı -> önek istisnası mı?; semracığım, güzeldir kuralsız.

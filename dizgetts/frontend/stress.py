@@ -4,7 +4,14 @@ Kural sırası (ilk eşleşen kazanır; her kural kendi etiketiyle sayılır):
   1. ünlüsüz parça                        -> vurgu yok
   2. clitic sözcük (da, ki, bile, mI...)  -> vurgu yok (resources/clitics.tsv)
   3. düzensiz vurgulu KÖK                 -> kökün belirtilen seslemesi (resources/stress_roots.tsv; kök tam sözcük ya da "kök + makul ek zinciri")
+     Sözlükte sıra yerine "ağırlık" yazılırsa seslem AĞIRLIĞINDAN hesaplanır (kullanıcı kuralı 2026-09-24, weight_stress):
+       ağır (H) = uç ünsüzü dolu ya da çekirdeği uzun ünlü (â î û, ğ uzatması); hafif (L) = kısa ünlü, uç ünsüzsüz.
+       -en belirteçleri (nak-len, e-SÂ-sen, NİS-pe-ten): sondan 2. seslem H ise o, L ise sondan 3.
+       alıntı / yer adı (güçlü-zayıf sözcük): sondan 2. H ise o; değilse sondan 3. H ise o; ikisi de L (zayıf) ise sondan 2.
+     Uzun ünlü yazıda görünmez (esasen) ve dizge de işaretlemez -> sözlük biçimi şapkayla yazılır (esâsen); eşleme şapkasız yapılır.
   --- M1b: morfolojik özellik (DizgeBERT-Morph UPOS+FEATS) KAPILI, ek sınırı yüzey biçimiyle; `tiers` ile açılıp kapatılır ---
+  4a. pekiştirme sıfatı (ADJ/ADV; kıp+kırmızı, ap+açık, ter+temiz) -> İLK seslem   (kullanıcı kuralı)
+  4b. -CIk türemiş sıfat (ADJ; ince-cik, ufa-cık, küçü-cük)          -> İLK seslem   (kullanıcı kuralı; addaki küçültme -cık DEĞİL)
   4. -Iyor (ön-vurgulu)                   -> "yor"dan hemen önceki ünlü (literatür; kullanıcı listesinde YOK, onaysız)
   5. olumsuz fiil (Polarity=Neg)          -> olumsuzluk -mA'dan önceki seslem   (kullanıcı listesi)
   6. Case=Ins (-(y)lA)                    -> -(y)lA'dan önceki seslem          (kullanıcı listesi)
@@ -40,12 +47,46 @@ def _n_vowels(w: str) -> int:
     return sum(c in VOWEL_LETTERS for c in w)
 
 
+_PLAIN = str.maketrans("âîû", "aiu")
+
+
+def syllabify(w: str) -> list[str]:
+    """Basit Türkçe hece bölme: her ünlü bir çekirdek; ünlüler arası tek ünsüz sonraki heceye, 2+ ünsüzde ilki öncekine."""
+    v = [i for i, c in enumerate(w) if c in VOWEL_LETTERS]
+    if len(v) <= 1:
+        return [w]
+    cuts = []
+    for a, b in zip(v, v[1:]):
+        gap = b - a - 1
+        cuts.append(b if gap == 0 else b - 1 if gap == 1 else a + 2)  # ünlü-ünlü: araya; tek ünsüz sonraki heceye; 2+ ünsüzde ilki öncekine
+    parts, start = [], 0
+    for c in cuts:
+        parts.append(w[start:c]); start = c
+    parts.append(w[start:])
+    return parts
+
+
+def weight_stress(root: str, en: bool) -> int:
+    """Seslem ağırlığından vurgulu seslemin BAŞTAN indeksi (kural metni: modül başı, madde 3). en=True: -en belirteç kuralı."""
+    s = syllabify(root)
+    n = len(s)
+    if n < 2:
+        return 0
+    heavy = [s[i][-1] not in VOWEL_LETTERS or any(c in "âîû" for c in s[i]) or (i + 1 < n and s[i + 1][0] == "ğ") for i in range(n)]
+    p = n - 2
+    if n == 2 or heavy[p]:
+        return p
+    return p - 1 if en or heavy[p - 1] else p
+
+
 class StressRules:
     def __init__(self):
         self.roots: dict[str, tuple[int, str]] = {}
         self._cap_only: set[str] = set()  # yer adı kategorisi: yalnız BÜYÜK harfle başlayan yazımda (ordu/Ordu, bebek/Bebek ayrımı)
         for r in _rows(RES / "stress_roots.tsv"):
-            root, idx, cat = tr_lower(r[0]), int(r[1]), r[2]
+            lex, cat = tr_lower(r[0]), r[2]
+            idx = weight_stress(lex, "-en" in cat) if r[1] == "ağırlık" else int(r[1])
+            root = lex.translate(_PLAIN)
             if not 0 <= idx < _n_vowels(root):
                 raise ValueError(f"stress_roots.tsv: '{root}' için seslem indeksi {idx} geçersiz (ünlü sayısı {_n_vowels(root)})")
             self.roots[root] = (idx, cat)
@@ -64,7 +105,7 @@ class StressRules:
 
     def syllable(self, text: str, upos: str | None = None, feats: dict[str, str] | None = None, tiers=()) -> tuple[int | None, str]:
         """(vurgulu seslemin BAŞTAN indeksi ya da None, uygulanan kural). `tiers` boşsa (varsayılan) yalnız M1a kuralları; morfolojik katmanlar açıkça istenir (TIERS)."""
-        w = tr_lower(text)
+        w = tr_lower(text).translate(_PLAIN)
         n = _n_vowels(w)
         if n == 0:
             return None, "ünlüsüz"
@@ -110,11 +151,23 @@ _COPULA = re.compile(r"(?:m[ıiuü]ş|[ae]r|[ıiuü]r|[ae]c[ae][kğ]|s[ae]|m[ae]
 _NEG = re.compile(r"m[ae](?=$|[zdtykmnlcrsğ]|[ıiuü])")
 _YOR = re.compile(r"([aeıioöuü])yor")
 
-TIERS = ("yor", "neg", "ins", "person")
+# pekiştirme: (ünsüz*)ünlü + p/m/r/s + taban; taban ilk seslemi tekrar eder (kıp+kırmızı, ap+açık, ter+temiz, mas+mavi)
+_PEK = re.compile(r"^([^aeıioöuü]*[aeıioöuü])[pmrs](.+)$")
+_CIK = re.compile(r"[cç][ıiuü][kğ]")
+
+TIERS = ("pek", "cik", "yor", "neg", "ins", "person")
 
 
 def _morph_rule(w: str, upos: str | None, feats: dict[str, str] | None, tiers) -> tuple[int, str] | None:
     """M1b: (vurgulu seslem indeksi BAŞTAN, kural etiketi) ya da None. w = küçük harfli yazım."""
+    if "pek" in tiers and upos in ("ADJ", "ADV"):
+        m = _PEK.match(w)
+        if m and m.group(2).startswith(m.group(1)) and _n_vowels(m.group(2)) >= 2:
+            return 0, "pekiştirme"
+    if "cik" in tiers and upos == "ADJ":
+        m = _CIK.search(w)
+        if m and _vowels_before(w, m.start()) >= 2:  # küçük (kü+çük) -CIk DEĞİL; küçü+cük, ince+cik, ufa+cık
+            return 0, "cık_sıfat"
     verbal = upos in ("VERB", "AUX")
     if "yor" in tiers and (upos is None or verbal):
         m = _YOR.search(w)

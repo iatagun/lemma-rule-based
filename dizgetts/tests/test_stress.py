@@ -65,3 +65,18 @@ for w, up, f, k, tag in cases:
 # katman kapalıyken (M1a) hiçbiri devreye girmez
 assert R.syllable("geliyorum", "VERB", {}, ()) == (3, "varsayılan_son")
 print("OK (M1b)")
+
+# ---- seslem ağırlığı (kullanıcı kuralı 2026-09-24): -en belirteç + alıntı/yer adı (güçlü-zayıf sözcük) ----
+from dizgetts.frontend.stress import weight_stress  # noqa: E402
+
+for lex, en, k in [("naklen", 1, 0), ("esâsen", 1, 1), ("istinâden", 1, 2), ("münhâsıran", 1, 1), ("müştereken", 1, 1), ("nispeten", 1, 0),
+                   ("lokanta", 0, 1), ("pırasa", 0, 1), ("ankara", 0, 0), ("istanbul", 0, 1), ("futbol", 0, 0), ("bebek", 0, 0),
+                   ("esasen", 1, 0)]:  # şapkasız esasen: 'sa' hafif görünür -> uzun ünlü sözlükte işaretlenmeli
+    assert weight_stress(lex, bool(en)) == k, (lex, weight_stress(lex, bool(en)), k)
+assert R.syllable("esasen") == (1, "kök") and R.syllable("nispeten") == (0, "kök") and R.syllable("müştereken") == (1, "kök")
+for w, up, k, tag in [("kıpkırmızı", "ADJ", 0, "pekiştirme"), ("apaçık", "ADJ", 0, "pekiştirme"), ("tertemiz", "ADJ", 0, "pekiştirme"),
+                      ("incecik", "ADJ", 0, "cık_sıfat"), ("küçücük", "ADJ", 0, "cık_sıfat"), ("ufacık", "ADJ", 0, "cık_sıfat"),
+                      ("küçük", "ADJ", 1, "varsayılan_son"), ("sersem", "ADJ", 1, "varsayılan_son"), ("kedicik", "NOUN", 2, "varsayılan_son")]:
+    got = R.syllable(w, up, {}, T)
+    assert got == (k, tag), (w, got, (k, tag))
+print("OK (ağırlık + pekiştirme/-CIk)")
