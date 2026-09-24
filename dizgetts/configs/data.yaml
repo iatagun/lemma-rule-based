@@ -1,0 +1,28 @@
+# Aşama 2 ön işleme. Tüm yollar/eşikler burada; preprocess.py bu dosyayı + git commit'i çıktıya yazar.
+seed: 1234
+raw_root: D:/dizgetts/data/raw/antalia
+out_root: D:/dizgetts/data/processed/antalia
+
+audio:
+  sample_rate: 22050        # HiFi-GAN universal ile uyumlu (n_fft 1024, hop 256, 80 mel, fmax 8000)
+  n_fft: 1024
+  hop_length: 256
+  win_length: 1024
+  n_feats: 80
+  f_min: 0
+  f_max: 8000
+  target_lufs: -23.0        # klip başına integrated loudness (pyloudnorm, BS.1770)
+  peak_limit: 0.95          # LUFS sonrası tepe bunu aşarsa ölçek düşürülür (kırpma yok)
+  trim_db: -40.0            # 10 ms çerçeve RMS'i bu eşiğin altındaysa sessizlik (gürültü tabanı ~ -54 dBFS, konuşma ~ -24)
+  keep_pad_s: 0.05          # kırpmadan sonra baş/sona bırakılan pay
+
+filter:
+  min_dur_s: 1.0
+  max_dur_s: 21.0           # BİLİNÇLİ: antalia klipleri 3-20 sn; 1-10 sn kuralı 41 klip bırakır (reports/stage1_audit.md §1).
+                            # Uzun klipler out_size segment kırpma ile eğitilir. 10.0 yapılırsa neredeyse veri kalmaz.
+
+split:
+  # 65 parent kayıt = 65 ayrı prompt (her parent tek kategori). Parent'a göre ayır -> aynı script/oturum iki split'e düşmez.
+  test_parents: 6           # farklı kategorilerden birer parent (>=4 parent'ı olan kategorilerden)
+  val_parents: 4
+  drop_text_leak: true      # val/test'te transkripti (normalize) train'de geçen klipler atılır

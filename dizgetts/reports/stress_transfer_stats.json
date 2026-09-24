@@ -1,0 +1,229 @@
+{
+ "sayaçlar": {
+  "ünlü_sayısı_eşit": 27866,
+  "sondan_sıra": 2952,
+  "espeak_vurgusuz": 3627,
+  "vurgu_sayısı": 31711,
+  "cümle_yedek_son_ünlü": 25,
+  "yedek_son_ünlü": 17
+ },
+ "espeak_vurgulu_sözcük": 31605,
+ "dizge_vurgu_konumu_sondan": {
+  "0": 22381,
+  "2": 3081,
+  "vurgusuz": 3627,
+  "1": 4733,
+  "3": 630,
+  "4": 10
+ },
+ "espeak_vurgu_konumu_sondan": {
+  "0": 22364,
+  "2": 3082,
+  "vurgusuz": 3627,
+  "1": 4733,
+  "3": 641,
+  "4": 15
+ },
+ "ornekler": [
+  {
+   "espeak": "dœnˈæm",
+   "dizge": "dœnɛm",
+   "dizge_vurgulu": "dœnˈɛm"
+  },
+  {
+   "espeak": "profˈilinɪz",
+   "dizge": "pʰɨɾɔfIlInIz̥",
+   "dizge_vurgulu": "pʰɨɾɔfˈIlInIz̥"
+  },
+  {
+   "espeak": "liɾˈa",
+   "dizge": "lIɾɑ",
+   "dizge_vurgulu": "lIɾˈɑ"
+  },
+  {
+   "espeak": "bˈɪn",
+   "dizge": "bIn",
+   "dizge_vurgulu": "bˈIn"
+  },
+  {
+   "espeak": "sɔrmasˈɯn",
+   "dizge": "sɔɾmɑsɨn",
+   "dizge_vurgulu": "sɔɾmɑsˈɨn"
+  },
+  {
+   "espeak": "ˈɔn",
+   "dizge": "ɔn",
+   "dizge_vurgulu": "ˈɔn"
+  },
+  {
+   "espeak": "ɟøndʒællejedʒˈejɪm",
+   "dizge": "ɟYndʒellɛjɛdʒɛjIm,",
+   "dizge_vurgulu": "ɟYndʒellɛjɛdʒˈɛjIm,"
+  },
+  {
+   "espeak": "tˈøm",
+   "dizge": "tʰYm",
+   "dizge_vurgulu": "tʰˈYm"
+  },
+  {
+   "espeak": "bakijˈenɪz",
+   "dizge": "bɑciːɛnIz̥",
+   "dizge_vurgulu": "bɑciːˈɛnIz̥"
+  },
+  {
+   "espeak": "bʊ",
+   "dizge": "bU",
+   "dizge_vurgulu": "bU"
+  },
+  {
+   "espeak": "dœnemˈɪ",
+   "dizge": "dœnɛmI",
+   "dizge_vurgulu": "dœnɛmˈI"
+  },
+  {
+   "espeak": "veɾilˈæn",
+   "dizge": "veɾIlɛn",
+   "dizge_vurgulu": "veɾIlˈɛn"
+  },
+  {
+   "espeak": "ateʃɪndˈɛ",
+   "dizge": "ɑteʃIndɛ",
+   "dizge_vurgulu": "ɑteʃIndˈɛ"
+  },
+  {
+   "espeak": "koɫajɫaʃtɯɾabɪldˈɪjsæm",
+   "dizge": "kʰɔłɑːIłɑʃtɨɾɑbIldiːsɛm",
+   "dizge_vurgulu": "kʰɔłɑːIłɑʃtɨɾɑbIldˈiːsɛm"
+  },
+  {
+   "espeak": "ɟˈɛtʃ",
+   "dizge": "ɟɛtʃ",
+   "dizge_vurgulu": "ɟˈɛtʃ"
+  },
+  {
+   "espeak": "ʃˈart",
+   "dizge": "ʃɑɾt",
+   "dizge_vurgulu": "ʃˈɑɾt"
+  },
+  {
+   "espeak": "bˈak",
+   "dizge": "bɑk.",
+   "dizge_vurgulu": "bˈɑk."
+  },
+  {
+   "espeak": "bɪlɟijˈɪ",
+   "dizge": "bIlɟiːI",
+   "dizge_vurgulu": "bIlɟiːˈI"
+  },
+  {
+   "espeak": "koɫajɫˈɯk",
+   "dizge": "kʰɔłɑːIłɨk",
+   "dizge_vurgulu": "kʰɔłɑːIłˈɨk"
+  },
+  {
+   "espeak": "atʃˈaɾɯm",
+   "dizge": "ɑtʃɑɾɨm,",
+   "dizge_vurgulu": "ɑtʃˈɑɾɨm,"
+  },
+  {
+   "espeak": "ɟeɾekˈɪr",
+   "dizge": "ɟeɾɛcIɣ.",
+   "dizge_vurgulu": "ɟeɾɛcˈIɣ."
+  },
+  {
+   "espeak": "dyzænlˈijoɾʊz",
+   "dizge": "dYzɛnliːɔɾUz̥;",
+   "dizge_vurgulu": "dYzɛnlˈiːɔɾUz̥;"
+  },
+  {
+   "espeak": "ˈɔn",
+   "dizge": "ɔn",
+   "dizge_vurgulu": "ˈɔn"
+  },
+  {
+   "espeak": "ɟœndɛrdˈijɪm",
+   "dizge": "ɟœndɛɾdiːIm",
+   "dizge_vurgulu": "ɟœndɛɾdˈiːIm"
+  },
+  {
+   "espeak": "papatjˈa",
+   "dizge": "pʰɑpɑtjɑ",
+   "dizge_vurgulu": "pʰɑpɑtjˈɑ"
+  },
+  {
+   "espeak": "ɛtmesinˈɪ",
+   "dizge": "etmɛsInI",
+   "dizge_vurgulu": "etmɛsInˈI"
+  },
+  {
+   "espeak": "ɟyzˈæl",
+   "dizge": "ɟYzɛl",
+   "dizge_vurgulu": "ɟYzˈɛl"
+  },
+  {
+   "espeak": "dœrtːˈɛ",
+   "dizge": "dœɾttɛ",
+   "dizge_vurgulu": "dœɾttˈɛ"
+  },
+  {
+   "espeak": "bitiɾedʒˈejɪm",
+   "dizge": "bItIɾedʒɛjIm.",
+   "dizge_vurgulu": "bItIɾedʒˈɛjIm."
+  },
+  {
+   "espeak": "ˈama",
+   "dizge": "ɑmɑ",
+   "dizge_vurgulu": "ˈɑmɑ"
+  },
+  {
+   "espeak": "hɪssedilebilˈɪr",
+   "dizge": "çIssedIlɛbIlIɣ",
+   "dizge_vurgulu": "çIssedIlɛbIlˈIɣ"
+  },
+  {
+   "espeak": "sakɫamˈanɯz",
+   "dizge": "sɑkłɑmɑnɨz̥",
+   "dizge_vurgulu": "sɑkłɑmˈɑnɨz̥"
+  },
+  {
+   "espeak": "sæn",
+   "dizge": "sɛn",
+   "dizge_vurgulu": "sɛn"
+  },
+  {
+   "espeak": "sɯɾasˈɯ",
+   "dizge": "sɨɾɑsɨ",
+   "dizge_vurgulu": "sɨɾɑsˈɨ"
+  },
+  {
+   "espeak": "ɟœɾynˈyjɔr",
+   "dizge": "ɟœɾYnYjɔɣ.",
+   "dizge_vurgulu": "ɟœɾYnˈYjɔɣ."
+  },
+  {
+   "espeak": "bilˈɪr",
+   "dizge": "bIlIɣ,",
+   "dizge_vurgulu": "bIlˈIɣ,"
+  },
+  {
+   "espeak": "ɟiɡabˈajt",
+   "dizge": "ɟIgɑbɑːIt",
+   "dizge_vurgulu": "ɟIgɑbɑːˈIt"
+  },
+  {
+   "espeak": "sˈakɫajajɯm",
+   "dizge": "sɑkłɑːIɑːIɨm.",
+   "dizge_vurgulu": "sɑkłɑːˈIɑːIɨm."
+  },
+  {
+   "espeak": "dejiʃɪklˈɪk",
+   "dizge": "dejIʃIclIc",
+   "dizge_vurgulu": "dejIʃIclˈIc"
+  },
+  {
+   "espeak": "bɪr",
+   "dizge": "bIɣ",
+   "dizge_vurgulu": "bIɣ"
+  }
+ ]
+}

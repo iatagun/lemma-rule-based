@@ -1,0 +1,9 @@
+# ağır çıktılar D:\dizgetts altında tutulur; buraya düşerse commit'lenmesin
+.venv/
+data/
+runs/
+cache/
+*.wav
+*.pt
+*.ckpt
+__pycache__/

@@ -1,0 +1,7 @@
+# Dizge fonemleri (ayraçlı, main_dizge ile AYNI) + vurgu: espeak-ng'nin sözcük vurgusu dizge ünlülerine aktarıldı (frontend/stress.py).
+# ÜST SINIR deneyi: vurgu kalitesi espeak'e bağlı; kalıcı çözüm Morph+hece+dilbilimsel kurallar. Karşılaştırma: espeak (vurgulu) 3,0 CER, dizge 4,6.
+base: main_dizge.yaml
+name: main_dizge_stress_e150
+frontend: dizge_stress
+train:
+  epochs: 150

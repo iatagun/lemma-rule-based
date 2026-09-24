@@ -1,0 +1,7 @@
+# Ablasyon: sözcük ayracı YOK; sesten ölçülen kırılma sınıfları (B2 "|", B3 "‖"; B1 token yok) + noktalama. ORAKL (etiketler referans sesten).
+# Çıkarımda sınıf tahmini gerekir (şimdilik yedek kural: noktalama -> B3); bu koşu ÜST SINIRI gösterir. Bkz. reports/breaks_stats.json
+base: main_dizge.yaml
+name: main_dizge_breaks_e150
+frontend: dizge_breaks
+train:
+  epochs: 150

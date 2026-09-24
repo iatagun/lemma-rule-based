@@ -1,0 +1,6 @@
+# Ablasyon: sözcük ayracı YOK (ses-akışı: sözcükler arası bağ); yalnız noktalama token'ları kalır. Tüm sözcük sınırı bilgisi kaybolur.
+base: main_dizge.yaml
+name: main_dizge_nosep_e150
+frontend: dizge_nosep
+train:
+  epochs: 150

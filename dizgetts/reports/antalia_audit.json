@@ -1,0 +1,794 @@
+{
+ "n_clips": 1073,
+ "total_hours": 5.008,
+ "sample_rates": {
+  "24000": 1073
+ },
+ "channels": {
+  "1": 1073
+ },
+ "dur_quantiles": {
+  "p0": 1.34,
+  "p5": 10.64,
+  "p25": 15.46,
+  "p50": 17.56,
+  "p75": 19.02,
+  "p95": 20.04,
+  "p100": 20.24
+ },
+ "dur_hist": {
+  "0-1": 0,
+  "1-3": 1,
+  "3-5": 8,
+  "5-8": 13,
+  "8-10": 19,
+  "10-12": 40,
+  "12-15": 146,
+  "15-20": 781,
+  "20-25": 65
+ },
+ "hours_in_1_10s": 0.084,
+ "clips_in_1_10s": 41,
+ "clips_over_10s": 1032,
+ "max_abs_dur_diff_vs_metadata": 0.0,
+ "snr_pct_quantiles": {
+  "p0": 28.537,
+  "p5": 32.596,
+  "p25": 34.072,
+  "p50": 35.083,
+  "p75": 36.206,
+  "p95": 38.037,
+  "p100": 44.415
+ },
+ "snr_meta_quantiles": {
+  "p0": 28.537,
+  "p5": 32.406,
+  "p25": 33.879,
+  "p50": 34.909,
+  "p75": 36.005,
+  "p95": 37.753,
+  "p100": 44.36
+ },
+ "corr_snr_mine_vs_meta": 0.993,
+ "noise_floor_db_quantiles": {
+  "p0": -64.927,
+  "p5": -56.924,
+  "p25": -55.132,
+  "p50": -54.219,
+  "p75": -53.488,
+  "p95": -52.055,
+  "p100": -48.486
+ },
+ "rms_dbfs_quantiles": {
+  "p0": -32.637,
+  "p5": -26.344,
+  "p25": -24.742,
+  "p50": -23.93,
+  "p75": -23.137,
+  "p95": -22.025,
+  "p100": -20.116
+ },
+ "peak_max": 0.8913,
+ "clipping_clips": 0,
+ "lead_sil_quantiles": {
+  "p0": 0.0,
+  "p5": 0.01,
+  "p25": 0.05,
+  "p50": 0.08,
+  "p75": 0.1,
+  "p95": 0.13,
+  "p100": 0.15
+ },
+ "trail_sil_quantiles": {
+  "p0": 0.0,
+  "p5": 0.0,
+  "p25": 0.06,
+  "p50": 0.11,
+  "p75": 0.15,
+  "p95": 0.23,
+  "p100": 1.45
+ },
+ "chars_per_sec_quantiles": {
+  "p0": 6.297,
+  "p5": 10.669,
+  "p25": 12.797,
+  "p50": 13.767,
+  "p75": 14.664,
+  "p95": 15.851,
+  "p100": 18.696
+ },
+ "cer_transcript_vs_scribe_quantiles": {
+  "p0": 0.0,
+  "p5": 0.0,
+  "p25": 0.0,
+  "p50": 0.0,
+  "p75": 0.051,
+  "p95": 0.169,
+  "p100": 0.3
+ },
+ "n_cer_gt_0_10": 153,
+ "n_transcript_ne_normalized": 695,
+ "n_with_digits": 275,
+ "by_category": {
+  "explanations_long_form": {
+   "n": 112,
+   "hours": 0.52,
+   "mean_cps": 13.76,
+   "n_over_10s": 110
+  },
+  "foreign_tech_terms": {
+   "n": 97,
+   "hours": 0.449,
+   "mean_cps": 14.2,
+   "n_over_10s": 97
+  },
+  "graded_expressive_style": {
+   "n": 50,
+   "hours": 0.226,
+   "mean_cps": 14.16,
+   "n_over_10s": 48
+  },
+  "in_context_dialogue": {
+   "n": 93,
+   "hours": 0.432,
+   "mean_cps": 14.6,
+   "n_over_10s": 90
+  },
+  "long_form_flow": {
+   "n": 63,
+   "hours": 0.298,
+   "mean_cps": 13.91,
+   "n_over_10s": 61
+  },
+  "numeric_normalization": {
+   "n": 87,
+   "hours": 0.406,
+   "mean_cps": 12.18,
+   "n_over_10s": 85
+  },
+  "phonetic_normalization": {
+   "n": 135,
+   "hours": 0.632,
+   "mean_cps": 13.42,
+   "n_over_10s": 133
+  },
+  "questions_confirmations": {
+   "n": 105,
+   "hours": 0.52,
+   "mean_cps": 13.93,
+   "n_over_10s": 102
+  },
+  "readback_confirmation": {
+   "n": 132,
+   "hours": 0.555,
+   "mean_cps": 12.13,
+   "n_over_10s": 112
+  },
+  "restrained_emotion": {
+   "n": 116,
+   "hours": 0.567,
+   "mean_cps": 14.49,
+   "n_over_10s": 112
+  },
+  "warm_voice_agent": {
+   "n": 83,
+   "hours": 0.404,
+   "mean_cps": 13.49,
+   "n_over_10s": 82
+  }
+ },
+ "n_parent_recordings": 65,
+ "suspects": [
+  {
+   "id": "vd-scripted-b85d713939c420fdc4ba64be-script-seg-ff2fac355a29d86a",
+   "dur": 19.69,
+   "cps": 13.5,
+   "cer": 0.3,
+   "text": "İnternet kotanız 8 gigabayt; bu ayın yüzde 53'i kullanılmış görünüyor. Kalan miktarı SMS ile göndereceğim, olur mu? Belg",
+   "asr": "İnternet kotanız 8 GB. Bu ayın %53'ü kullanılmış görünüyor. Kalan miktarı SMS ile göndereceğim, olur mu? Belgeyi www.hız"
+  },
+  {
+   "id": "vd-scripted-b85d713939c420fdc4ba64be-script-seg-54237fc1fd65e3bd",
+   "dur": 20.04,
+   "cps": 13.3,
+   "cer": 0.299,
+   "text": "İnternet kotanız 25 gigabayt; bu ayın yüzde 62'i kullanılmış görünüyor. Kalan miktarı SMS ile göndereceğim, olur mu? Bel",
+   "asr": "İnternet kotanız 25 GB. Bu ayın %62'si kullanılmış görünüyor. Kalan miktarı SMS ile göndereceğim, olur mu? Belgeyi www.h"
+  },
+  {
+   "id": "vd-scripted-b85d713939c420fdc4ba64be-script-seg-bd7ba4684b86db55",
+   "dur": 19.74,
+   "cps": 10.8,
+   "cer": 0.298,
+   "text": "Belgeyi www nokta örnek-market nokta com adresinden PDF olarak indirebilirsiniz; giriş için az önce e-posta ile gönderdi",
+   "asr": "Belgeyi www.örnek-market.com www.örnek-market.com www.örnek-market.com www.örnek-market.com adresinden PDF olarak indire"
+  },
+  {
+   "id": "vd-scripted-cda7fa7c8a9660d20107e837-script-seg-24bb6869dbfbde43",
+   "dur": 19.52,
+   "cps": 10.9,
+   "cer": 0.298,
+   "text": "Belgeyi www nokta örnek-market nokta com adresinden PDF olarak indirebilirsiniz; giriş için az önce e-posta ile gönderdi",
+   "asr": "Belgeyi www.örnek-market.com www.örnek-market.com www.örnek-market.com www.örnek-market.com adresinden PDF olarak indire"
+  },
+  {
+   "id": "vd-scripted-cda7fa7c8a9660d20107e837-script-seg-e881078334d78abd",
+   "dur": 20.12,
+   "cps": 10.6,
+   "cer": 0.298,
+   "text": "Belgeyi www nokta örnek-market nokta com adresinden PDF olarak indirebilirsiniz; giriş için az önce e-posta ile gönderdi",
+   "asr": "Belgeyi www.örnek-market.com www.örnek-market.com www.örnek-market.com www.örnek-market.com adresinden PDF olarak indire"
+  },
+  {
+   "id": "vd-scripted-d937c6211adbe8d939c0f6a7-script-seg-9cda1a8c2220345c",
+   "dur": 18.48,
+   "cps": 11.5,
+   "cer": 0.298,
+   "text": "Belgeyi www nokta örnek-market nokta com adresinden PDF olarak indirebilirsiniz; giriş için az önce e-posta ile gönderdi",
+   "asr": "Belgeyi www.örnek-market.com www.örnek-market.com www.örnek-market.com www.örnek-market.com adresinden PDF olarak indire"
+  },
+  {
+   "id": "vd-scripted-d937c6211adbe8d939c0f6a7-script-seg-12a762e060a4ff9d",
+   "dur": 18.0,
+   "cps": 12.9,
+   "cer": 0.295,
+   "text": "Kalan miktarı SMS ile göndereceğim, olur mu? Belgeyi www nokta hızlı-destek nokta com adresinden PDF olarak indirebilirs",
+   "asr": "Kalan miktarı SMS ile göndereceğim, olur mu? Belgeyi www.hızlı-destek.com www.hızlı-destek.com www.hızlı-destek.com www."
+  },
+  {
+   "id": "vd-scripted-1ecfad3ce1713543505ce716-script-seg-1e494e6f0c9185e3",
+   "dur": 17.35,
+   "cps": 13.4,
+   "cer": 0.286,
+   "text": "Kalan miktarı SMS ile göndereceğim, olur mu? Belgeyi www nokta hızlı-destek nokta com adresinden PDF olarak indirebilirs",
+   "asr": "Kalan miktarı SMS ile göndereceğim, olur mu? Belgeyi www.hızlı-destek.com www.hızlı-destek.com www.hızlı-destek.com www."
+  },
+  {
+   "id": "vd-scripted-a648ae3c9c259075995be4ae-script-seg-886bceccfda81dba",
+   "dur": 11.32,
+   "cps": 9.7,
+   "cer": 0.28,
+   "text": "Başvuru numaranız GES-2025-00318; buradaki çift sıfırlar sıra numarasının parçası, atlamadan okumak gerekiyor.",
+   "asr": "Başvuru numaranız GES-2025-00318. GES-2025-00318. GES-2025-00318. Buradaki çift sıfırlar sıra numarasının parçası. Atlam"
+  },
+  {
+   "id": "vd-scripted-473354d8ce0813c58119392e-script-seg-5598907bc900fca0",
+   "dur": 13.68,
+   "cps": 10.2,
+   "cer": 0.277,
+   "text": "Dilerseniz işlem özetini yazılı olarak da göndereceğim: ZPV-3778-K numaralı kayıt, tutar 3679 lira 25 kuruş ve planlanan",
+   "asr": "Dilerseniz işlem özetini yazılı olarak da göndereceğim. ZPV-3778-K ZPV-3778-K ZPV-3778-K numaralı kayıt. Tutar 3.679 3.6"
+  },
+  {
+   "id": "vd-scripted-71d25fe6a490bed45e2ca6cd-script-seg-95e966340a318ceb",
+   "dur": 18.48,
+   "cps": 12.7,
+   "cer": 0.274,
+   "text": "Soyadınızı da ekleyebilir miyim? Yıldız mı dediniz, yoksa Yıldırım mı? Yıldız, tamam. Doğru yazdım mı diye bir kez daha ",
+   "asr": "Soyadınızı da ekleyebilir miyim? Yıldız mı dediniz yoksa Yıldırım mı? Yıldız, tamam. Doğru yazdım mı diye bir kez daha s"
+  },
+  {
+   "id": "vd-scripted-2f7576af58c6f73006a9c7e7-script-seg-b43704f3763f0939",
+   "dur": 18.06,
+   "cps": 13.8,
+   "cer": 0.267,
+   "text": "Belgeyi www nokta hızlı-destek nokta com adresinden PDF olarak indirebilirsiniz; giriş için az önce e-posta ile gönderdi",
+   "asr": "Belgeyi www.hızlı-destek.com www.hızlı-destek.com www.hızlı-destek.com www.hızlı-destek.com adresinden PDF olarak indire"
+  },
+  {
+   "id": "vd-scripted-5ee870a7030f175cf3ca556f-script-seg-634a3e125f808f9e",
+   "dur": 19.14,
+   "cps": 13.0,
+   "cer": 0.267,
+   "text": "Belgeyi www nokta hızlı-destek nokta com adresinden PDF olarak indirebilirsiniz; giriş için az önce e-posta ile gönderdi",
+   "asr": "Belgeyi www.hızlı-destek.com www.hızlı-destek.com www.hızlı-destek.com www.hızlı-destek.com adresinden PDF olarak indire"
+  },
+  {
+   "id": "vd-scripted-cda7fa7c8a9660d20107e837-script-seg-682c56da7700cfbf",
+   "dur": 18.52,
+   "cps": 13.4,
+   "cer": 0.267,
+   "text": "Belgeyi www nokta hızlı-destek nokta com adresinden PDF olarak indirebilirsiniz; giriş için az önce e-posta ile gönderdi",
+   "asr": "Belgeyi www.hızlı-destek.com www.hızlı-destek.com www.hızlı-destek.com www.hızlı-destek.com adresinden PDF olarak indire"
+  },
+  {
+   "id": "vd-scripted-2cc182c8c5af9ec52978d0e8-script-seg-07018f4d5bd0ccaf",
+   "dur": 18.36,
+   "cps": 12.3,
+   "cer": 0.266,
+   "text": "Otoparkımız ilk 30 dakika ücretsiz, sonrasında saat başı 45 TL. Gişeler 09.00'da açılıyor; öğle arası 12.30–13.30 arasın",
+   "asr": "Otoparkımız ilk 30 dakika ücretsiz. Sonrasında saat başı 45 Türk lirası. Gişeler 09:00'da 09:00'da açılıyor. Öğle arası "
+  },
+  {
+   "id": "vd-scripted-1ecfad3ce1713543505ce716-script-seg-da709b1bbbb1f2a0",
+   "dur": 19.77,
+   "cps": 13.5,
+   "cer": 0.264,
+   "text": "İnternet kotanız 16 gigabayt; bu ayın yüzde 51'i kullanılmış görünüyor. Kalan miktarı SMS ile göndereceğim, olur mu? Bel",
+   "asr": "İnternet kotanız 16 gigabayt. Bu ayın %51'i kullanılmış görünüyor. Kalan miktarı SMS ile göndereceğim, olur mu? Belgeyi "
+  },
+  {
+   "id": "vd-scripted-d937c6211adbe8d939c0f6a7-script-seg-8bd88415eb4ac2bd",
+   "dur": 20.07,
+   "cps": 13.4,
+   "cer": 0.263,
+   "text": "İnternet kotanız 100 gigabayt; bu ayın yüzde 47'i kullanılmış görünüyor. Kalan miktarı SMS ile göndereceğim, olur mu? Be",
+   "asr": "İnternet kotanız 100 gigabayt. Bu ayın %47'si kullanılmış görünüyor. Kalan miktarı SMS ile göndereceğim, olur mu? Belgey"
+  },
+  {
+   "id": "vd-scripted-843d1c61bf9d3602ef7baf4e-script-seg-84bfbc06c00279d1",
+   "dur": 18.58,
+   "cps": 6.3,
+   "cer": 0.263,
+   "text": "17 Eylül 2026 Perşembe 12.40 İğneburnu'ndan Ödemli'ye iki standart koltuk, kod ÇG-58-ÜŞ; 3 Ağustos 2026 Pazartesi 09.",
+   "asr": "17 Eylül 2026 Perşembe 12.40 12.40 İğneburun'dan Ödemli'ye iki standart koltuk. Kod: ÇG-58-ÜŞ. ÇG-58-ÜŞ. ÇG-58-ÜŞ. 3 Ağu"
+  },
+  {
+   "id": "vd-scripted-a648ae3c9c259075995be4ae-script-seg-f9a24c6be3a57203",
+   "dur": 18.46,
+   "cps": 14.8,
+   "cer": 0.261,
+   "text": "Işıl Enerji müşteri hattına hoş geldiniz. 3006751942 numaralı tesisatınız için son fatura bilgilerinizi hazırladım. Tesi",
+   "asr": "Işıl Enerji müşteri hattına hoş geldiniz. 30.06.751942 30.06.751942 30.06.751942 numaralı tesisatınız için son fatura bi"
+  },
+  {
+   "id": "vd-scripted-b85d713939c420fdc4ba64be-script-seg-971adaf4b585c277",
+   "dur": 18.54,
+   "cps": 13.4,
+   "cer": 0.259,
+   "text": "Belgeyi www nokta mavi-sigorta nokta com adresinden PDF olarak indirebilirsiniz; giriş için az önce e-posta ile gönderdi",
+   "asr": "Belgeyi www.mavi-sigorta.com www.mavi-sigorta.com www.mavi-sigorta.com www.mavi-sigorta.com adresinden PDF olarak indire"
+  },
+  {
+   "id": "vd-scripted-473354d8ce0813c58119392e-script-seg-3068f0148a8bdeae",
+   "dur": 12.92,
+   "cps": 10.8,
+   "cer": 0.241,
+   "text": "Dilerseniz işlem özetini yazılı olarak da göndereceğim: ZSS-2540-A numaralı kayıt, tutar 4765 lira 50 kuruş ve planlanan",
+   "asr": "Dilerseniz işlem özetini yazılı olarak da göndereceğim. ZSS-2540-A ZSS-2540-A ZSS-2540-A numaralı kayıt. Tutar 4.765 4.7"
+  },
+  {
+   "id": "vd-scripted-a9a999ec80e3325cd04370c9-script-seg-ec95061d9197e6ca",
+   "dur": 20.2,
+   "cps": 11.1,
+   "cer": 0.241,
+   "text": "Teyit ediyorum: kaydınız SMR-3387-M, işlem tutarı 229 lira 40 kuruş, planlanan gün çarşamba öğlen on ikide. Doğru mu efe",
+   "asr": "Teyit ediyorum. Kaydınız SMR tire otuz üç seksen yedi tire M. İşlem tutarı iki yüz yirmi dokuz lira kırk kuruş. Planlana"
+  },
+  {
+   "id": "vd-scripted-399e5780b0dd6f0bf98cf0fd-script-seg-4a8353d33b3e51dc",
+   "dur": 16.52,
+   "cps": 10.6,
+   "cer": 0.231,
+   "text": "Teyit ediyorum: kaydınız MZD-4469-E, işlem tutarı 2798 lira 40 kuruş, planlanan gün cuma saat on dörtte. Doğru mu efendi",
+   "asr": "Teyit ediyorum. Kaydınız MZD-4469-E. MZD-4469-E. MZD-4469-E. İşlem tutarı 2.798 2.798 lira 40 kuruş. Planlanan gün cuma "
+  },
+  {
+   "id": "vd-scripted-a648ae3c9c259075995be4ae-script-seg-a13f09671e5c748c",
+   "dur": 14.96,
+   "cps": 10.8,
+   "cer": 0.224,
+   "text": "2025 ve 02.04.2025 tarihlerinde, yani 30 günlük dönemde yapıldı. Günlük ortalamanız 8,2 kilovatsaat; geçen yılın aynı dö",
+   "asr": "03.03.2025 ve 02.04.2025 02.04.2025 02.04.2025 tarihlerinde, yani 30 günlük dönemde yapıldı. Günlük ortalamanız 8,2 8,2 "
+  },
+  {
+   "id": "vd-scripted-2cc182c8c5af9ec52978d0e8-script-seg-165dbd7fcaf402ba",
+   "dur": 19.76,
+   "cps": 11.2,
+   "cer": 0.217,
+   "text": "Son dört işleminizi de özetleyeyim. 2 Mart'ta market alışverişi için 348,90 TL, 5 Mart'ta 1.299,00 TL tutarında elektron",
+   "asr": "Son dört işleminizi de özetleyeyim. 2 Mart'ta market alışverişi için 348 Türk lirası 90 kuruş, 5 Mart'ta 1299 lira tutar"
+  },
+  {
+   "id": "vd-scripted-2cc182c8c5af9ec52978d0e8-script-seg-441ae26c99aec92e",
+   "dur": 18.64,
+   "cps": 12.9,
+   "cer": 0.214,
+   "text": "Merhaba, ben Doruk Bankası'nın sesli asistanı. Hesap özetinizle ilgili bilgi almak istediğinizi anladım. Şu anda ekranın",
+   "asr": "Merhaba, ben Doruk Bankası'nın sesli asistanı. Hesap özetinizle ilgili bilgi almak istediğinizi anladım. Şu anda ekranın"
+  },
+  {
+   "id": "vd-scripted-907b55353ee5228dbec7ea7e-script-seg-129d3be74d959478",
+   "dur": 13.38,
+   "cps": 10.5,
+   "cer": 0.212,
+   "text": "Dilerseniz işlem özetini yazılı olarak da göndereceğim: ZSK-6542-E numaralı kayıt, tutar 1286 lira 75 kuruş ve planlanan",
+   "asr": "Dilerseniz işlem özetini yazılı olarak da göndereceğim. ZSK-6542-E ZSK-6542-E ZSK-6542-E numaralı kayıt tutar 1.286 1.28"
+  },
+  {
+   "id": "vd-scripted-ad328942fd134080ec4af8b3-script-seg-868f73f5d1021771",
+   "dur": 12.0,
+   "cps": 11.7,
+   "cer": 0.212,
+   "text": "Dilerseniz işlem özetini yazılı olarak da göndereceğim: SVZ-4987-M numaralı kayıt, tutar 4136 lira 50 kuruş ve planlanan",
+   "asr": "Dilerseniz işlem özetini yazılı olarak da göndereceğim. SVZ-4987-M SVZ-4987-M SVZ-4987-M numaralı kayıt. Tutar 4.136 4.1"
+  },
+  {
+   "id": "vd-scripted-b45dd2cc16542b92162092b6-script-seg-c168bc40fcd67a77",
+   "dur": 13.02,
+   "cps": 10.8,
+   "cer": 0.212,
+   "text": "Dilerseniz işlem özetini yazılı olarak da göndereceğim: ZVR-5665-A numaralı kayıt, tutar 1653 lira 40 kuruş ve planlanan",
+   "asr": "Dilerseniz işlem özetini yazılı olarak da göndereceğim. ZVR-5665-A ZVR-5665-A ZVR-5665-A numaralı kayıt. Tutar 1.653 1.6"
+  },
+  {
+   "id": "vd-scripted-b3d1413ab24707dc028d7397-script-seg-58acb00f2f69eb9a",
+   "dur": 17.86,
+   "cps": 11.4,
+   "cer": 0.209,
+   "text": "Birincisi, merkezdeki Alpenblick Oteli; gecelik yüz kırk frank, kahvaltı dahil. İkincisi, göl manzaralı Seehof; gecelik ",
+   "asr": "Birincisi merkezdeki Alpenblick Oteli. Gecelik 140 frank, kahvaltı dahil. İkincisi göl manzaralı Seehof. Gecelik 175 fra"
+  },
+  {
+   "id": "vd-scripted-a648ae3c9c259075995be4ae-script-seg-6c7ecfcaf285e6b6",
+   "dur": 10.43,
+   "cps": 11.3,
+   "cer": 0.207,
+   "text": "Bu tarihten sonra günlük binde 2,5 gecikme zammı işliyor; örneğin 5 gün gecikirseniz yaklaşık 10,30 TL fark ödersiniz.",
+   "asr": "Bu tarihten sonra günlük binde 2,5 2,5 gecikme zammı işliyor. Örneğin beş gün gecikirseniz yaklaşık 10 Türk Lirası 30 ku"
+  },
+  {
+   "id": "vd-scripted-2cc182c8c5af9ec52978d0e8-script-seg-a18693aa6ceaf208",
+   "dur": 18.3,
+   "cps": 15.2,
+   "cer": 0.203,
+   "text": "Bloke tutar, 14.03.2025 tarihinde yaptığınız otel rezervasyonuna ait ve en geç 21 Mart Cuma günü saat 17.00'ye kadar çöz",
+   "asr": "Bloke tutar 14.03.2025 14.03.2025 14.03.2025 tarihinde yaptığınız otel rezervasyonuna ait ve en geç 21 Mart Cuma günü sa"
+  },
+  {
+   "id": "vd-scripted-b4852c163e8499609e65b859-script-seg-5cecf73d826f5a96",
+   "dur": 14.68,
+   "cps": 9.9,
+   "cer": 0.2,
+   "text": "Ön onay genellikle yirmi dört saat içinde çıkıyor. Başvuru kaydı oluşturmamı ister misiniz?\n\nBaşvuruyu oluşturdum; refer",
+   "asr": "Ön onay genellikle yirmi dört saat içinde çıkıyor. Başvuru kaydı oluşturmamı ister misiniz? Başvuruyu oluşturdum. Refera"
+  },
+  {
+   "id": "vd-scripted-907b55353ee5228dbec7ea7e-script-seg-703029ac1918f79d",
+   "dur": 12.86,
+   "cps": 10.9,
+   "cer": 0.197,
+   "text": "Dilerseniz işlem özetini yazılı olarak da göndereceğim: BBD-9077-M numaralı kayıt, tutar 4632 lira 50 kuruş ve planlanan",
+   "asr": "Dilerseniz işlem özetini yazılı olarak da göndereceğim. BBD-9077-M BBD-9077-M BBD-9077-M numaralı kayıt tutar 4 bin 632 "
+  },
+  {
+   "id": "vd-scripted-1076f8f77e445cd80c6da8d3-script-seg-50be483b105b708e",
+   "dur": 18.74,
+   "cps": 13.1,
+   "cer": 0.197,
+   "text": "Taşıma kampanyasında ilk fatura %50 indirimli; ayrıca 10 GB hoş geldin hediyesi tanımlanıyor.\n\nTeknik destek hattımız 7/",
+   "asr": "Taşıma kampanyasında ilk fatura %50 indirimli. Ayrıca 10 GB hoş geldin hediyesi tanımlanıyor. Teknik destek hattımız 7/2"
+  },
+  {
+   "id": "vd-scripted-1076f8f77e445cd80c6da8d3-script-seg-8180e883c566f7e2",
+   "dur": 18.22,
+   "cps": 12.8,
+   "cer": 0.197,
+   "text": "Eşinizin numarasını tarafımıza taşımak isterseniz süreç şöyle işliyor: başvuru sonrası mevcut operatöre 1 ila 5 iş günü ",
+   "asr": "Eşinizin numarasını tarafımıza taşımak isterseniz süreç şöyle işliyor: Başvuru sonrası mevcut operatöre bir ila beş iş g"
+  },
+  {
+   "id": "vd-scripted-1076f8f77e445cd80c6da8d3-script-seg-d4d2e9f7f74f4e83",
+   "dur": 13.62,
+   "cps": 9.8,
+   "cer": 0.191,
+   "text": "Nisan faturanız 412,73 TL olarak kesildi; 389,50 TL paket ücreti, 18,90 TL yurt dışı arama bedeli ve 4,33 TL vergi farkı",
+   "asr": "Nisan faturanız 412,73 412,73 TL olarak kesildi. 389,50 389,50 TL paket ücreti, 18,90 18,90 TL yurt dışı arama bedeli ve"
+  },
+  {
+   "id": "vd-scripted-a648ae3c9c259075995be4ae-script-seg-d31ccfa6f2f4560a",
+   "dur": 19.8,
+   "cps": 12.8,
+   "cer": 0.19,
+   "text": "Taşınma işlemi için güvence bedeli soruyordunuz: mesken aboneliklerinde 2025 yılı için kilovat başına 189,60 TL alınıyor",
+   "asr": "Taşınma işlemi için güvence bedeli soruyordunuz. Mesken aboneliklerinde 25-- 2025 yılı için kilowatt başına 189 Türk Lir"
+  },
+  {
+   "id": "vd-scripted-1076f8f77e445cd80c6da8d3-script-seg-c58d6dce674844cb",
+   "dur": 19.9,
+   "cps": 9.6,
+   "cer": 0.19,
+   "text": "Bu kodu kimseyle paylaşmayın; biz aramalarda asla sormayız.\n\nİnternet hızıyla ilgili bildiriminize gelince: adresinizde,",
+   "asr": "Bu kodu kimseyle paylaşmayın. Biz aramalarda asla sormayız. İnternet hızıyla ilgili bildirinize gelince: adresinizde Yeş"
+  },
+  {
+   "id": "vd-scripted-b85d713939c420fdc4ba64be-script-seg-946687b95073a994",
+   "dur": 12.86,
+   "cps": 11.5,
+   "cer": 0.189,
+   "text": "Sipariş kodunuzu harf harf söylüyorum: MRP-3666-M. Not alabildiniz mi? Randevunuz pazartesi günü öğlen on ikide olarak g",
+   "asr": "Sipariş kodunuzu harf harf söylüyorum: MRP-3666-M. MRP-3666-M. MRP-3666-M. Not alabildiniz mi? Randevunuz pazartesi günü"
+  }
+ ],
+ "n_suspects": 163,
+ "duplicate_transcripts": 39,
+ "non_turkish_chars": {
+  ".": 3186,
+  ";": 845,
+  ",": 2347,
+  "\n": 860,
+  ":": 445,
+  "-": 261,
+  "\"": 252,
+  "?": 668,
+  "'": 249,
+  "%": 16,
+  "/": 14,
+  "–": 14,
+  "!": 25
+ },
+ "n_word_tokens": 33636,
+ "n_word_types": 7240,
+ "g2p": {
+  "vocab": 7240,
+  "oov_vs_training_list": 5430,
+  "dizge_failed": 28,
+  "model_eq_teacher_all": 0.9569,
+  "model_eq_teacher_oov": 0.9458,
+  "model_unknown_chars": {},
+  "disagree_sample": [
+   [
+    "aksaklığa",
+    "ɑksɑkłɨːɑ",
+    "ɑksɑkłʒːː"
+   ],
+   [
+    "alacaksınız",
+    "ɑłɑdʒɑksɨnɨz̥",
+    "ɑłaːdʒɑksɨnɨz̥"
+   ],
+   [
+    "alamamış",
+    "ɑłɑmɑmɨʃ",
+    "ɑłamɑmɨʃ"
+   ],
+   [
+    "alamazsanız",
+    "ɑłɑmɑssɑnɨz̥",
+    "ɑłaːmɑssɑnɨz̥"
+   ],
+   [
+    "alanına",
+    "ɑłɑnɨnɑ",
+    "ɑłaːnɨnɑ"
+   ],
+   [
+    "alanıyla",
+    "ɑłɑnɨjłɑ",
+    "ɑłaːnɨjłɑ"
+   ],
+   [
+    "aldığım",
+    "ɑłdɨːm",
+    "ʰłdʒːoːm"
+   ],
+   [
+    "aldığında",
+    "ɑłdɨːndɑ",
+    "ʰłdʒːoːndɑ"
+   ],
+   [
+    "aldığını",
+    "ɑłdɨːnɨ",
+    "ʰłdʒːoːnː"
+   ],
+   [
+    "aldığınızda",
+    "ɑłdɨːnɨzdɑ",
+    "ʰłdʒːoːnːUzdɑ"
+   ],
+   [
+    "anladığım",
+    "ɑnłɑdɨːm",
+    "ʰnłddʒːoːm"
+   ],
+   [
+    "anlatamadığımız",
+    "ɑnłɑtɑmɑdɨːmɨz̥",
+    "ʰnłʰtdmddʒːoːmːU̥"
+   ],
+   [
+    "anlattığınız",
+    "ɑnłɑttɨːnɨz̥",
+    "ʰnłʰttʒːoːnːU̥"
+   ],
+   [
+    "anlatıldığında",
+    "ɑnłɑtɨłdɨːndɑ",
+    "ʰnłʰtːUłdʒːoːndː"
+   ],
+   [
+    "anıya",
+    "ɑnɨjɑ",
+    "ɑnijɑ"
+   ],
+   [
+    "aradığı",
+    "ɑɾɑdɨː",
+    "ɑɾddʒːː"
+   ],
+   [
+    "aradığında",
+    "ɑɾɑdɨːndɑ",
+    "ʰɾddʒːoːndɑ"
+   ],
+   [
+    "aradığını",
+    "ɑɾɑdɨːnɨ",
+    "ʰɾddʒːoːnː"
+   ],
+   [
+    "aradığınız",
+    "ɑɾɑdɨːnɨz̥",
+    "ʰɾddʒːoːnːU̥"
+   ],
+   [
+    "aradığınızda",
+    "ɑɾɑdɨːnɨzdɑ",
+    "ʰɾddʒːoːnːUzdɑ"
+   ],
+   [
+    "aradığınızı",
+    "ɑɾɑdɨːnɨzɨ",
+    "ʰɾddʒːoːnːUzːU"
+   ],
+   [
+    "aralığı",
+    "ɑɾɑłɨː",
+    "ʰɾɑłʒːoː"
+   ],
+   [
+    "aralığıdır",
+    "ɑɾɑłɨːdɨɣ",
+    "ɑɾdłʒːoːdːɣ"
+   ],
+   [
+    "aralığıyla",
+    "ɑɾɑłɨːjłɑ",
+    "ʰɾɑłʒːoːjłɑ"
+   ],
+   [
+    "arkadaşlığımız",
+    "ɑɾkɑdɑʃłɨːmɨz̥",
+    "ɑɾkʰdɑʃłʒːoːmːU̥"
+   ],
+   [
+    "atladığım",
+    "ɑtłɑdɨːm",
+    "ʰtłddʒːoːm"
+   ],
+   [
+    "ayırdığınız",
+    "ɑːIɨɾdɨːnɨz̥",
+    "ɑːːːUɾdʒːoːnːU̥"
+   ],
+   [
+    "ayırttığınız",
+    "ɑːIɨɾttɨːnɨz̥",
+    "ɑːIːUɾttʒːoːnːU̥"
+   ],
+   [
+    "azaldığını",
+    "ɑzɑłdɨːnɨ",
+    "ʰzʰłdʒːoːnː"
+   ],
+   [
+    "açtığında",
+    "ɑtʃtɨːndɑ",
+    "ʰʃtʒːoːndɑ"
+   ],
+   [
+    "açtığınızda",
+    "ɑtʃtɨːnɨzdɑ",
+    "ʰʃtʒːoːnːUzdː"
+   ],
+   [
+    "açıklığa",
+    "ɑtʃɨkłɨːɑ",
+    "ʰtʃʒkłʒːː"
+   ],
+   [
+    "açılmadığı",
+    "ɑtʃɨłmɑdɨː",
+    "ɑtʒłmddʒːoː"
+   ],
+   [
+    "aştığında",
+    "ɑʃtɨːndɑ",
+    "ʰʃtʒːoːndɑ"
+   ],
+   [
+    "balığı",
+    "bɑłɨː",
+    "bʰłʒːoː"
+   ],
+   [
+    "bastığınızda",
+    "bɑstɨːnɨzdɑ",
+    "bʰstʒːoːnːUzdː"
+   ],
+   [
+    "battaniyeyi",
+    "bɑttɑnIjɛːII",
+    "bɑttɑniːɛːII"
+   ],
+   [
+    "başladığında",
+    "bɑʃłɑdɨːndɑ",
+    "bʰʃłddʒːoːndː"
+   ],
+   [
+    "başlığa",
+    "bɑʃłɨːɑ",
+    "bʰʃłʒːː"
+   ],
+   [
+    "başlığı",
+    "bɑʃłɨː",
+    "bʰʃʒʒːoː"
+   ]
+  ],
+  "oov_sample": [
+   "a",
+   "aa",
+   "abartmayayım",
+   "abartmış",
+   "aboneliklerinde",
+   "aboneliği",
+   "aboneliğiniz",
+   "aboneliğinize",
+   "aboneliğinizi",
+   "acelemiz",
+   "acelesi",
+   "aceleye",
+   "aceleyle",
+   "acıkmadan",
+   "acıyı",
+   "adlarını",
+   "adrese",
+   "adresi",
+   "adresimiz",
+   "adresinden",
+   "adresini",
+   "adresiniz",
+   "adresinizde",
+   "adresinize",
+   "adresinizi",
+   "adresler",
+   "adresten",
+   "adı",
+   "adıma",
+   "adımda",
+   "adımdan",
+   "adımlar",
+   "adımlarda",
+   "adımları",
+   "adımı",
+   "adımında",
+   "adını",
+   "adının",
+   "adınız",
+   "adınıza",
+   "adınızı",
+   "adınızın",
+   "adıyla",
+   "affedersiniz",
+   "afiyetle",
+   "aileler",
+   "ajandama",
+   "akan",
+   "aklıma",
+   "aklımda",
+   "aklın",
+   "aklına",
+   "aklından",
+   "aklınıza",
+   "aklınızda",
+   "aksaklıklarda",
+   "aksaklığa",
+   "aksesuarları",
+   "aksime",
+   "aktaracağım"
+  ]
+ }
+}

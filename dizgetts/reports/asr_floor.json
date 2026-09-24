@@ -1,0 +1,60 @@
+{
+ "splits": [
+  "val",
+  "test"
+ ],
+ "clips": 143,
+ "cer": 0.047,
+ "wer": 0.1155,
+ "worst": [
+  [
+   0.8461538461538461,
+   "vd-scripted-2f7576af58c6f73006a9c7e7-script-seg-19cdf06755e8ae0c",
+   "sipariş kodunuzu harf harf söylüyorum de re ve elli beş sıfır dokuz me not alabildiniz mi randevunuz",
+   "sipariş kodunuzu harf har söylüyorum"
+  ],
+  [
+   0.7741935483870968,
+   "vd-scripted-ad328942fd134080ec4af8b3-script-seg-868f73f5d1021771",
+   "dilerseniz işlem özetini yazılı olarak da göndereceğim se ve ze kırk dokuz seksen yedi me numaralı k",
+   "dilerseniz işlem özetini yazılı olarak da göndereceğim"
+  ],
+  [
+   0.7241379310344828,
+   "vd-scripted-2f7576af58c6f73006a9c7e7-script-seg-dd2a0bf44d902bb1",
+   "eksik ya da yanlış bir bilgi var mı internet kotanız on altı gigabayt bu ayın yüzde seksen biri kull",
+   "eksik ya da yanlış bir bilgi var mı"
+  ],
+  [
+   0.7241379310344828,
+   "vd-scripted-2f7576af58c6f73006a9c7e7-script-seg-a227e8fab4276753",
+   "eksik ya da yanlış bir bilgi var mı internet kotanız yirmi beş gigabayt bu ayın yüzde kırk biri kull",
+   "eksik ya da yanlış bir bilgi var mı"
+  ],
+  [
+   0.7142857142857143,
+   "vd-scripted-2f7576af58c6f73006a9c7e7-script-seg-3789dd5c77e0eaef",
+   "eksik ya da yanlış bir bilgi var mı internet kotanız on altı gigabayt bu ayın yüzde altmışı kullanıl",
+   "eksik ya da yanlış bir bilgi var mı"
+  ],
+  [
+   0.42424242424242425,
+   "vd-scripted-2f7576af58c6f73006a9c7e7-script-seg-fff13aff72176e75",
+   "telefon numaranızı okuyorum sıfır beş sıfır beş yedi yüz yetmiş bir elli seksen altı doğru mu efendi",
+   "telefon numaranıza okuyorum sıfır beş sıfır beş yedi yüz yetmiş bir beş bin seksen altı doğru mu efe"
+  ],
+  [
+   0.38095238095238093,
+   "vd-scripted-f125f17594fd301db4d499a3-script-seg-200796c8bc9c59b7",
+   "sıfır sıfır pazar günleri yalnızca dahili dokuzdan ulaşılan nöbetçi danışma açık bekleme süreleri sa",
+   "on üç pazartesi günleri yalnızca dahili dokuzdan ulaşılan nöbetçi danışma açık bekleme süreleri saba"
+  ],
+  [
+   0.2692307692307692,
+   "vd-scripted-1127aa706441d448b6d0b294-script-seg-526626d276549fb5",
+   "sigorta şirketinizin adını söylerseniz anlaşma durumunu kontrol edeyim evet kaydınızda güvenpoliçe a",
+   "sigorta şirketinizin adını söylerseniz anlaşma durumunu kontrol edeyim evet kaydınızda güven poliçe "
+  ]
+ ],
+ "model": "openai/whisper-small"
+}

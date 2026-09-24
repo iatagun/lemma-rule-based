@@ -1,0 +1,4 @@
+# Aşama 5: dizge fonemleriyle ana model (+ noktalama duraklamaları). Prosodi (vurgu/öbek) sürümleri ayrı config olur.
+base: train_base.yaml
+name: main_dizge
+frontend: dizge

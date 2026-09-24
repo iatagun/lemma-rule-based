@@ -1,0 +1,1202 @@
+{
+ "clips": {
+  "train": 910,
+  "val": 59,
+  "test": 84
+ },
+ "clips_without_tokens": 0,
+ "words": 35338,
+ "unique_words": 7947,
+ "dizge_calls": 7947,
+ "dizge_failures": 0,
+ "dizge_failed_words": {},
+ "multi_variant_words": {
+  "değerler": [
+   "dejɛɾlɛɣ",
+   "dɛːIɛɾlɛɣ"
+  ],
+  "değil": [
+   "dejIl",
+   "dɛːIl"
+  ],
+  "gideceğiniz": [
+   "ɟIdedʒɛjInIz̥",
+   "ɟIdedʒɛjInIz̥"
+  ],
+  "daha": [
+   "dɑxɑ",
+   "dɑː"
+  ],
+  "değiştir": [
+   "dejIʃtIɣ",
+   "dɛːIʃtIɣ"
+  ],
+  "eğik": [
+   "ejIc",
+   "ɛːIc"
+  ],
+  "mahallesi": [
+   "mɑxɑłlɛsI",
+   "mɑːłlɛsI"
+  ],
+  "göndereceğim": [
+   "ɟœndeɾɛdʒɛjIm",
+   "ɟœndeɾɛdʒɛjIm"
+  ],
+  "haneli": [
+   "xɑnɛlI",
+   "ɑːnɛlI"
+  ],
+  "şeyi": [
+   "ʃejI",
+   "ʃɛːI"
+  ],
+  "değildir": [
+   "dejIldIɣ",
+   "dɛːIldIɣ"
+  ],
+  "değişimi": [
+   "dejIʃImI",
+   "dɛːIʃImI"
+  ],
+  "edeceğim": [
+   "edɛdʒɛjIm",
+   "edɛdʒɛjIm"
+  ],
+  "seçeneğimiz": [
+   "setʃɛnɛjImIz̥",
+   "setʃɛnɛjImIz̥"
+  ],
+  "değişim": [
+   "dejIʃIm",
+   "dɛːIʃIm"
+  ],
+  "bahar": [
+   "bɑxɑɣ",
+   "bɑːɣ"
+  ],
+  "teyit": [
+   "tʰejIt",
+   "tʰɛːIt"
+  ],
+  "özetleyeceğim": [
+   "œzetlɛjɛdʒɛjIm",
+   "œzetlɛjɛdʒɛjIm"
+  ],
+  "olabileceğim": [
+   "ɔłɑbIledʒɛjIm",
+   "ɔłɑbIledʒɛjIm"
+  ],
+  "netleştireceğim": [
+   "netlɛʃtIɾɛdʒɛjIm",
+   "netlɛʃtIɾɛdʒɛjIm"
+  ],
+  "değişiklik": [
+   "dejIʃIclIc",
+   "dɛːIʃIclIc"
+  ],
+  "bekleyeceğim": [
+   "beclɛjɛdʒɛjIm",
+   "beclɛjɛdʒɛjIm"
+  ],
+  "güncelleyeceğim": [
+   "ɟYndʒellɛjɛdʒɛjIm",
+   "ɟYndʒellɛjɛdʒɛjIm"
+  ],
+  "bitireceğim": [
+   "bItIɾedʒɛjIm",
+   "bItIɾedʒɛjIm"
+  ],
+  "düzenleyeceğim": [
+   "dYzenlɛjɛdʒɛjIm",
+   "dYzenlɛjɛdʒɛjIm"
+  ],
+  "geçireceğim": [
+   "ɟetʃIɾɛdʒɛjIm",
+   "ɟetʃIɾɛdʒɛjIm"
+  ],
+  "değerli": [
+   "dejɛɾlI",
+   "dɛːIɛɾlI"
+  ],
+  "rahat": [
+   "rɑxɑt",
+   "rɑːt"
+  ],
+  "hanesini": [
+   "xɑnɛsInI",
+   "ɑːnɛsInI"
+  ],
+  "eğer": [
+   "ejɛɣ",
+   "ɛːIɛɣ"
+  ],
+  "hane": [
+   "xɑnɛ",
+   "ɑːnɛ"
+  ],
+  "gereği": [
+   "ɟeɾɛjI",
+   "ɟeɾɛjI"
+  ],
+  "beyi": [
+   "bejI",
+   "bɛːI"
+  ],
+  "rahatına": [
+   "rɑxɑtɨnɑ",
+   "rɑːtɨnɑ"
+  ],
+  "gideceğiz": [
+   "ɟIdedʒɛjIz̥",
+   "ɟIdedʒɛjIz̥"
+  ],
+  "değilmiş": [
+   "dejIlmIʃ",
+   "dɛːIlmIʃ"
+  ],
+  "değerlendirme": [
+   "dejɛɾlɛndIɾmɛ",
+   "dɛːIɛɾlɛndIɾmɛ"
+  ],
+  "sevineceğim": [
+   "seʋInɛdʒɛjIm",
+   "seʋInɛdʒɛjIm"
+  ],
+  "bitirmeyeceğim": [
+   "bItIɾmejɛdʒɛjIm",
+   "bItIɾmɛːIɛdʒɛjIm"
+  ],
+  "ekleyeceğim": [
+   "eclɛjɛdʒɛjIm",
+   "eclɛjɛdʒɛjIm"
+  ],
+  "ilgileneceğiz": [
+   "IlɟIlenɛdʒɛjIz̥",
+   "IlɟIlenɛdʒɛjIz̥"
+  ],
+  "böreği": [
+   "bœɾɛjI",
+   "bœɾɛjI"
+  ],
+  "emeğine": [
+   "emɛjInɛ",
+   "emɛjInɛ"
+  ],
+  "değer": [
+   "dejɛɣ",
+   "dɛːIɛɣ"
+  ],
+  "değiştirmiş": [
+   "dejIʃtIɾmIʃ",
+   "dɛːIʃtIɾmIʃ"
+  ],
+  "bileceği": [
+   "bIledʒɛjI",
+   "bIledʒɛjI"
+  ],
+  "değirmendere": [
+   "dejIɾmɛndɛɾɛ",
+   "dɛːIɾmɛndɛɾɛ"
+  ],
+  "çiçeğe": [
+   "tʃItʃejɛ",
+   "tʃItʃɛːIɛ"
+  ],
+  "keyifli": [
+   "cʰejIflI",
+   "cʰɛːIflI"
+  ],
+  "isteğiniz": [
+   "IstɛjInIz̥",
+   "IstɛjInIz̥"
+  ],
+  "emeğini": [
+   "emɛjInI",
+   "emɛjInI"
+  ],
+  "değişikliğinizi": [
+   "dejIʃIclijInIzI",
+   "dɛːIʃIclijInIzI"
+  ],
+  "açılabileceğini": [
+   "ɑtʃɨłɑbIledʒɛjInI",
+   "ɑtʃɨłɑbIledʒɛjInI"
+  ],
+  "rahatlamak": [
+   "rɑxɑtłɑmɑk",
+   "rɑːtłɑmɑk"
+  ],
+  "değişiyor": [
+   "dejIʃIjɔɣ",
+   "dɛːIʃIjɔɣ"
+  ],
+  "kahvede": [
+   "kʰɑxvedɛ",
+   "kʰɑːvedɛ"
+  ],
+  "gideceğim": [
+   "ɟIdedʒɛjIm",
+   "ɟIdedʒɛjIm"
+  ],
+  "bahane": [
+   "bɑxɑnɛ",
+   "bɑːnɛ"
+  ],
+  "tutabileceğimi": [
+   "tʰUtɑbIledʒɛjImI",
+   "tʰUtɑbIledʒɛjImI"
+  ],
+  "değilmişim": [
+   "dejIlmIʃIm",
+   "dɛːIlmIʃIm"
+  ],
+  "dileğiyle": [
+   "dIlejIjlɛ",
+   "dIlɛːIjlɛ"
+  ],
+  "göstereceğim": [
+   "ɟœsteɾɛdʒɛjIm",
+   "ɟœsteɾɛdʒɛjIm"
+  ],
+  "izleyişinizde": [
+   "IzlejIʃInIzdɛ",
+   "IzlɛːIʃInIzdɛ"
+  ],
+  "diyeceğim": [
+   "dIjedʒɛjIm",
+   "dIjedʒɛjIm"
+  ],
+  "çizeceğim": [
+   "tʃIzedʒɛjIm",
+   "tʃIzedʒɛjIm"
+  ],
+  "örneğin": [
+   "œɾnɛjIn",
+   "œɾnɛjIn"
+  ],
+  "değiştirmemi": [
+   "dejIʃtIɾmɛmI",
+   "dɛːIʃtIɾmɛmI"
+  ],
+  "değiştirmek": [
+   "dejIʃtIɾmɛc",
+   "dɛːIʃtIɾmɛc"
+  ],
+  "göndereceğiz": [
+   "ɟœndeɾɛdʒɛjIz̥",
+   "ɟœndeɾɛdʒɛjIz̥"
+  ],
+  "değirmenözünden": [
+   "dejIɾmɛnœzYndɛn",
+   "dɛːIɾmɛnœzYndɛn"
+  ],
+  "değişebilir": [
+   "dejIʃɛbIlIɣ",
+   "dɛːIʃɛbIlIɣ"
+  ],
+  "mahalle": [
+   "mɑxɑłlɛ",
+   "mɑːłlɛ"
+  ],
+  "ulaşabileceğimiz": [
+   "UłɑʃɑbIledʒɛjImIz̥",
+   "UłɑʃɑbIledʒɛjImIz̥"
+  ],
+  "eğitmenin": [
+   "ejItmɛnIn",
+   "ɛːItmɛnIn"
+  ],
+  "eğitmen": [
+   "ejItmɛn",
+   "ɛːItmɛn"
+  ],
+  "değiştiriyor": [
+   "dejIʃtIɾIjɔɣ",
+   "dɛːIʃtIɾIjɔɣ"
+  ],
+  "değdiğini": [
+   "dejdijInI",
+   "dɛːIdijInI"
+  ],
+  "değerlendiriliyor": [
+   "dejɛɾlɛndIɾIlIjɔɣ",
+   "dɛːIɛɾlɛndIɾIlIjɔɣ"
+  ],
+  "çözeceğiz": [
+   "tʃœzedʒɛjIz̥",
+   "tʃœzedʒɛjIz̥"
+  ],
+  "kütüphane": [
+   "cʰYtYpxɑnɛ",
+   "cʰYtYpɑːnɛ"
+  ],
+  "beğendiniz": [
+   "bejɛndInIz̥",
+   "bɛːIɛndInIz̥"
+  ],
+  "yemeği": [
+   "jemɛjI",
+   "jemɛjI"
+  ],
+  "kütüphanenin": [
+   "cʰYtYpxɑnɛnIn",
+   "cʰYtYpɑːnɛnIn"
+  ],
+  "seçeneğine": [
+   "setʃɛnɛjInɛ",
+   "setʃɛnɛjInɛ"
+  ],
+  "rahatsız": [
+   "rɑxɑtsɨz̥",
+   "rɑːtsɨz̥"
+  ],
+  "seçeneğini": [
+   "setʃɛnɛjInI",
+   "setʃɛnɛjInI"
+  ],
+  "değişikliklerin": [
+   "dejIʃIclIclɛɾIn",
+   "dɛːIʃIclIclɛɾIn"
+  ],
+  "yapabileceğinize": [
+   "jɑpɑbIledʒɛjInIzɛ",
+   "jɑpɑbIledʒɛjInIzɛ"
+  ],
+  "değineceğim": [
+   "dejInɛdʒɛjIm",
+   "dɛːInɛdʒɛjIm"
+  ],
+  "etmeyeceğim": [
+   "etmɛjɛdʒɛjIm",
+   "etmɛjɛdʒɛjIm"
+  ],
+  "rahatça": [
+   "rɑxɑttʃɑ",
+   "rɑːttʃɑ"
+  ],
+  "değişikliği": [
+   "dejIʃIclijI",
+   "dɛːIʃIclijI"
+  ],
+  "neyin": [
+   "nejIn",
+   "nɛːIn"
+  ],
+  "rahatlığıyla": [
+   "rɑxɑtłɨːjłɑ",
+   "rɑːtłɨːjłɑ"
+  ],
+  "değişiklikler": [
+   "dejIʃIclIclɛɣ",
+   "dɛːIʃIclIclɛɣ"
+  ],
+  "değişiklikleri": [
+   "dejIʃIclIclɛɾI",
+   "dɛːIʃIclIclɛɾI"
+  ],
+  "görünmeyeceğini": [
+   "ɟœɾYnmejɛdʒɛjInI",
+   "ɟœɾYnmɛːIɛdʒɛjInI"
+  ],
+  "değiştireceğinizi": [
+   "dejIʃtIɾɛdʒɛjInIzI",
+   "dɛːIʃtIɾɛdʒɛjInIzI"
+  ],
+  "seçeneği": [
+   "setʃɛnɛjI",
+   "setʃɛnɛjI"
+  ],
+  "seçeneğin": [
+   "setʃɛnɛjIn",
+   "setʃɛnɛjIn"
+  ],
+  "neyi": [
+   "nejI",
+   "nɛːI"
+  ],
+  "değiştirebilirsiniz": [
+   "dejIʃtIɾɛbIlIɾsInIz̥",
+   "dɛːIʃtIɾɛbIlIɾsInIz̥"
+  ],
+  "keyif": [
+   "cʰejIf",
+   "cʰɛːIf"
+  ],
+  "değişti": [
+   "dejIʃtI",
+   "dɛːIʃtI"
+  ],
+  "değiştirir": [
+   "dejIʃtIɾIɣ",
+   "dɛːIʃtIɾIɣ"
+  ],
+  "değişir": [
+   "dejIʃIɣ",
+   "dɛːIʃIɣ"
+  ],
+  "değişmez": [
+   "dejIʃmɛz̥",
+   "dɛːIʃmɛz̥"
+  ],
+  "kahve": [
+   "kʰɑxvɛ",
+   "kʰɑːvɛ"
+  ],
+  "kahveyi": [
+   "kʰɑxvɛːII",
+   "kʰɑːvɛːII"
+  ],
+  "değiştireceğiz": [
+   "dejIʃtIɾɛdʒɛjIz̥",
+   "dɛːIʃtIɾɛdʒɛjIz̥"
+  ],
+  "değinelim": [
+   "dejInɛlIm",
+   "dɛːInɛlIm"
+  ],
+  "değiştirerek": [
+   "dejIʃtIɾɛɾɛc",
+   "dɛːIʃtIɾɛɾɛc"
+  ],
+  "mesleği": [
+   "meslɛjI",
+   "meslɛjI"
+  ],
+  "hanesi": [
+   "xɑnɛsI",
+   "ɑːnɛsI"
+  ],
+  "mahalledeki": [
+   "mɑxɑłledɛcI",
+   "mɑːłledɛcI"
+  ],
+  "geçemeyeceğim": [
+   "ɟetʃɛmɛjɛdʒɛjIm",
+   "ɟetʃɛmɛjɛdʒɛjIm"
+  ],
+  "kahvemi": [
+   "kʰɑxvɛmI",
+   "kʰɑːvɛmI"
+  ],
+  "geleceğine": [
+   "ɟelɛdʒɛjInɛ",
+   "ɟelɛdʒɛjInɛ"
+  ],
+  "fesleğen": [
+   "feslɛjɛn",
+   "feslɛjɛn"
+  ],
+  "değilim": [
+   "dejIlIm",
+   "dɛːIlIm"
+  ],
+  "değişmiş": [
+   "dejIʃmIʃ",
+   "dɛːIʃmIʃ"
+  ],
+  "mahallenin": [
+   "mɑxɑłlɛnIn",
+   "mɑːłlɛnIn"
+  ],
+  "ödeyeceğim": [
+   "œdejɛdʒɛjIm",
+   "œdɛːIɛdʒɛjIm"
+  ],
+  "dileyeceğim": [
+   "dIlejɛdʒɛjIm",
+   "dIlɛːIɛdʒɛjIm"
+  ],
+  "ilerleyeceğiz": [
+   "IleɾlɛjɛdʒɛjIz̥",
+   "IleɾlɛjɛdʒɛjIz̥"
+  ],
+  "değilse": [
+   "dejIlsɛ",
+   "dɛːIlsɛ"
+  ],
+  "yenileyeceğim": [
+   "jenIlɛjɛdʒɛjIm",
+   "jenIlɛjɛdʒɛjIm"
+  ],
+  "değişikliğinde": [
+   "dejIʃIclijIndɛ",
+   "dɛːIʃIclijIndɛ"
+  ],
+  "vereceğiz": [
+   "veɾɛdʒɛjIz̥",
+   "veɾɛdʒɛjIz̥"
+  ],
+  "ekleyeceğin": [
+   "eclɛjɛdʒɛjIn",
+   "eclɛjɛdʒɛjIn"
+  ],
+  "isteği": [
+   "IstɛjI",
+   "IstɛjI"
+  ],
+  "mahallelerinde": [
+   "mɑxɑłlelɛɾIndɛ",
+   "mɑːłlelɛɾIndɛ"
+  ],
+  "değiştiyse": [
+   "dejIʃtIjsɛ",
+   "dɛːIʃtIjsɛ"
+  ],
+  "keseceğim": [
+   "cʰesɛdʒɛjIm",
+   "cʰesɛdʒɛjIm"
+  ],
+  "seyahat": [
+   "sejɑxɑt",
+   "sejɑːt"
+  ],
+  "seyahati": [
+   "sejɑxɑtI",
+   "sejɑːtI"
+  ],
+  "seyahatin": [
+   "sejɑxɑtIn",
+   "sejɑːtIn"
+  ],
+  "isteğe": [
+   "Istejɛ",
+   "IstɛːIɛ"
+  ],
+  "ileteceğiz": [
+   "IletɛdʒɛjIz̥",
+   "IletɛdʒɛjIz̥"
+  ],
+  "keyifle": [
+   "cʰejIflɛ",
+   "cʰɛːIflɛ"
+  ],
+  "dahaki": [
+   "dɑxɑcI",
+   "dɑːcI"
+  ],
+  "ineceğini": [
+   "InedʒɛjInI",
+   "InedʒɛjInI"
+  ],
+  "rahatladım": [
+   "rɑxɑtłɑdɨm",
+   "rɑːtłɑdɨm"
+  ],
+  "şeyin": [
+   "ʃejIn",
+   "ʃɛːIn"
+  ],
+  "değildim": [
+   "dejIldIm",
+   "dɛːIldIm"
+  ],
+  "sabaha": [
+   "sɑbɑxɑ",
+   "sɑbɑː"
+  ],
+  "ekmeği": [
+   "ecmɛjI",
+   "ecmɛjI"
+  ],
+  "rahatladı": [
+   "rɑxɑtłɑdɨ",
+   "rɑːtłɑdɨ"
+  ],
+  "yüreğim": [
+   "jYɾɛjIm",
+   "jYɾɛjIm"
+  ],
+  "demeyeceğim": [
+   "demɛjɛdʒɛjIm",
+   "demɛjɛdʒɛjIm"
+  ],
+  "öğreneceğim": [
+   "øːɾenɛdʒɛjIm",
+   "øːɾenɛdʒɛjIm"
+  ],
+  "saha": [
+   "sɑxɑ",
+   "sɑː"
+  ],
+  "mahallenizdeki": [
+   "mɑxɑłlenIzdɛcI",
+   "mɑːłlenIzdɛcI"
+  ],
+  "değineyim": [
+   "dejInɛjIm",
+   "dɛːInɛjIm"
+  ],
+  "değişebiliyor": [
+   "dejIʃɛbIlIjɔɣ",
+   "dɛːIʃɛbIlIjɔɣ"
+  ],
+  "bekleyeceğini": [
+   "beclɛjɛdʒɛjInI",
+   "beclɛjɛdʒɛjInI"
+  ],
+  "rahatlar": [
+   "rɑxɑtłɑɣ",
+   "rɑːtłɑɣ"
+  ],
+  "gülümseyince": [
+   "ɟYlYmsejIndʒɛ",
+   "ɟYlYmsɛːIndʒɛ"
+  ],
+  "değildi": [
+   "dejIldI",
+   "dɛːIldI"
+  ],
+  "değişince": [
+   "dejIʃIndʒɛ",
+   "dɛːIʃIndʒɛ"
+  ],
+  "gerçeğin": [
+   "ɟeɾtʃɛjIn",
+   "ɟeɾtʃɛjIn"
+  ],
+  "köpeğine": [
+   "cʰœpejInɛ",
+   "cʰœpɛːInɛ"
+  ],
+  "söyleyeceğin": [
+   "sœjlejɛdʒɛjIn",
+   "sœjlɛːIɛdʒɛjIn"
+  ],
+  "emeğinin": [
+   "emɛjInIn",
+   "emɛjInIn"
+  ],
+  "rahatlıyor": [
+   "rɑxɑtłɨjɔɣ",
+   "rɑːtłɨjɔɣ"
+  ],
+  "eğlenmişti": [
+   "ejlɛnmIʃtI",
+   "ɛːIlɛnmIʃtI"
+  ],
+  "göndereceğimizi": [
+   "ɟœndeɾɛdʒɛjImIzI",
+   "ɟœndeɾɛdʒɛjImIzI"
+  ],
+  "teyidin": [
+   "tʰejIdIn",
+   "tʰɛːIdIn"
+  ],
+  "teyidim": [
+   "tʰejIdIm",
+   "tʰɛːIdIm"
+  ],
+  "rahatlatır": [
+   "rɑxɑtłɑtɨɣ",
+   "rɑːtłɑtɨɣ"
+  ],
+  "teyidi": [
+   "tʰejIdI",
+   "tʰɛːIdI"
+  ],
+  "yapabileceğinizi": [
+   "jɑpɑbIledʒɛjInIzI",
+   "jɑpɑbIledʒɛjInIzI"
+  ],
+  "kahvenin": [
+   "kʰɑxvɛnIn",
+   "kʰɑːvɛnIn"
+  ],
+  "kahvemizi": [
+   "kʰɑxvɛmIzI",
+   "kʰɑːvɛmIzI"
+  ],
+  "kahvenize": [
+   "kʰɑxvenIzɛ",
+   "kʰɑːvenIzɛ"
+  ],
+  "kahveler": [
+   "kʰɑxvelɛɣ",
+   "kʰɑːvelɛɣ"
+  ],
+  "kahvenizin": [
+   "kʰɑxvɛnIzIn",
+   "kʰɑːvɛnIzIn"
+  ],
+  "kahveniz": [
+   "kʰɑxvɛnIz̥",
+   "kʰɑːvɛnIz̥"
+  ],
+  "rahattı": [
+   "rɑxɑttɨ",
+   "rɑːttɨ"
+  ],
+  "gideceğin": [
+   "ɟIdedʒɛjIn",
+   "ɟIdedʒɛjIn"
+  ],
+  "rahatlığı": [
+   "rɑxɑtłɨː",
+   "rɑːtłɨː"
+  ],
+  "söyleyeceğim": [
+   "sœjlejɛdʒɛjIm",
+   "sœjlɛːIɛdʒɛjIm"
+  ],
+  "değiştirsinler": [
+   "dejIʃtIɾsInlɛɣ",
+   "dɛːIʃtIɾsInlɛɣ"
+  ],
+  "paha": [
+   "pʰɑxɑ",
+   "pʰɑː"
+  ],
+  "rahatlık": [
+   "rɑxɑtłɨk",
+   "rɑːtłɨk"
+  ],
+  "emeğin": [
+   "emɛjIn",
+   "emɛjIn"
+  ],
+  "değerliydi": [
+   "dejɛɾlIjdI",
+   "dɛːIɛɾlIjdI"
+  ],
+  "fesleğeni": [
+   "feslɛjɛnI",
+   "feslɛjɛnI"
+  ],
+  "gideceğini": [
+   "ɟIdedʒɛjInI",
+   "ɟIdedʒɛjInI"
+  ],
+  "yemeğe": [
+   "jemɛjɛ",
+   "jemɛjɛ"
+  ],
+  "isteğin": [
+   "IstɛjIn",
+   "IstɛjIn"
+  ],
+  "uygulanabileceği": [
+   "UjgUłɑnɑbIledʒɛjI",
+   "UjgUłɑnɑbIledʒɛjI"
+  ],
+  "yemeğinize": [
+   "jemɛjInIzɛ",
+   "jemɛjInIzɛ"
+  ],
+  "edeceğiz": [
+   "edɛdʒɛjIz̥",
+   "edɛdʒɛjIz̥"
+  ],
+  "göreceğiniz": [
+   "ɟœɾedʒɛjInIz̥",
+   "ɟœɾedʒɛjInIz̥"
+  ]
+ },
+ "unknown_dizge_chars": {},
+ "espeak_symbols": [
+  " ",
+  "!",
+  ",",
+  ".",
+  ";",
+  "?",
+  "a",
+  "b",
+  "c",
+  "d",
+  "e",
+  "f",
+  "h",
+  "i",
+  "j",
+  "k",
+  "l",
+  "m",
+  "n",
+  "o",
+  "p",
+  "r",
+  "s",
+  "t",
+  "u",
+  "v",
+  "w",
+  "y",
+  "z",
+  "æ",
+  "ø",
+  "œ",
+  "ɔ",
+  "ɛ",
+  "ɟ",
+  "ɡ",
+  "ɪ",
+  "ɫ",
+  "ɯ",
+  "ɾ",
+  "ʃ",
+  "ʊ",
+  "ʒ",
+  "ˈ",
+  "ˌ",
+  "ː"
+ ],
+ "espeak_symbol_counts": [
+  [
+   " ",
+   41536
+  ],
+  [
+   "ˈ",
+   31608
+  ],
+  [
+   "a",
+   22285
+  ],
+  [
+   "n",
+   14140
+  ],
+  [
+   "ɪ",
+   11847
+  ],
+  [
+   "d",
+   10297
+  ],
+  [
+   "ɯ",
+   9506
+  ],
+  [
+   "k",
+   9372
+  ],
+  [
+   "t",
+   9208
+  ],
+  [
+   "m",
+   9167
+  ],
+  [
+   "ɛ",
+   8699
+  ],
+  [
+   "r",
+   8599
+  ],
+  [
+   "j",
+   8238
+  ],
+  [
+   "e",
+   8166
+  ],
+  [
+   "s",
+   7136
+  ],
+  [
+   "i",
+   6771
+  ],
+  [
+   "ʃ",
+   5806
+  ],
+  [
+   "l",
+   5616
+  ],
+  [
+   "ɾ",
+   5433
+  ],
+  [
+   "b",
+   5324
+  ],
+  [
+   "ɫ",
+   5177
+  ],
+  [
+   "z",
+   5067
+  ],
+  [
+   "ʊ",
+   4207
+  ],
+  [
+   ".",
+   3024
+  ],
+  [
+   "ɔ",
+   2982
+  ],
+  [
+   "o",
+   2944
+  ],
+  [
+   ",",
+   2724
+  ],
+  [
+   "u",
+   2687
+  ],
+  [
+   "æ",
+   2552
+  ],
+  [
+   "ɟ",
+   2543
+  ],
+  [
+   "ø",
+   2500
+  ],
+  [
+   "ʒ",
+   2230
+  ],
+  [
+   "h",
+   2144
+  ],
+  [
+   "œ",
+   2115
+  ],
+  [
+   "y",
+   1642
+  ],
+  [
+   "v",
+   1576
+  ],
+  [
+   "p",
+   1519
+  ],
+  [
+   "ː",
+   1277
+  ],
+  [
+   "f",
+   1044
+  ],
+  [
+   ";",
+   827
+  ],
+  [
+   "?",
+   664
+  ],
+  [
+   "ɡ",
+   551
+  ],
+  [
+   "ˌ",
+   212
+  ],
+  [
+   "c",
+   130
+  ],
+  [
+   "!",
+   25
+  ],
+  [
+   "w",
+   1
+  ]
+ ],
+ "espeak_version": "(1, 52, 0)",
+ "normalizer_vs_antalia": {
+  "n": 1053,
+  "exact_canon_match": 720,
+  "exact_rate": 0.6838,
+  "cer": 0.0133,
+  "worst": [
+   [
+    0.28515625,
+    "vd-scripted-1076f8f77e445cd80c6da8d3-script-seg-d4d2e9f7f74f4e83",
+    "nisan faturanız dört yüz on iki virgül yedi üç türk lirası olarak kesildi üç yüz seksen dokuz virgül beş sıfır türk lirası paket ücreti on sekiz virgül dokuz sı",
+    "nisan faturanız dört yüz on iki lira yetmiş üç kuruş olarak kesildi üç yüz seksen dokuz lira elli kuruş paket ücreti on sekiz lira doksan kuruş yurt dışı arama "
+   ],
+   [
+    0.23497267759562843,
+    "vd-scripted-797531ded2f715788deab91c-script-seg-ee888956e2ec4db8",
+    "bagaj hakkınız on beş kilogram kabin bagajı için sınır sekiz kilogram ve boyutlar en fazla 55x40x23 santimetre olmalı fazla bagajın kilosu doksan beş türk liras",
+    "bagaj hakkınız on beş kilogram kabin bagajı için sınır sekiz kilogram ve boyutlar en fazla elli beş çarpı kırk çarpı yirmi üç santimetre olmalı fazla bagajın ki"
+   ],
+   [
+    0.1897810218978102,
+    "vd-scripted-797531ded2f715788deab91c-script-seg-424bcc1900adbf7b",
+    "on ifadesi kapının kapanış değil açılış saatidir koltuğunuz 14c yani koridor tarafı yanınızdaki 14b şu an boş 14a pencere kenarı ise dolu",
+    "on ifadesi kapının kapanış değil açılış saatidir koltuğunuz on dört ce yani koridor tarafı yanınızdaki on dört be şu an boş on dört a pencere kenarı ise dolu"
+   ],
+   [
+    0.1695906432748538,
+    "vd-scripted-2cc182c8c5af9ec52978d0e8-script-seg-165dbd7fcaf402ba",
+    "son dört işleminizi de özetleyeyim iki mart ta market alışverişi için üç yüz kırk sekiz virgül dokuz sıfır türk lirası beş mart ta bin iki yüz doksan dokuz sıfı",
+    "son dört işleminizi de özetleyeyim iki martta market alışverişi için üç yüz kırk sekiz lira doksan kuruş beş martta bin iki yüz doksan dokuz lira tutarında elek"
+   ],
+   [
+    0.14507772020725387,
+    "vd-scripted-b85d713939c420fdc4ba64be-script-seg-daf74dd6d808f898",
+    "telefon numaranızı okuyorum beş yüz otuz iki yüz otuz seksen dört doksan ikinci doğru mu efendim sipariş kodunuzu harf harf söylüyorum re te se dört bin iki yüz",
+    "telefon numaranızı okuyorum sıfır beş üç sıfır iki yüz otuz seksen dört doksan iki doğru mu efendim sipariş kodunuzu harf harf söylüyorum re te se kırk iki yirm"
+   ],
+   [
+    0.1390728476821192,
+    "vd-scripted-a648ae3c9c259075995be4ae-script-seg-6c7ecfcaf285e6b6",
+    "bu tarihten sonra günlük binde iki virgül beş gecikme zammı işliyor örneğin beş gün gecikirseniz yaklaşık on virgül üç sıfır türk lirası fark ödersiniz",
+    "bu tarihten sonra günlük binde iki virgül beş gecikme zammı işliyor örneğin beş gün gecikirseniz yaklaşık on lira otuz kuruş fark ödersiniz"
+   ],
+   [
+    0.1377551020408163,
+    "vd-scripted-b85d713939c420fdc4ba64be-script-seg-73be5a944263c1fc",
+    "telefon numaranızı okuyorum beş yüz otuz iki altı yüz elli dört otuz dört kırk üçüncü doğru mu efendim sipariş kodunuzu harf harf söylüyorum re pe ze dört bin d",
+    "telefon numaranızı okuyorum sıfır beş üç iki altı yüz elli dört otuz dört kırk üç doğru mu efendim sipariş kodunuzu harf harf söylüyorum re pe ze kırk dört elli"
+   ],
+   [
+    0.13440860215053763,
+    "vd-scripted-cda7fa7c8a9660d20107e837-script-seg-a4ed85cbc86cf6cb",
+    "telefon numaranızı okuyorum beş yüz beş altı yüz bir yetmiş iki elli üçüncü doğru mu efendim sipariş kodunuzu harf harf söylüyorum be pe te sekiz bin dört yüz y",
+    "telefon numaranızı okuyorum sıfır beş sıfır beş altı yüz bir yetmiş iki elli üç doğru mu efendim sipariş kodunuzu harf harf söylüyorum be pe te seksen dört yetm"
+   ],
+   [
+    0.13333333333333333,
+    "vd-scripted-5ee870a7030f175cf3ca556f-script-seg-37b2cc1b8e823a3a",
+    "telefon numaranızı okuyorum beş yüz elli üç altı yüz altmış altı on iki kırk birinci doğru mu efendim sipariş kodunuzu harf harf söylüyorum me ve de beş bin dok",
+    "telefon numaranızı okuyorum sıfır beş beş üç altı yüz altmış altı on iki kırk bir doğru mu efendim sipariş kodunuzu harf harf söylüyorum me ve de elli dokuz on "
+   ],
+   [
+    0.1306532663316583,
+    "vd-scripted-c57204311f9983974564c328-script-seg-9d07067f824c596d",
+    "telefon numaranızı okuyorum beş yüz otuz iki iki yüz on altı yetmiş doksan dokuzuncu doğru mu efendim sipariş kodunuzu harf harf söylüyorum ve pe ke dokuz bin d",
+    "telefon numaranızı okuyorum sıfır beş üç iki iki yüz on altı yetmiş doksan dokuz doğru mu efendim sipariş kodunuzu harf harf söylüyorum ve pe ke doksan dört yir"
+   ],
+   [
+    0.12883435582822086,
+    "vd-scripted-2cc182c8c5af9ec52978d0e8-script-seg-441ae26c99aec92e",
+    "merhaba ben doruk bankası nın sesli asistanı hesap özetinizle ilgili bilgi almak istediğinizi anladım şu anda ekranınızda görünen bakiye on iki bin dört yüz sek",
+    "merhaba ben doruk bankasının sesli asistanı hesap özetinizle ilgili bilgi almak istediğinizi anladım şu anda ekranınızda görünen bakiye on iki bin dört yüz seks"
+   ],
+   [
+    0.128099173553719,
+    "vd-scripted-797531ded2f715788deab91c-script-seg-0605fe70bbf2802e",
+    "millerin geçerliliği son işlemden itibaren üç yıl hesabınız hareketli kaldıkça süre uzuyor ek hizmetlerden koltuk yanı ikram paketini seksen dokuz virgül dokuz ",
+    "millerin geçerliliği son işlemden itibaren üç yıl hesabınız hareketli kaldıkça süre uzuyor ek hizmetlerden koltuk yanı ikram paketini seksen dokuz lira doksan k"
+   ],
+   [
+    0.1222707423580786,
+    "vd-scripted-1076f8f77e445cd80c6da8d3-script-seg-636390e38be012b7",
+    "sıfır dakika ifadesindeki nokta binlik ayraçtır bin dakika anlamına gelir bir dakika değil özetleyeyim kalan kullanımınız altı virgül altı gigabayt faturanız dö",
+    "sıfır sıfır sıfır dakika ifadesindeki nokta binlik ayraçtır bin dakika anlamına gelir bir dakika değil özetleyeyim kalan kullanımınız altı virgül altı gigabayt "
+   ],
+   [
+    0.12218649517684887,
+    "vd-scripted-1076f8f77e445cd80c6da8d3-script-seg-694086903a9d3e40",
+    "yurt dışı kullanımını sorduysanız gideceğiniz ülkede günlük paket yüz seksen dokuz türk lirası bir gigabayt internet ve otuz dakika içeriyor beş günlük paket is",
+    "yurt dışı kullanımını sorduysanız gideceğiniz ülkede günlük paket yüz seksen dokuz lira bir gigabayt internet ve otuz dakika içeriyor beş günlük paket ise yedi "
+   ],
+   [
+    0.12121212121212122,
+    "vd-scripted-c57204311f9983974564c328-script-seg-ff3dfd6520c01d89",
+    "telefon numaranızı okuyorum beş yüz kırk iki üç yüz otuz üç yetmiş sekiz elli sekizinci doğru mu efendim sipariş kodunuzu harf harf söylüyorum be ve de sekiz bi",
+    "telefon numaranızı okuyorum sıfır beş dört iki üç yüz otuz üç yetmiş sekiz elli sekiz doğru mu efendim sipariş kodunuzu harf harf söylüyorum be ve de seksen alt"
+   ],
+   [
+    0.1118421052631579,
+    "vd-scripted-1076f8f77e445cd80c6da8d3-script-seg-15a1e632bf4d9e19",
+    "mevcut paketiniz ayda yirmi beş gigabayt internet bin dakika ve beş yüz se me se içeriyor aylık ücreti üç yüz seksen dokuz virgül beş sıfır türk lirası bu dönem",
+    "mevcut paketiniz ayda yirmi beş gigabayt internet bin dakika ve beş yüz es em es içeriyor aylık ücreti üç yüz seksen dokuz lira elli kuruş bu dönem yirmi beş gi"
+   ],
+   [
+    0.11170212765957446,
+    "vd-scripted-d937c6211adbe8d939c0f6a7-script-seg-1c4a93918eb60790",
+    "telefon numaranızı okuyorum beş yüz beş beş yüz doksan bir kırk dokuz kırk yedinci doğru mu efendim sipariş kodunuzu harf harf söylüyorum me te be bin dört yüz ",
+    "telefon numaranızı okuyorum sıfır beş sıfır beş beş yüz doksan bir kırk dokuz kırk yedi doğru mu efendim sipariş kodunuzu harf harf söylüyorum me te be on dört "
+   ],
+   [
+    0.10989010989010989,
+    "vd-scripted-2f7576af58c6f73006a9c7e7-script-seg-546a158fb5dc8f9a",
+    "telefon numaranızı okuyorum beş yüz otuz iki üç yüz yetmiş altı yetmiş doksan ikinci doğru mu efendim sipariş kodunuzu harf harf söylüyorum pe pe me dokuz bin o",
+    "telefon numaranızı okuyorum sıfır beş üç iki üç yüz yetmiş altı yetmiş doksan iki doğru mu efendim sipariş kodunuzu harf harf söylüyorum pe pe me doksan on e no"
+   ],
+   [
+    0.10897435897435898,
+    "vd-scripted-2f7576af58c6f73006a9c7e7-script-seg-98e75f010fe9ab53",
+    "sipariş kodunuzu harf harf söylüyorum ke de ze beş bin sekiz yüz r not alabildiniz mi randevunuz cuma günü sabah on birde olarak görünüyor onaylıyor musunuz",
+    "sipariş kodunuzu harf harf söylüyorum ke de ze elli sekiz sıfır sıfır re not alabildiniz mi randevunuz cuma günü sabah on birde olarak görünüyor onaylıyor musun"
+   ],
+   [
+    0.10695187165775401,
+    "vd-scripted-797531ded2f715788deab91c-script-seg-75b090020a858832",
+    "gökyolu havayolları rezervasyon hattına hoş geldiniz ben sesli asistanınız pe ne re kodunuz vkt7m2 olarak görünüyor harf harf doğrulayalım v k t ardından yedi r",
+    "gökyolu havayolları rezervasyon hattına hoş geldiniz ben sesli asistanınız pe ne re kodunuz ve ke te yedi me iki olarak görünüyor harf harf doğrulayalım ve ke t"
+   ],
+   [
+    0.10695187165775401,
+    "vd-scripted-2f7576af58c6f73006a9c7e7-script-seg-fff13aff72176e75",
+    "telefon numaranızı okuyorum beş yüz beş yedi yüz yetmiş bir elli seksen altıncı doğru mu efendim sipariş kodunuzu harf harf söylüyorum re be te bin altı yüz ell",
+    "telefon numaranızı okuyorum sıfır beş sıfır beş yedi yüz yetmiş bir elli seksen altı doğru mu efendim sipariş kodunuzu harf harf söylüyorum re be te on altı ell"
+   ],
+   [
+    0.09854014598540146,
+    "vd-scripted-1ecfad3ce1713543505ce716-script-seg-c3e651f582672f23",
+    "telefon numaranızı okuyorum beş yüz otuz iki dört yüz on sekiz elli bir seksen üçüncü doğru mu efendim sipariş kodunuzu harf harf söylüyorum be re re dört bin a",
+    "telefon numaranızı okuyorum sıfır beş üç iki dört yüz on sekiz elli bir seksen üç doğru mu efendim sipariş kodunuzu harf harf söylüyorum be re re kırk altı altm"
+   ],
+   [
+    0.096045197740113,
+    "vd-scripted-2f7576af58c6f73006a9c7e7-script-seg-0b1e33e2b4577887",
+    "doğru mu efendim sipariş kodunuzu harf harf söylüyorum se pe te dört bin altı yüz m not alabildiniz mi randevunuz perşembe günü saat on dörtte olarak görünüyor ",
+    "doğru mu efendim sipariş kodunuzu harf harf söylüyorum se pe te kırk altı sıfır sıfır me not alabildiniz mi randevunuz perşembe günü saat on dörtte olarak görün"
+   ],
+   [
+    0.0946969696969697,
+    "vd-scripted-797531ded2f715788deab91c-script-seg-d5797d4c75f3ae6d",
+    "örneğin valiziniz on sekiz virgül beş kilogram gelirse aradaki üç virgül beş kilogram için üç yüz otuz iki virgül beş sıfır türk lirası ödersiniz tartıdaki virg",
+    "örneğin valiziniz on sekiz virgül beş kilogram gelirse aradaki üç virgül beş kilogram için üç yüz otuz iki lira elli kuruş ödersiniz tartıdaki virgüllü değerler"
+   ],
+   [
+    0.09465020576131687,
+    "vd-scripted-843d1c61bf9d3602ef7baf4e-script-seg-6d4a013321f10061",
+    "standart koltuk dört yüz seksen türk lirası geniş koltuk altı yüz yirmi türk lirası ayrıca bu ay yüzde on beş indirim uyguluyoruz yani standart bilet dört yüz s",
+    "standart koltuk dört yüz seksen lira geniş koltuk altı yüz yirmi lira ayrıca bu ay yüzde on beş indirim uyguluyoruz yani standart bilet dört yüz sekiz liraya dü"
+   ]
+  ]
+ },
+ "unused_dizge_atoms": [
+  "Yː",
+  "a",
+  "o",
+  "u",
+  "y",
+  "œː",
+  "ɔː",
+  "ɱ",
+  "ː"
+ ],
+ "git_commit": "4a6ba87",
+ "dizge_atoms_used": 56
+}

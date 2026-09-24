@@ -1,0 +1,9 @@
+# Ablasyon: sözcük sınırı TOKEN değil fonem başına ÖZNİTELİK (sözcük-başı + final kırılma sınıfı); metin kuralından (dağıtılabilir):
+# B3 = noktalama izleyen / cümle sonu sözcük, aksi halde B1. Ayraç token'ı yok -> sınır süre harcamaz (frontend/prosody.py).
+base: main_dizge.yaml
+name: main_dizge_feat_e150
+frontend: dizge_feat
+model:
+  factor_feats: 8
+train:
+  epochs: 150

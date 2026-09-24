@@ -1,0 +1,6 @@
+# Ablasyon: espeak fonemleri VURGUSUZ (ˈ ˌ atılır). Amaç: dizge (vurgusuz) ile adil karşılaştırma; baseline'ın avantajı vurgu işaretinden mi?
+base: baseline_espeak.yaml
+name: baseline_espeak_nostress_e150
+espeak_strip_stress: true
+train:
+  epochs: 150

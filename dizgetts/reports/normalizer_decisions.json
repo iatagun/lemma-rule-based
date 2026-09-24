@@ -1,0 +1,475 @@
+{
+ "currency": {
+  "n_clips": 16,
+  "wins_total_nll": {
+   "virgül_türk_lirası(antalia)": 4,
+   "lira_kuruş(mine)": 12
+  },
+  "wins_nll_per_token": {
+   "virgül_türk_lirası(antalia)": 5,
+   "lira_kuruş(mine)": 11
+  },
+  "sample": [
+   {
+    "id": "vd-scripted-1076f8f77e445cd80c6da8d3-script-seg-15a1e632bf4d9e19",
+    "nll": {
+     "lira_kuruş(mine)": 133.41,
+     "virgül_türk_lirası(antalia)": 122.66
+    }
+   },
+   {
+    "id": "vd-scripted-1076f8f77e445cd80c6da8d3-script-seg-636390e38be012b7",
+    "nll": {
+     "lira_kuruş(mine)": 137.11,
+     "virgül_türk_lirası(antalia)": 128.12
+    }
+   },
+   {
+    "id": "vd-scripted-1076f8f77e445cd80c6da8d3-script-seg-694086903a9d3e40",
+    "nll": {
+     "lira_kuruş(mine)": 113.85,
+     "virgül_türk_lirası(antalia)": 114.21
+    }
+   },
+   {
+    "id": "vd-scripted-1076f8f77e445cd80c6da8d3-script-seg-ccfe5f3d47e732fd",
+    "nll": {
+     "lira_kuruş(mine)": 108.6,
+     "virgül_türk_lirası(antalia)": 107.89
+    }
+   },
+   {
+    "id": "vd-scripted-1076f8f77e445cd80c6da8d3-script-seg-d4d2e9f7f74f4e83",
+    "nll": {
+     "lira_kuruş(mine)": 124.28,
+     "virgül_türk_lirası(antalia)": 68.77
+    }
+   }
+  ]
+ },
+ "sms": {
+  "n_clips": 47,
+  "wins_total_nll": {
+   "es_em_es(mine)": 38,
+   "se_me_se(antalia)": 9
+  },
+  "wins_nll_per_token": {
+   "es_em_es(mine)": 38,
+   "se_me_se(antalia)": 9
+  },
+  "sample": [
+   {
+    "id": "vd-scripted-1076f8f77e445cd80c6da8d3-script-seg-15a1e632bf4d9e19",
+    "nll": {
+     "es_em_es(mine)": 133.41,
+     "se_me_se(antalia)": 137.49
+    }
+   },
+   {
+    "id": "vd-scripted-1ecfad3ce1713543505ce716-script-seg-0736651f97149bed",
+    "nll": {
+     "es_em_es(mine)": 84.06,
+     "se_me_se(antalia)": 86.76
+    }
+   },
+   {
+    "id": "vd-scripted-1ecfad3ce1713543505ce716-script-seg-1e494e6f0c9185e3",
+    "nll": {
+     "es_em_es(mine)": 132.56,
+     "se_me_se(antalia)": 130.08
+    }
+   },
+   {
+    "id": "vd-scripted-1ecfad3ce1713543505ce716-script-seg-2bf9af56497cbebf",
+    "nll": {
+     "es_em_es(mine)": 96.86,
+     "se_me_se(antalia)": 96.1
+    }
+   },
+   {
+    "id": "vd-scripted-1ecfad3ce1713543505ce716-script-seg-4a9a8c621579675f",
+    "nll": {
+     "es_em_es(mine)": 74.02,
+     "se_me_se(antalia)": 76.21
+    }
+   }
+  ]
+ },
+ "www": {
+  "n_clips": 13,
+  "wins_total_nll": {
+   "vi_vi_vi": 13
+  },
+  "wins_nll_per_token": {
+   "dabılyu×3": 3,
+   "vi_vi_vi": 10
+  },
+  "sample": [
+   {
+    "id": "vd-scripted-1ecfad3ce1713543505ce716-script-seg-1e494e6f0c9185e3",
+    "nll": {
+     "ve_ve_ve(mine)": 132.56,
+     "vevevev": 143.3,
+     "çift_ve×3": 153.82,
+     "dabılyu×3": 140.04,
+     "vi_vi_vi": 129.73
+    }
+   },
+   {
+    "id": "vd-scripted-1ecfad3ce1713543505ce716-script-seg-da709b1bbbb1f2a0",
+    "nll": {
+     "ve_ve_ve(mine)": 168.3,
+     "vevevev": 178.2,
+     "çift_ve×3": 190.24,
+     "dabılyu×3": 174.0,
+     "vi_vi_vi": 156.87
+    }
+   },
+   {
+    "id": "vd-scripted-5ee870a7030f175cf3ca556f-script-seg-634a3e125f808f9e",
+    "nll": {
+     "ve_ve_ve(mine)": 121.74,
+     "vevevev": 130.34,
+     "çift_ve×3": 143.54,
+     "dabılyu×3": 127.96,
+     "vi_vi_vi": 111.16
+    }
+   },
+   {
+    "id": "vd-scripted-b85d713939c420fdc4ba64be-script-seg-54237fc1fd65e3bd",
+    "nll": {
+     "ve_ve_ve(mine)": 165.02,
+     "vevevev": 170.29,
+     "çift_ve×3": 187.19,
+     "dabılyu×3": 176.07,
+     "vi_vi_vi": 157.33
+    }
+   },
+   {
+    "id": "vd-scripted-b85d713939c420fdc4ba64be-script-seg-971adaf4b585c277",
+    "nll": {
+     "ve_ve_ve(mine)": 112.8,
+     "vevevev": 121.48,
+     "çift_ve×3": 137.54,
+     "dabılyu×3": 123.97,
+     "vi_vi_vi": 103.88
+    }
+   }
+  ]
+ },
+ "long_id": {
+  "n_clips": 1,
+  "wins_total_nll": {
+   "2li_gruplar": 1
+  },
+  "wins_nll_per_token": {
+   "2li_gruplar": 1
+  },
+  "sample": [
+   {
+    "id": "vd-scripted-a648ae3c9c259075995be4ae-script-seg-f9a24c6be3a57203",
+    "nll": {
+     "cardinal(mine)": 119.62,
+     "rakam_rakam(antalia)": 100.02,
+     "2li_gruplar": 52.52
+    }
+   }
+  ]
+ },
+ "suffix_i": {
+  "n_clips": 58,
+  "wins_total_nll": {
+   "kural(mine)": 58,
+   "_kazanan_metin==mine_metni": 58
+  },
+  "wins_nll_per_token": {
+   "kural(mine)": 58
+  },
+  "sample": [
+   {
+    "id": "vd-scripted-1076f8f77e445cd80c6da8d3-script-seg-ef3509d75a9a855c",
+    "nll": {
+     "kural(mine)": 60.12,
+     "'i": 60.12,
+     "'ı": 60.12,
+     "'u": 60.12,
+     "'ü": 60.12,
+     "'si": 71.07,
+     "'sı": 71.07,
+     "'su": 71.07,
+     "'sü": 71.07,
+     "'yi": 68.94,
+     "'yı": 68.94,
+     "'yu": 68.94,
+     "'yü": 68.94
+    }
+   },
+   {
+    "id": "vd-scripted-1ecfad3ce1713543505ce716-script-seg-0736651f97149bed",
+    "nll": {
+     "kural(mine)": 74.31,
+     "'i": 74.31,
+     "'ı": 74.31,
+     "'u": 74.31,
+     "'ü": 74.31,
+     "'si": 87.67,
+     "'sı": 87.67,
+     "'su": 87.67,
+     "'sü": 87.67,
+     "'yi": 88.42,
+     "'yı": 88.42,
+     "'yu": 88.42,
+     "'yü": 88.42
+    }
+   },
+   {
+    "id": "vd-scripted-1ecfad3ce1713543505ce716-script-seg-2bf9af56497cbebf",
+    "nll": {
+     "kural(mine)": 80.05,
+     "'i": 80.05,
+     "'ı": 80.05,
+     "'u": 80.05,
+     "'ü": 80.05,
+     "'si": 80.05,
+     "'sı": 80.05,
+     "'su": 80.05,
+     "'sü": 80.05,
+     "'yi": 93.46,
+     "'yı": 93.46,
+     "'yu": 93.46,
+     "'yü": 93.46
+    }
+   },
+   {
+    "id": "vd-scripted-1ecfad3ce1713543505ce716-script-seg-4a9a8c621579675f",
+    "nll": {
+     "kural(mine)": 74.02,
+     "'i": 74.02,
+     "'ı": 74.02,
+     "'u": 74.02,
+     "'ü": 74.02,
+     "'si": 85.1,
+     "'sı": 85.1,
+     "'su": 85.1,
+     "'sü": 85.1,
+     "'yi": 80.23,
+     "'yı": 80.23,
+     "'yu": 80.23,
+     "'yü": 80.23
+    }
+   },
+   {
+    "id": "vd-scripted-1ecfad3ce1713543505ce716-script-seg-b50571284789d08f",
+    "nll": {
+     "kural(mine)": 63.35,
+     "'i": 63.35,
+     "'ı": 63.35,
+     "'u": 63.35,
+     "'ü": 63.35,
+     "'si": 76.89,
+     "'sı": 76.89,
+     "'su": 76.89,
+     "'sü": 76.89,
+     "'yi": 73.96,
+     "'yı": 73.96,
+     "'yu": 73.96,
+     "'yü": 73.96
+    }
+   }
+  ]
+ },
+ "wifi": {
+  "n_clips": 14,
+  "wins_total_nll": {
+   "vifi": 8,
+   "vayfay(mine)": 6
+  },
+  "wins_nll_per_token": {
+   "vayfay(mine)": 7,
+   "vifi": 7
+  },
+  "sample": [
+   {
+    "id": "vd-scripted-5070d7295706c5f8dbc0d357-script-seg-3c47a91dbda92f45",
+    "nll": {
+     "vayfay(mine)": 52.31,
+     "vay_fay": 57.32,
+     "vi_fi": 57.42,
+     "vayfai": 55.45,
+     "vifi": 52.11
+    }
+   },
+   {
+    "id": "vd-scripted-907b55353ee5228dbec7ea7e-script-seg-007d4f5ad89567de",
+    "nll": {
+     "vayfay(mine)": 72.3,
+     "vay_fay": 74.82,
+     "vi_fi": 78.41,
+     "vayfai": 77.87,
+     "vifi": 75.92
+    }
+   },
+   {
+    "id": "vd-scripted-907b55353ee5228dbec7ea7e-script-seg-430a51b197776bde",
+    "nll": {
+     "vayfay(mine)": 53.72,
+     "vay_fay": 58.6,
+     "vi_fi": 57.82,
+     "vayfai": 57.19,
+     "vifi": 51.59
+    }
+   },
+   {
+    "id": "vd-scripted-907b55353ee5228dbec7ea7e-script-seg-7417e036d6d7ba14",
+    "nll": {
+     "vayfay(mine)": 61.26,
+     "vay_fay": 67.1,
+     "vi_fi": 62.32,
+     "vayfai": 64.79,
+     "vifi": 58.38
+    }
+   },
+   {
+    "id": "vd-scripted-990f0a8634ec361ba069e4a2-script-seg-5761be70f23d9d7f",
+    "nll": {
+     "vayfay(mine)": 57.36,
+     "vay_fay": 62.85,
+     "vi_fi": 59.52,
+     "vayfai": 61.07,
+     "vifi": 55.28
+    }
+   }
+  ]
+ },
+ "pin": {
+  "n_clips": 6,
+  "wins_total_nll": {
+   "pin(mine)": 6
+  },
+  "wins_nll_per_token": {
+   "pin(mine)": 6
+  },
+  "sample": [
+   {
+    "id": "vd-scripted-907b55353ee5228dbec7ea7e-script-seg-8673a2d017ec83e6",
+    "nll": {
+     "pin(mine)": 117.62,
+     "pe_i_ne": 151.08,
+     "pi_in": 128.3
+    }
+   },
+   {
+    "id": "vd-scripted-990f0a8634ec361ba069e4a2-script-seg-a3e2061567f2011d",
+    "nll": {
+     "pin(mine)": 115.06,
+     "pe_i_ne": 145.6,
+     "pi_in": 125.87
+    }
+   },
+   {
+    "id": "vd-scripted-a517136b0d9a5f7782c24cab-script-seg-e7d1688bc68c9e36",
+    "nll": {
+     "pin(mine)": 122.75,
+     "pe_i_ne": 152.33,
+     "pi_in": 133.57
+    }
+   },
+   {
+    "id": "vd-scripted-b381e814dbd3d12eea470db5-script-seg-56f904ca1f09fda6",
+    "nll": {
+     "pin(mine)": 144.57,
+     "pe_i_ne": 172.33,
+     "pi_in": 155.14
+    }
+   },
+   {
+    "id": "vd-scripted-b45dd2cc16542b92162092b6-script-seg-45217d385c458dce",
+    "nll": {
+     "pin(mine)": 123.58,
+     "pe_i_ne": 155.53,
+     "pi_in": 133.76
+    }
+   }
+  ]
+ },
+ "dash_code": {
+  "n_clips": 2,
+  "wins_total_nll": {
+   "ikişer": 2
+  },
+  "wins_nll_per_token": {
+   "ikişer": 2
+  },
+  "sample": [
+   {
+    "id": "vd-scripted-1076f8f77e445cd80c6da8d3-script-seg-e75f6e4ba0fceb4a",
+    "nll": {
+     "kardinal_gruplar(mine)": 149.13,
+     "rakam_rakam": 152.73,
+     "ikişer": 124.77
+    }
+   },
+   {
+    "id": "vd-scripted-f125f17594fd301db4d499a3-script-seg-d49f4ebed9b70ba4",
+    "nll": {
+     "kardinal_gruplar(mine)": 67.59,
+     "rakam_rakam": 94.12,
+     "ikişer": 56.73
+    }
+   }
+  ]
+ },
+ "code4": {
+  "n_clips": 65,
+  "wins_total_nll": {
+   "ikişer": 64,
+   "_kazanan_metin==mine_metni": 0,
+   "rakam_rakam": 1
+  },
+  "wins_nll_per_token": {
+   "ikişer": 65
+  },
+  "sample": [
+   {
+    "id": "vd-scripted-1ecfad3ce1713543505ce716-script-seg-5023fcc7e06dc75e",
+    "nll": {
+     "kardinal(mine)": 96.0,
+     "rakam_rakam": 104.67,
+     "ikişer": 84.55
+    }
+   },
+   {
+    "id": "vd-scripted-1ecfad3ce1713543505ce716-script-seg-7ecc9cf2e0757d9f",
+    "nll": {
+     "kardinal(mine)": 86.1,
+     "rakam_rakam": 84.55,
+     "ikişer": 66.61
+    }
+   },
+   {
+    "id": "vd-scripted-1ecfad3ce1713543505ce716-script-seg-8cbdeb6f2b5bb0b9",
+    "nll": {
+     "kardinal(mine)": 101.18,
+     "rakam_rakam": 103.81,
+     "ikişer": 90.17
+    }
+   },
+   {
+    "id": "vd-scripted-1ecfad3ce1713543505ce716-script-seg-c3e651f582672f23",
+    "nll": {
+     "kardinal(mine)": 104.39,
+     "rakam_rakam": 98.87,
+     "ikişer": 83.56
+    }
+   },
+   {
+    "id": "vd-scripted-1ecfad3ce1713543505ce716-script-seg-cfc74be1e8639c04",
+    "nll": {
+     "kardinal(mine)": 81.58,
+     "rakam_rakam": 66.81,
+     "ikişer": 63.18
+    }
+   }
+  ]
+ }
+}

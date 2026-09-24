@@ -1,0 +1,5 @@
+# Baseline (baseline_espeak_e150) ile AYNI kısa koşu; tek fark fonem kaynağı: dizge 0.1.6 (olduğu gibi, düzeltmesiz).
+base: main_dizge.yaml
+name: main_dizge_e150
+train:
+  epochs: 150

@@ -1,0 +1,44 @@
+"""Gerçek kayıtların Whisper-small CER/WER'i = Aşama 6 için TAVAN/taban (TTS bunun altına inemez).
+Karşılaştırma: iki taraf da normalize() + noktalamasız küçük harf.
+  D:/dizgetts/venv/Scripts/python.exe -X utf8 dizgetts/eval/asr_floor.py [split ...]
+"""
+import json, os, re, sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from frontend.normalize import normalize, tr_lower  # noqa: E402
+from whisper_score import Scorer  # noqa: E402
+
+ROOT = "D:/dizgetts/data/processed/antalia"
+
+
+def canon(s):
+    return " ".join(re.sub(r"[^\w\s]|_", " ", tr_lower(normalize(s))).split())
+
+
+def lev(a, b):
+    prev = list(range(len(b) + 1))
+    for i, x in enumerate(a, 1):
+        cur = [i]
+        for j, y in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[-1] + 1, prev[j - 1] + (x != y)))
+        prev = cur
+    return prev[-1]
+
+
+if __name__ == "__main__":
+    splits = sys.argv[1:] or ["val", "test"]
+    sc = Scorer()
+    ce = cl = we = wl = 0
+    per = []
+    for sp in splits:
+        for l in open(f"{ROOT}/{sp}.jsonl", encoding="utf8"):
+            r = json.loads(l)
+            ref, hyp = canon(r["text"]), canon(sc.transcribe(f"{ROOT}/{r['wav']}"))
+            c, w = lev(ref, hyp), lev(ref.split(), hyp.split())
+            ce += c; cl += len(ref); we += w; wl += len(ref.split())
+            per.append((w / max(1, len(ref.split())), r["id"], ref[:100], hyp[:100]))
+    per.sort(reverse=True)
+    res = dict(splits=splits, clips=len(per), cer=round(ce / cl, 4), wer=round(we / wl, 4), worst=per[:8], model="openai/whisper-small")
+    json.dump(res, open(os.path.join(os.path.dirname(__file__), "..", "reports", "asr_floor.json"), "w", encoding="utf8"), ensure_ascii=False, indent=1)
+    print({k: v for k, v in res.items() if k != "worst"})

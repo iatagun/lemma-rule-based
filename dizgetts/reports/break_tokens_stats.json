@@ -1,0 +1,28 @@
+{
+ "mid_ms": 60,
+ "major_ms": 250,
+ "train": {
+  "klip_yedek": 22,
+  "\u00f6l\u00e7\u00fclen": 28764,
+  "B1": 22344,
+  "B2": 2671,
+  "B3": 4495,
+  "yedek_kural": 746
+ },
+ "val": {
+  "klip_yedek": 1,
+  "\u00f6l\u00e7\u00fclen": 1880,
+  "B1": 1412,
+  "B2": 214,
+  "B3": 285,
+  "yedek_kural": 31
+ },
+ "test": {
+  "klip_yedek": 2,
+  "\u00f6l\u00e7\u00fclen": 2790,
+  "B1": 2206,
+  "B3": 405,
+  "B2": 253,
+  "yedek_kural": 74
+ }
+}

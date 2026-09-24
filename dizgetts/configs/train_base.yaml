@@ -1,0 +1,40 @@
+# Matcha-TTS ortak eğitim ayarı (baseline ve ana model AYNI dosyayı miras alır; yalnız `frontend` ve `name` farklıdır).
+# Donanım: GTX 1650 4 GB. Ölçüm (reports/stage1_audit.md §4): fp16+cuDNN NaN verir, fp32 zaten daha hızlı -> amp KAPALI.
+seed: 1234
+data_config: dizgetts/configs/data.yaml        # ses parametreleri ve out_root buradan (tek kaynak)
+run_root: D:/dizgetts/runs
+frontend: null                                 # espeak | dizge (alt config doldurur)
+espeak_strip_stress: false                     # true: ˈ ˌ atılır (dizge fonemleri vurgusuz -> adil karşılaştırma için ablasyon)
+
+model:                                         # upstream configs/model/* (LJSpeech) varsayılanları
+  n_spks: 1
+  spk_emb_dim: 64
+  n_feats: 80
+  out_size: 172                                # decoder ~2 sn'lik rastgele segmentte eğitilir
+  prior_loss: true
+  encoder:
+    encoder_type: RoPE Encoder
+    encoder_params: {n_feats: 80, n_channels: 192, filter_channels: 768, filter_channels_dp: 256, n_heads: 2, n_layers: 6,
+                     kernel_size: 3, p_dropout: 0.1, spk_emb_dim: 64, n_spks: 1, prenet: true}
+    duration_predictor_params: {filter_channels_dp: 256, kernel_size: 3, p_dropout: 0.1}
+  decoder: {channels: [256, 256], dropout: 0.05, attention_head_dim: 64, n_blocks: 1, num_mid_blocks: 2, num_heads: 2, act_fn: snakebeta}
+  cfm: {name: CFM, solver: euler, sigma_min: 1.0e-4}
+
+init:                                          # az veri (4,2 sa) -> LJSpeech ön-eğitiminden aktarım; İKİ model de aynı başlangıçla
+  ckpt: D:/dizgetts/pretrained/matcha_ljspeech.ckpt
+  skip_prefixes: [encoder.emb, mel_mean, mel_std]   # sözcük dağarcığı ve mel istatistiği bizimkiyle DEĞİŞİR; gerisi aktarılır
+
+train:
+  epochs: 400                                  # TAHMİN; pilot süre ölçümü sonrası onayla (bkz. reports/stage4_baseline.md)
+  batch_size: 8                                # bs=16 4 GB'ı aşıyor (reserved 5,5 GiB -> paylaşımlı belleğe taşma, 1,31 s/adım); bs=8: 1,9 GiB, 0,39 s/adım
+  grad_accum: 2                                # etkin batch 16
+  lr: 1.0e-4                                   # upstream Adam lr
+  grad_clip: 5.0
+  amp: false
+  num_workers: 0                               # Windows; mel'ler önceden hesaplanıp diskten okunur
+  bucket_size: 8                               # batch'ler uzunluğa göre gruplanır (padding az), gruplar her epoch karışır
+  eval_every: 5                                # epoch
+  save_every: 25
+  val_repeats: 3                               # CFM kaybı rastgele t kullanır; val kaybı 3 tekrar ortalaması (sabit tohum)
+  log_every: 10                                # adım
+  max_steps: null                              # deneme koşusu için sınır

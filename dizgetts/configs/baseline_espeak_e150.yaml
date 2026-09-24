@@ -1,0 +1,5 @@
+# Kısa ilk koşu (150 epoch ≈ 1,8 sa): ara checkpoint'lerde (25'er epoch) sesi dinleyip uzun koşuya karar vermek için.
+base: baseline_espeak.yaml
+name: baseline_espeak_e150
+train:
+  epochs: 150

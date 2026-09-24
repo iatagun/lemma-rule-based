@@ -1,0 +1,4 @@
+# Aşama 4: espeak-ng fonemleriyle baseline. Veri, split, mel, model, init ve eğitim ayarı train_base.yaml ile AYNI.
+base: train_base.yaml
+name: baseline_espeak
+frontend: espeak
