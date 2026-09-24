@@ -28,13 +28,13 @@ experiments:
     note: anlaşılmaz / durduruldu. Ayrıntı reports/EXPERIMENT_LOG.md.
 
   - id: v2-m2-first
-    status: planned
-    hypothesis: dizge fonemleri + KURAL vurgusu (M1) + noktalama duraklaması, sözcük ayracı token'lı, motorun ilk modeli
+    status: blocked
+    blocked_on: kullanıcının 250 sözcüklük vurgu etiketi (reports/stress_annotation_sheet.tsv) + sözlük listeleri; M1b (ek kuralları)
+    hypothesis: dizge fonemleri + KURAL vurgusu + noktalama duraklaması, sözcük ayracı token'lı, motorun ilk modeli
     metric: CER (143 cümle) + kullanıcının telaffuz seti; UTMOS ikincil
-    decision_rule: vurgulu espeak (CER 3,0) ile fark anlamsız ya da daha iyi ise M3'e geç; değilse vurgu doğruluğuna (stress_gold) dön
-    config: TBD (M2)
+    decision_rule: vurgulu espeak (CER 3,0) ile fark anlamsız ya da daha iyi ise ilerle; değilse vurgu doğruluğuna (gold) dön
+    config: "TBD (configs/v2_engine.yaml, frontend = engine)"
     eval_label: TBD
   - id: v2-m3-nostress
-    status: planned
-    hypothesis: aynı model vurgusuz -> kural vurgusunun katkısı
-    depends_on: v2-m2-first
+    status: not-needed
+    note: v1-dizge (aynı token'lar, vurgusuz) zaten bu karşılaştırmayı veriyor (CER 4,6 / WER 13,1); yeniden koşturulmaz

@@ -3,7 +3,7 @@
 Aşamalar `Utterance -> Utterance` çalışır; eğitim manifestleri ve çıkarım AYNI kodu kullanır (parity testi: tests/test_engine_parity.py).
   1. normalize   : sayı/kısaltma/noktalama düzeni            (frontend/normalize.py)
   2. phonemize   : sözcük başına dizge fonemleri              (frontend/phonemize.py, PyPI dizge==0.1.6, BERT yedeği)
-  3. stress      : sözcük vurgusu (M1: kural tabanlı; şimdilik boş)
+  3. stress      : sözcük vurgusu (frontend/stress.py, resources/*.tsv; M1a: kök sözlüğü + clitic + varsayılan son seslem)
   4. assemble    : sözcükler + vurgu + noktalama -> token listesi (symbols.py)
 
   python -m dizgetts.engine "Merhaba, 3'te buluşalım."                     # aşama çıktıları
@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 
 from dizgetts.frontend import normalize as _norm
 from dizgetts.frontend.phonemize import Phonemizer
+from dizgetts.frontend.stress import StressRules, to_phone_index
 from dizgetts.frontend.symbols import PAUSES, PHONES, STRESS, SYMBOL_TO_ID, WORD_SEP, UnknownSymbol, tokenize
 
 _TOK = re.compile(r"[^\W\d_]+|[,.?!;]")
@@ -91,10 +92,25 @@ class PhonemeStage(Stage):
 
 
 class StressStage(Stage):
-    """M1'de kural tabanlı vurgu modülü gelecek (docs/turkish_phonology.md). Şimdilik vurgu yok: parity için boş geçer."""
+    """Kural tabanlı vurgu (frontend/stress.py, resources/*.tsv). Kural ve eşleme sayaçları u.meta["stress"]'e yazılır."""
     name = "stress"
 
+    def __init__(self):
+        self.rules = StressRules()
+
+    def version(self) -> str:
+        return self.rules.version()
+
     def __call__(self, u: Utterance) -> Utterance:
+        cnt = u.meta.setdefault("stress", {})
+        for w in u.words:
+            k, tag = self.rules.syllable(w.text)
+            cnt[tag] = cnt.get(tag, 0) + 1
+            if k is None:
+                continue
+            idx, how = to_phone_index(w.text, w.phones, k)
+            cnt["eşleme_" + how] = cnt.get("eşleme_" + how, 0) + 1
+            w.stress = idx
         return u
 
 

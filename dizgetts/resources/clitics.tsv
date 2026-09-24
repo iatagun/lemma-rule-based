@@ -1,0 +1,9 @@
+# Kendi vurgusu olmayan ayrı yazılan biçimceler/sözcükler (vurgu bir önceki sözcükte kalır). Sütunlar: sözcük<TAB>kaynak<TAB>durum
+da	kullanıcı listesi ('yla' 'da' 'ki' 'bile')	onaysız
+de	'da'nın ünlü uyumlu biçimi (benim ekim)	onaysız
+ki	kullanıcı listesi	onaysız
+bile	kullanıcı listesi	onaysız
+mi	soru eki mI (literatür: Kabak & Vogel 2001; kullanıcı listesinde YOK)	onaysız
+mı	soru eki mI (aynı)	onaysız
+mu	soru eki mI (aynı)	onaysız
+mü	soru eki mI (aynı)	onaysız

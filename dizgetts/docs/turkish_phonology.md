@@ -30,15 +30,17 @@ Bu dosya kullanıcıdan gelen dilbilimsel bilgiyi ve **kodda uygulanıp uygulanm
 
 Kullanıcı: "daha fazlası gelecek."
 
-## 2. Uygulama durumu
+## 2. Uygulama durumu (2026-09-24)
 
 | | Durum |
 |---|---|
-| Kural tabanlı vurgu modülü | **YAZILMADI.** Gereken: hece bölücü (dizge), sonek sınırları (DizgeBERT-Morph), sözlükler (belirteç, soru sözcüğü, yer adı, ödünçleme, bileşik). |
-| Geçici vurgu | `frontend/stress.py`: espeak-ng vurgusunun dizge ünlülerine aktarımı (üst sınır deneyi). |
-| Test verisi | `tests/stress_gold.tsv` (28 sözcük; sondan sıra değerleri BENİM türettiğim, **onaysız**). |
-
-**espeak-ng bu listede 9/28 doğru** (ölçüldü, 2026-09-24). Yanlışlar tam bu kategorilerde: `şimdi`, `belki`, `hangi`, `nasıl` (son hece diyor), `bugün`, `başbakan`, `kapkara`, `asosyal`, `yapsaydı`, `ufacık`, `naklen`, `lokanta`, `futbol`, `bebek`. Bu sözcükler Antalia'da sık: `şimdi` 104, `bugün` 36, `hangi` 29, `nasıl` 20, `belki` 18 (35.561 sözcükten). Dolayısıyla "dizge + espeak vurgusu" deneyi bu sözcüklerde YANLIŞ vurgu öğreniyor; dilbilimsel kurallarla üretilen vurgu bunu düzeltmeli (aşağıdaki plan).
+| Vurgu modülü M1a (`frontend/stress.py`, `resources/*.tsv`) | **VAR, dar kapsam:** clitic sözcükler (da, de, ki, bile, mı/mi/mu/mü), düzensiz vurgulu kök sözlüğü (kök + makul ek zinciri; yer adları yalnız BÜYÜK harfle), varsayılan son seslem. Korpusta 35.338 sözcükten: varsayılan 33.713, clitic 1.362, kök 211, kök+ek 47. |
+| Vurgusuz ekler / clitic-li biçimler (`-ydı -ymış -ysa -yken -dır -(y)la -cık -ca -casına -en -(y)ın -leyin -ra`, kişi ekleri, olumsuzluk) | **YAZILMADI (M1b).** Yüzey biçimine bakarak ek soymak güvenilmez (`okul+a` / `-la`, `kesin` / `-sın`); morfolojik çözümleme gerekir (DizgeBERT-Morph UD FEATS: Polarity, Person, Tense…, ya da `dizge` çözümleyicisi). |
+| Seslenme, küçültme, ikileme, bileşik (listesiz) | YAZILMADI; kök sözlüğüne yalnız kullanıcının verdiği örnekler girdi. |
+| Fonem eşlemesi | Seslem = ünlü harfi; dizge fonem dizisindeki ünlü atomuna eşlenir. Ünlü sayıları %87 eşit, %7,4 `ay`→`ɑːI` yan ünlüsü atılarak, %1,5 sondan sayımla (ğ kaynaşması, ünlü türemesi). |
+| Test verisi | `tests/stress_gold.tsv` (28 sözcük, benim türettiğim sondan-sıra değerleri, **onaysız**) ve `reports/stress_annotation_sheet.tsv` (250 sözcük; kullanıcı etiketleyecek -> `tests/stress_gold_random.tsv`). |
+| Karşılaştırma | espeak-ng gold listesinde 9/28 doğru; M1a bu 28'i büyük ölçüde kök sözlüğü (onların kendi örnekleri) sayesinde geçer, **bu bir ölçüm değildir**; gerçek doğruluk rastgele 250 sözcüğün etiketiyle ölçülecek. |
+| Açık soru | İşlev sözcükleri (bir, bu, ve, ile, için…) sözcük vurgusu alıyor mu, yoksa cümle içinde vurgusuz mu? Şimdi hepsi son seslem alıyor (espeak %10,5 sözcüğü vurgusuz bırakıyordu). |
 
 ## 3. Plan
 1. Kullanıcıdan kalan listeleri al (belirteçler, soru sözcükleri, yer adları, ödünçlemeler, bileşikler; "daha fazlası").

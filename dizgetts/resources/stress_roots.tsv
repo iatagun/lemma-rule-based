@@ -1,0 +1,19 @@
+# Düzensiz vurgulu KÖKLER. Vurgu kökün BAŞTAN kaçıncı seslemesinde (0 = ilk). Ek alınca vurgu kökte kalır (kökten ekli biçimler de eşleşir).
+# Kaynak: kullanıcı (dilbilimci) açıklaması 2026-09-24; sıra değerlerini açıklamadan BEN türettim -> durum "onaysız" olanlar doğrulama bekler.
+# Sütunlar: kök<TAB>başlangıçtan_seslem_indeksi<TAB>kategori<TAB>kaynak<TAB>durum
+lokanta	1	ödünçleme	kullanıcı örneği (lo-KAN-ta)	onaysız
+istanbul	1	yer adı	kullanıcı örneği (is-TAN-bul)	onaysız
+pırasa	1	düzensiz	kullanıcı örneği (pı-RA-sa)	onaysız
+şimdi	0	belirteç	kullanıcı örneği (ŞİM-di)	onaysız
+belki	0	belirteç	kullanıcı örneği (BEL-ki)	onaysız
+futbol	0	ödünçleme	kullanıcı örneği (FUT-bol)	onaysız
+ordu	0	yer adı	kullanıcı örneği (OR-du)	onaysız
+bebek	0	yer adı	kullanıcı örneği (BE-bek)	onaysız
+hangi	0	soru sözcüğü	kullanıcı örneği (HAN-gi)	onaysız
+nasıl	0	soru sözcüğü	kullanıcı örneği (NA-sıl)	onaysız
+kapkara	0	pekiştirme	kullanıcı örneği (KAP-ka-ra)	onaysız
+asosyal	0	ödünçleme önek	kullanıcı örneği (A-sos-yal)	onaysız
+bugün	0	bileşik	kullanıcı örneği (BU-gün)	onaysız
+başbakan	0	bileşik	kullanıcı örneği (BAŞ-ba-kan)	onaysız
+naklen	0	Arapça kökenli -en belirteç	kullanıcı örneği (NAK-len)	onaysız
+nispeten	1	Arapça kökenli -en belirteç	kullanıcı örneği (nis-PE-ten; -en vurgusuz, benim türetmem)	onaysız

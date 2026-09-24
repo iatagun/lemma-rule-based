@@ -7,5 +7,5 @@
 | v1-dizge | closed | dizge 0.1.6 fonemleri (vurgusuz, sözcük ayracı token'lı) | 4.6 | 13.1 | 2.90 | vurgusuz espeak ile eşdeğer (fark anlamsız), UTMOS +0,08. |
 | v1-dizge-feat | closed | sözcük sınırı token yerine fonem özniteliği | 5.9 | 17.5 | 2.85 | anlaşılırlık kötü; sözcük ayracını atmak (breaks/nosep) yıkıcıydı. |
 | v1-dizge-breaks / v1-dizge-nosep / v1-dizge-stress | closed | ayraçsız denemeler; espeak vurgusu aktarımı |  |  |  | anlaşılmaz / durduruldu. Ayrıntı reports/EXPERIMENT_LOG.md. |
-| v2-m2-first | planned | dizge fonemleri + KURAL vurgusu (M1) + noktalama duraklaması, sözcük ayracı token'lı, motorun ilk modeli |  |  |  | vurgulu espeak (CER 3,0) ile fark anlamsız ya da daha iyi ise M3'e geç; değilse vurgu doğruluğuna (stress_gold) dön |
-| v2-m3-nostress | planned | aynı model vurgusuz -> kural vurgusunun katkısı |  |  |  |  |
+| v2-m2-first | blocked | dizge fonemleri + KURAL vurgusu + noktalama duraklaması, sözcük ayracı token'lı, motorun ilk modeli |  |  |  | vurgulu espeak (CER 3,0) ile fark anlamsız ya da daha iyi ise ilerle; değilse vurgu doğruluğuna (gold) dön |
+| v2-m3-nostress | not-needed |  |  |  |  | v1-dizge (aynı token'lar, vurgusuz) zaten bu karşılaştırmayı veriyor (CER 4,6 / WER 13,1); yeniden koşturulmaz |
