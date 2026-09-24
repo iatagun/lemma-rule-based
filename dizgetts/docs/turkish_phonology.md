@@ -39,7 +39,7 @@ Kullanıcı: "daha fazlası gelecek."
 | Hâlâ YAZILMADI | `-dır`, `-cık`, `-ca`, `-casına`, `-en`, `-leyin`, `-ra`, `-(y)ın`, `-ki` (ek olarak), seslenme, küçültme, ikileme, bileşik/belirteç listeleri. Belirteçler Antalia'da 2.023 sözcük (167 tür; en sık: daha 130, en 113, şimdi 104, çok 71, önce 65, hemen 63, yeniden 50, yalnızca 45, sonra 44, yine 43…); hangilerinin düzensiz vurgulu olduğu kullanıcı listesi gerektirir. |
 | Seslenme, küçültme, ikileme, bileşik (listesiz) | YAZILMADI; kök sözlüğüne yalnız kullanıcının verdiği örnekler girdi. |
 | Fonem eşlemesi | Seslem = ünlü harfi; dizge fonem dizisindeki ünlü atomuna eşlenir. Ünlü sayıları %87 eşit, %7,4 `ay`→`ɑːI` yan ünlüsü atılarak, %1,5 sondan sayımla (ğ kaynaşması, ünlü türemesi). |
-| Test verisi | `tests/stress_gold.tsv` (28 sözcük, benim türettiğim sondan-sıra değerleri, **onaysız**) ve `reports/stress_annotation_sheet.tsv` (250 sözcük; kullanıcı etiketleyecek -> `tests/stress_gold_random.tsv`). |
+| Test verisi | `tests/stress_gold.tsv` (28 sözcük; son-hece istisnası olmaları kullanıcı onaylı 2026-09-24, sondan-sıra değerleri benim türetmem, konum **onaysız**) ve `reports/stress_annotation_sheet.tsv` (250 sözcük; kullanıcı etiketleyecek -> `tests/stress_gold_random.tsv`). |
 | Karşılaştırma | espeak-ng gold listesinde 9/28 doğru; M1a bu 28'i büyük ölçüde kök sözlüğü (onların kendi örnekleri) sayesinde geçer, **bu bir ölçüm değildir**; gerçek doğruluk rastgele 250 sözcüğün etiketiyle ölçülecek. |
 | Açık soru | İşlev sözcükleri (bir, bu, ve, ile, için…) sözcük vurgusu alıyor mu, yoksa cümle içinde vurgusuz mu? Şimdi hepsi son seslem alıyor (espeak %10,5 sözcüğü vurgusuz bırakıyordu). |
 

@@ -38,3 +38,10 @@ Cümle bazlı G2P = sözcüğü bağlamıyla fonemleyen; vurgu, sınır ve sözc
 ## Çalışma kuralları (devam)
 Aynı anda en fazla 1 eğitim; yeni koşu = önce `experiments.yaml`'da hipotez + karar kuralı; sayılar script çıktısından; onaysız büyük indirme/uzun eğitim yok; fp32 (GTX 1650 fp16 NaN); regex'i heredoc python ile değil Edit/Write ile yaz.
 Komutlar: `python -X utf8 -m dizgetts.eval.status`, `python -X utf8 dizgetts/eval/compare.py <a> <b>`, `python -X utf8 -m dizgetts.tests.test_engine_parity`.
+
+## İlerleme (2026-09-24, oturum 2)
+- Adım 1 (iskelet) YAPILDI: `Word.stress_src / boundary (0|ip|IP|cümle) / notes`, `PhraseStage` (şimdilik yalnız noktalama; token'a dokunmaz). Parity 1053/1053.
+  Dep öbek sınırı henüz YOK (sıradaki iş; bağımsız sınır etiketi: v1 `derive_breaks.py` sessizlik ölçümü -> `_v1_archive`).
+- Adım 2 başladı: `python -X utf8 -m dizgetts.eval.stress_intrinsic` (son_hece / m1a / m1b / espeak). stress_gold.tsv (28): 14,3 / 71,4 / 89,3 / 28,6 %.
+  DÖNGÜSEL: gold kökleri stress_roots.tsv'de de var -> yalnız regresyon kontrolü. Bağımsız sayı için annotation sheet gerekli (sheet okuyucu, sheet dolunca yazılacak).
+- Kullanıcı onayı: stress_gold.tsv'deki kullanıcı örnekleri son-hece istisnasıdır. Konum (hangi seslem) 3+ seslemlilerde onaysız: pırasa, ufacık, semracığım, lokanta, kapkara, başbakan.

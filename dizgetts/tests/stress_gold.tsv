@@ -1,27 +1,27 @@
 # sözcük<TAB>vurgulu hecenin SONDAN sırası (0 = son hece)<TAB>kategori<TAB>kaynak/not
-# Kaynak: kullanıcının (dilbilimci) 2026-09-24 tarihli açıklaması. Sıra değerleri açıklamadan BENİM türettiğim değerlerdir -> kullanıcı doğrulaması bekliyor (durum: "onaysız").
-gelme	1	olumsuzluk -mA öncesi	kullanıcı örneği; onaysız
-lokanta	1	ödünçleme	kullanıcı örneği (düzensiz); onaysız
-istanbul	1	yer adı	kullanıcı örneği; onaysız
-pırasa	1	düzensiz	kullanıcı örneği; onaysız
-şimdi	1	belirteç	kullanıcı örneği; onaysız
-belki	1	belirteç	kullanıcı örneği; onaysız
-futbol	1	ödünçleme	kullanıcı örneği; onaysız
-ordu	1	yer adı	kullanıcı örneği; onaysız
-bebek	1	yer adı	kullanıcı örneği; onaysız
-hangi	1	soru sözcüğü	kullanıcı örneği; onaysız
-nasıl	1	soru sözcüğü	kullanıcı örneği; onaysız
-kapkara	2	pekiştirme (ikileme)	kullanıcı örneği; onaysız
-asosyal	2	ödünçleme önek (a-)	kullanıcı örneği; onaysız
-yapsaydı	1	-ydı vurgusuz	kullanıcı örneği; onaysız
-yapsaymış	1	-ymış vurgusuz	kullanıcı örneği; onaysız
-bugün	1	bileşik	kullanıcı örneği; onaysız
-başbakan	2	bileşik	kullanıcı örneği; onaysız
-ufacık	1	-cık vurgusuz	kullanıcı örneği; onaysız
-naklen	1	-en vurgusuz (Arapça kökenli)	kullanıcı örneği; onaysız
-nispeten	1	-en vurgusuz (Arapça kökenli)	kullanıcı örneği; onaysız
+# Kaynak: kullanıcının (dilbilimci) 2026-09-24 tarihli açıklaması. 2026-09-24: kullanıcı "kullanıcı örneği" satırlarının son-hece İSTİSNASI olduğunu onayladı (vurgu son seslemde DEĞİL). Hangi seslem olduğu (sıra değeri) açıklamadan BENİM türetmem -> 3+ seslemli sözcüklerde konum hâlâ onaysız.
+gelme	1	olumsuzluk -mA öncesi	kullanıcı örneği; son-dışı onaylı, konum onaysız
+lokanta	1	ödünçleme	kullanıcı örneği (düzensiz); son-dışı onaylı, konum onaysız
+istanbul	1	yer adı	kullanıcı örneği; son-dışı onaylı, konum onaysız
+pırasa	1	düzensiz	kullanıcı örneği; son-dışı onaylı, konum onaysız
+şimdi	1	belirteç	kullanıcı örneği; son-dışı onaylı, konum onaysız
+belki	1	belirteç	kullanıcı örneği; son-dışı onaylı, konum onaysız
+futbol	1	ödünçleme	kullanıcı örneği; son-dışı onaylı, konum onaysız
+ordu	1	yer adı	kullanıcı örneği; son-dışı onaylı, konum onaysız
+bebek	1	yer adı	kullanıcı örneği; son-dışı onaylı, konum onaysız
+hangi	1	soru sözcüğü	kullanıcı örneği; son-dışı onaylı, konum onaysız
+nasıl	1	soru sözcüğü	kullanıcı örneği; son-dışı onaylı, konum onaysız
+kapkara	2	pekiştirme (ikileme)	kullanıcı örneği; son-dışı onaylı, konum onaysız
+asosyal	2	ödünçleme önek (a-)	kullanıcı örneği; son-dışı onaylı, konum onaysız
+yapsaydı	1	-ydı vurgusuz	kullanıcı örneği; son-dışı onaylı, konum onaysız
+yapsaymış	1	-ymış vurgusuz	kullanıcı örneği; son-dışı onaylı, konum onaysız
+bugün	1	bileşik	kullanıcı örneği; son-dışı onaylı, konum onaysız
+başbakan	2	bileşik	kullanıcı örneği; son-dışı onaylı, konum onaysız
+ufacık	1	-cık vurgusuz	kullanıcı örneği; son-dışı onaylı, konum onaysız
+naklen	1	-en vurgusuz (Arapça kökenli)	kullanıcı örneği; son-dışı onaylı, konum onaysız
+nispeten	1	-en vurgusuz (Arapça kökenli)	kullanıcı örneği; son-dışı onaylı, konum onaysız
 nispet	0	düzenli (son hece)	karşıt örnek
-semracığım	2	küçültme eki -cık öncesi	kullanıcı örneği; onaysız
+semracığım	2	küçültme eki -cık öncesi	kullanıcı örneği; son-dışı onaylı, konum onaysız
 gelirsiniz	2	kişi eki -sInIz vurgusuz	kullanıcı kuralından türetildi; onaysız
 güzeldir	1	-dIr vurgusuz	kullanıcı kuralından türetildi; onaysız
 arkadaşımla	1	-(y)lA vurgusuz	kullanıcı kuralından türetildi; onaysız

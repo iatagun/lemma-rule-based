@@ -4,7 +4,8 @@ Aşamalar `Utterance -> Utterance` çalışır; eğitim manifestleri ve çıkar�
   1. normalize   : sayı/kısaltma/noktalama düzeni            (frontend/normalize.py)
   2. phonemize   : sözcük başına dizge fonemleri              (frontend/phonemize.py, PyPI dizge==0.1.6, BERT yedeği)
   3. stress      : sözcük vurgusu (frontend/stress.py, resources/*.tsv; M1a: kök sözlüğü + clitic + varsayılan son seslem)
-  4. assemble    : sözcükler + vurgu + noktalama -> token listesi (symbols.py)
+  4. phrase      : cümle düzeyi sınır (Word.boundary: 0|ip|IP|cümle); iskelet, şimdilik yalnız noktalama, token'a dokunmaz
+  5. assemble    : sözcükler + vurgu + noktalama -> token listesi (symbols.py)
 
   python -m dizgetts.engine "Merhaba, 3'te buluşalım."                     # aşama çıktıları
   python -m dizgetts.engine "Merhaba." --ckpt D:/.../ep150.pt -o out.wav   # ses (checkpoint gerekir)
@@ -32,7 +33,10 @@ class Word:
     text: str                                   # normalize çıktısındaki yazım
     phones: list[str] = field(default_factory=list)   # dizge atomları (vurgu simgesi HARİÇ)
     stress: int | None = None                   # vurgulu ünlünün `phones` içindeki indeksi (None: vurgusuz); M1'de dolar
+    stress_src: str | None = None               # vurguyu belirleyen kural etiketi (frontend/stress.py: kök, clitic, varsayılan_son...)
     punct: list[str] = field(default_factory=list)    # sözcüğü izleyen noktalama token'ları
+    boundary: str = "0"                         # sonraki sınır: "0" | "ip" | "IP" | "cümle" (PhraseStage)
+    notes: list[str] = field(default_factory=list)    # sözcük düzeyi açıklamalar (hangi aşama neyi neden değiştirdi)
     upos: str | None = None                     # DizgeBERT-Morph (M1b; morfoloji aşaması açıksa)
     feats: dict | None = None
 
@@ -141,11 +145,27 @@ class StressStage(Stage):
         for w in u.words:
             k, tag = self.rules.syllable(w.text, w.upos, w.feats, self.tiers)
             cnt[tag] = cnt.get(tag, 0) + 1
+            w.stress_src = tag
             if k is None:
                 continue
             idx, how = to_phone_index(w.text, w.phones, k)
             cnt["eşleme_" + how] = cnt.get("eşleme_" + how, 0) + 1
             w.stress = idx
+        return u
+
+
+class PhraseStage(Stage):
+    """Cümle düzeyi: sözcükler arası sınır (Word.boundary). İSKELET: yalnız noktalamadan okur, token'lara dokunmaz (parity korunur).
+    Sonraki katmanlar (Dep öbek sınırı, işlev sözcüğü vurgusuzlaşması, sözcükler arası ses etkisi) buraya gelir, her biri Word.notes'a yazar."""
+    name = "phrase"
+    _PUNCT_BOUNDARY = {",": "ip", ";": "IP", ".": "cümle", "?": "cümle", "!": "cümle"}
+    _RANK = ("0", "ip", "IP", "cümle")
+
+    def __call__(self, u: Utterance) -> Utterance:
+        for w in u.words:
+            w.boundary = max((self._PUNCT_BOUNDARY[p] for p in w.punct), key=self._RANK.index, default="0")
+        if u.words:
+            u.words[-1].boundary = "cümle"
         return u
 
 
@@ -171,7 +191,7 @@ class Engine:
         st: list[Stage] = [NormalizeStage(), PhonemeStage(bert_fallback)]
         if morph:
             st.append(MorphStage(morph_cache))
-        self.stages: list[Stage] = st + [StressStage(tiers), AssembleStage()]
+        self.stages: list[Stage] = st + [StressStage(tiers), PhraseStage(), AssembleStage()]
         self._acoustic = None
 
     # --- ön uç
@@ -198,7 +218,8 @@ class Engine:
 
 def _show(u: Utterance) -> str:
     return json.dumps(dict(norm=u.norm, tokens="".join(u.tokens).replace(" ", "␣"),
-                           words=[dict(text=w.text, phones="".join(w.phones), stress=w.stress, punct="".join(w.punct)) for w in u.words],
+                           words=[dict(text=w.text, phones="".join(w.phones), stress=w.stress, stress_src=w.stress_src,
+                                       punct="".join(w.punct), boundary=w.boundary, notes=w.notes) for w in u.words],
                            meta=u.meta), ensure_ascii=False, indent=1)
 
 

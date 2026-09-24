@@ -12,6 +12,8 @@ e = Engine(bert_fallback=False)
 u = e.frontend("Merhaba, 3'te buluşalım!")
 assert u.norm == "Merhaba , üçte buluşalım !", u.norm
 assert u.tokens.count(" ") == 2 and u.words[0].punct == [","] and u.words[-1].punct == ["!"], u.tokens
+assert [w.boundary for w in u.words] == ["ip", "0", "cümle"], [w.boundary for w in u.words]
+assert all(w.stress_src for w in u.words), [w.stress_src for w in u.words]
 
 if not os.path.exists(f"{ROOT}/test_phon.jsonl"):
     print("manifest yok, parity atlandı"); sys.exit(0)
