@@ -28,7 +28,8 @@ experiments:
     note: anlaşılmaz / durduruldu. Ayrıntı reports/EXPERIMENT_LOG.md.
 
   - id: v2-m1a
-    status: running
+    status: done
+    result: "CER 3,6 / WER 11,9 / UTMOS 2,85. vs v1-dizge (vurgusuz): CER -0,96 [-2,57,+0,52] anlamsız; vs vurgulu espeak: +0,65 [-0,02,+1,52] anlamsız. Sonuç: KESİN DEĞİL, nokta tahmini vurgu yönünde."
     hypothesis: dizge fonemleri + KURAL vurgusu M1a (kök sözlüğü + clitic + varsayılan son seslem), sözcük ayracı token'lı. Vurgu işaretinin yalnız kural-tabanlı kaba biçimi de CER'i vurgusuz dizge'den (4,6) düşürür.
     metric: CER (143 cümle, ep150) + WER; UTMOS ikincil
     decision_rule: CER < 4,6 ve fark anlamlı -> vurgu değerli, M1b'ye yatırım; CER ~4,6 -> kaba vurgu yetmez; espeak 3,0'a yaklaşırsa -> kurallar tamam

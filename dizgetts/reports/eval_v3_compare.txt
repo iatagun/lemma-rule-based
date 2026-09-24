@@ -1,0 +1,17 @@
+gerçek kayıtlar (Whisper tabanı, aynı 143 cümle): CER 4.7%  WER 11.6%
+sistem                            CER %            WER %            UTMOS   (n=143, %95 aralık)
+espeak_ep150             3.0 [ 2.3, 4.0]  11.1 [ 9.6,12.6]  2.90 [2.87,2.93]
+espeak_nostress_ep150    4.3 [ 3.0, 5.9]  12.4 [10.5,14.4]  2.83 [2.80,2.85]
+dizge_ep150              4.6 [ 3.1, 6.4]  13.1 [11.1,15.3]  2.90 [2.87,2.93]
+v2_m1a_ep150             3.6 [ 2.7, 4.9]  11.9 [10.4,13.5]  2.85 [2.82,2.87]
+
+espeak_ep150 referansına göre eşleşmiş fark (pozitif = diğeri daha kötü CER/WER; UTMOS'ta pozitif = diğeri daha iyi):
+  espeak_nostress_ep150  CER: +1.32  [+0.22,+2.70]  anlamlı
+  espeak_nostress_ep150  WER: +1.28  [-0.22,+2.93]  anlamsız (aralık 0'ı içeriyor)
+  espeak_nostress_ep150  UTMOS: -0.07  [-0.10,-0.04]  anlamlı
+  dizge_ep150            CER: +1.61  [+0.29,+3.23]  anlamlı
+  dizge_ep150            WER: +1.99  [+0.16,+4.12]  anlamlı
+  dizge_ep150            UTMOS: +0.00  [-0.03,+0.03]  anlamsız (aralık 0'ı içeriyor)
+  v2_m1a_ep150           CER: +0.65  [-0.02,+1.52]  anlamsız (aralık 0'ı içeriyor)
+  v2_m1a_ep150           WER: +0.75  [-0.62,+2.03]  anlamsız (aralık 0'ı içeriyor)
+  v2_m1a_ep150           UTMOS: -0.05  [-0.08,-0.02]  anlamlı
