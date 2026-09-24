@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import collections
 
-from .symbols import PAUSES, PHONES, STRESS, WORD_SEP
+from dizgetts.frontend.symbols import PAUSES, PHONES, STRESS, WORD_SEP
 
 ESPEAK_VOWELS = set("aeiouyæøœɔɛɪɯʊ")  # espeak-ng tr çıktısındaki ünlüler (reports/frontend_report.json espeak_symbols)
 _PUNCT = set(PAUSES)

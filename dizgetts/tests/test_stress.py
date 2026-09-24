@@ -32,3 +32,36 @@ assert t[t.index(STRESS) + 1] in ("I",) and t.index(STRESS) > 0 and t[t.index(ST
 assert u.words[-1].stress is None  # 'de' clitic
 assert t.count(STRESS) == 2, t
 print("OK")
+
+# ---- M1b: morfolojik katmanlar (upos/feats elle verildi; DizgeBERT-Morph gerekmez) ----
+from dizgetts.frontend.stress import TIERS  # noqa: E402
+
+T = TIERS
+V = lambda **f: ("VERB", f)
+cases = [  # (sözcük, upos, feats, beklenen seslem indeksi BAŞTAN, etiket)
+    ("geliyorum", "VERB", {}, 1, "yor_önü"),                # ge-Lİ-yo-rum
+    ("görünüyor", "VERB", {}, 2, "yor_önü"),                # gö-rü-NÜ-yor (espeak ile aynı)
+    ("gelmedi", "VERB", {"Polarity": "Neg"}, 0, "olumsuzluk_önü"),          # GEL-me-di
+    ("olmadığını", "VERB", {"Polarity": "Neg"}, 0, "olumsuzluk_önü"),
+    ("gelmeyeceksiniz", "VERB", {"Polarity": "Neg", "Person": "2", "Number": "Plur"}, 0, "olumsuzluk_önü"),
+    ("arkadaşımla", "NOUN", {"Case": "Ins"}, 3, "ins_önü"),  # ar-ka-da-ŞIM-la
+    ("gelirsiniz", "VERB", {"Person": "2", "Number": "Plur"}, 1, "kişi_eki_önü"),   # ge-LİR-si-niz
+    ("geldim", "VERB", {"Person": "1", "Number": "Sing"}, 1, "kişi_eki_önü"),        # gel-DİM
+    ("yapsaydı", "VERB", {"Person": "3", "Number": "Sing"}, 1, "koşaç_önü"),          # yap-SAY-dı
+    ("yapsaymış", "VERB", {}, 1, "koşaç_önü"),
+    ("gelirdi", "VERB", {"Person": "3"}, 1, "koşaç_önü"),                             # ge-LİR-di
+    ("geldin", "VERB", {"Person": "2", "Number": "Sing"}, 1, "kişi_eki_önü"),         # gel-DİN
+    ("geldik", "VERB", {"Person": "1", "Number": "Plur"}, 1, "kişi_eki_önü"),
+    ("geldiniz", "VERB", {"Person": "2", "Number": "Plur"}, 1, "kişi_eki_önü"),      # gel-Dİ-niz
+    ("gelirim", "VERB", {"Person": "1", "Number": "Sing"}, 1, "kişi_eki_önü"),       # ge-LİR-im
+    ("geleceğim", "VERB", {"Person": "1", "Number": "Sing"}, 2, "kişi_eki_önü"),     # ge-le-CEĞ-im (0. ge, 1. le, 2. ceğ)
+    ("geldi", "VERB", {"Person": "3"}, 1, "varsayılan_son"),                          # düz geçmiş -dı vurgulanır (koşaç değil)
+    ("kesin", "ADJ", {}, 1, "varsayılan_son"),                                        # -sın diye SOYULMAZ (kişi eki yalnız VERB'de)
+    ("okula", "NOUN", {"Case": "Dat"}, 2, "varsayılan_son"),                          # -la diye soyulmaz (Case=Ins değil)
+]
+for w, up, f, k, tag in cases:
+    got = R.syllable(w, up, f, T)
+    assert got == (k, tag), (w, got, (k, tag))
+# katman kapalıyken (M1a) hiçbiri devreye girmez
+assert R.syllable("geliyorum", "VERB", {}, ()) == (3, "varsayılan_son")
+print("OK (M1b)")

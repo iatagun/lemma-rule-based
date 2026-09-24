@@ -43,7 +43,7 @@ class Synth:
         self.epoch = ck["epoch"]
         self.vocoder, self.denoiser = load_vocoder(self.dev)
         self.fe = self.cfg["frontend"]
-        self.engine = (engine or Engine()) if self.fe in ("engine", "dizge") else None
+        self.engine = (engine or Engine(**self.cfg.get("engine", {}))) if self.fe in ("engine", "dizge") else None  # cfg["engine"]: morph/tiers (M1b)
 
     def ids(self, text: str):
         if self.fe == "espeak":

@@ -114,7 +114,7 @@ def main():
     assert not tr["amp"], "amp bu donanımda KAPALI olmalı (fp16 cuDNN NaN, reports/stage1_audit.md)"
 
     symbols, _ = frontend_table(cfg["frontend"])
-    ds = {s: TTSDataset(root, s, cfg["frontend"], stats, cfg["espeak_strip_stress"]) for s in ("train", "val")}
+    ds = {s: TTSDataset(root, s, cfg["frontend"], stats, cfg["espeak_strip_stress"], cfg.get("manifest", "_phon")) for s in ("train", "val")}
     for s in ds:
         wrote = ensure_mels(root, ds[s].rows, au)
         if wrote:
@@ -139,7 +139,7 @@ def main():
     yaml.safe_dump(cfg, open(os.path.join(run, "config.resolved.yaml"), "w", encoding="utf8"), allow_unicode=True, sort_keys=False)
     json.dump(dict(git=git_info(), seed=cfg["seed"], torch=torch.__version__, cuda=torch.version.cuda, gpu=torch.cuda.get_device_name(0),
                    python=platform.python_version(), n_params=n_params, n_vocab=len(symbols), train_clips=len(ds["train"]),
-                   val_clips=len(ds["val"]), init=init_report, cmd=sys.argv, resumed_from=a.resume, epoch0=epoch0),
+                   val_clips=len(ds["val"]), init=init_report, engine_versions=ds["train"].rows[0].get("engine_versions"), manifest=cfg.get("manifest", "_phon"), cmd=sys.argv, resumed_from=a.resume, epoch0=epoch0),
               open(os.path.join(run, "env.json"), "w", encoding="utf8"), ensure_ascii=False, indent=1)
     json.dump(symbols, open(os.path.join(run, "symbols.json"), "w", encoding="utf8"), ensure_ascii=False)
     tb = SummaryWriter(os.path.join(run, "tensorboard"))

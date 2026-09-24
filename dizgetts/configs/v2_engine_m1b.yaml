@@ -1,0 +1,8 @@
+# v2 M1b: M1a + morfolojik vurgu katmanları (-Iyor önü, olumsuzluk, Case=Ins, kişi eki/koşaç). Manifest scripts/build_manifest.py --tiers ... ile üretildi.
+base: train_base.yaml
+name: v2_engine_m1b_e150
+frontend: engine
+manifest: _phon_m1b
+engine: {morph: true, tiers: [yor, neg, ins, person]}
+train:
+  epochs: 150

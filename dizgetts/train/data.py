@@ -60,9 +60,9 @@ def ensure_mels(root: str, rows: list[dict], au: dict) -> int:
 
 
 class TTSDataset(Dataset):
-    def __init__(self, root: str, split: str, frontend: str, stats: dict, strip_stress: bool = False):
+    def __init__(self, root: str, split: str, frontend: str, stats: dict, strip_stress: bool = False, manifest: str = "_phon"):
         self.root = root
-        self.rows = [json.loads(l) for l in open(os.path.join(root, f"{split}_phon.jsonl"), encoding="utf8")]
+        self.rows = [json.loads(l) for l in open(os.path.join(root, f"{split}{manifest}.jsonl"), encoding="utf8")]
         _, self.s2i = frontend_table(frontend)
         self.mean, self.std = stats["mel_mean"], stats["mel_std"]
         self.ids = [intersperse([self.s2i[t] for t in row_tokens(r, frontend, strip_stress)], 0) for r in self.rows]

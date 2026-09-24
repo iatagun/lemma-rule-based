@@ -4,7 +4,7 @@
 Girdi/çıktı: <out_root>/{train,val,test}_phon.jsonl (yerinde; `text`, `espeak` alanları korunur). Rapor: reports/manifest_stats.json.
 Engine sürümleri her satıra `engine_versions` olarak yazılır; train.py env.json'a alır.
 """
-import collections, json, os
+import argparse, collections, json, os
 
 import yaml
 
@@ -15,13 +15,26 @@ LEGACY = ("tokens_nosep", "tokens_breaks", "tokens_feat", "feat_text", "feat_mea
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out-suffix", default="_phon", help="çıktı: {split}<suffix>.jsonl (girdi her zaman *_phon.jsonl'in `text` alanı)")
+    ap.add_argument("--tiers", default="", help="M1b vurgu katmanları, virgülle (yor,neg,ins,person); boş = M1a")
+    a = ap.parse_args()
+    tiers = tuple(t for t in a.tiers.split(",") if t)
     root = yaml.safe_load(open(os.path.join(HERE, "configs", "data.yaml"), encoding="utf8"))["out_root"]
-    e = Engine(bert_fallback=True)
+    cache = None
+    if tiers:  # morfolojik özellikler önbellekten (scripts/morph_corpus.py); yoksa canlı çözümlenir
+        mp = os.path.join(root, "morph_feats.jsonl")
+        if os.path.exists(mp):
+            cache = {}
+            for l in open(mp, encoding="utf8"):
+                m = json.loads(l)
+                cache[" ".join(m["tokens"])] = list(zip(m["upos"], m["feats"]))
+    e = Engine(bert_fallback=True, morph=bool(tiers), tiers=tiers, morph_cache=cache)
     ver = e.versions()
     stats, per_split = collections.Counter(), {}
     for split in ("train", "val", "test"):
-        p = os.path.join(root, f"{split}_phon.jsonl")
-        rows = [json.loads(l) for l in open(p, encoding="utf8")]
+        rows = [json.loads(l) for l in open(os.path.join(root, f"{split}_phon.jsonl"), encoding="utf8")]
+        p = os.path.join(root, f"{split}{a.out_suffix}.jsonl")
         n_words = 0
         for r in rows:
             u = e.frontend(r["text"])
@@ -33,13 +46,15 @@ def main():
             n_words += len(u.words)
             if u.meta.get("unknown_chars"):
                 stats["unknown_chars"] += len(u.meta["unknown_chars"])
+            if u.meta.get("morph_hizalama_hatasi"):
+                stats["morph_hizalama_hatasi"] += 1
         with open(p, "w", encoding="utf8") as f:
             for r in rows:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
         per_split[split] = dict(clips=len(rows), words=n_words)
         print(split, per_split[split], flush=True)
-    rep = dict(engine_versions=ver, splits=per_split, stress_counters=dict(stats))
-    json.dump(rep, open(os.path.join(HERE, "reports", "manifest_stats.json"), "w", encoding="utf8"), ensure_ascii=False, indent=1)
+    rep = dict(engine_versions=ver, tiers=tiers, out_suffix=a.out_suffix, splits=per_split, stress_counters=dict(stats))
+    json.dump(rep, open(os.path.join(HERE, "reports", f"manifest_stats{a.out_suffix}.json"), "w", encoding="utf8"), ensure_ascii=False, indent=1)
     print(json.dumps(rep, ensure_ascii=False, indent=1))
 
 

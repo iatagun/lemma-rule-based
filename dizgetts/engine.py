@@ -33,6 +33,8 @@ class Word:
     phones: list[str] = field(default_factory=list)   # dizge atomları (vurgu simgesi HARİÇ)
     stress: int | None = None                   # vurgulu ünlünün `phones` içindeki indeksi (None: vurgusuz); M1'de dolar
     punct: list[str] = field(default_factory=list)    # sözcüğü izleyen noktalama token'ları
+    upos: str | None = None                     # DizgeBERT-Morph (M1b; morfoloji aşaması açıksa)
+    feats: dict | None = None
 
 
 @dataclass
@@ -91,20 +93,53 @@ class PhonemeStage(Stage):
         return u
 
 
+class MorphStage(Stage):
+    """DizgeBERT-Morph UPOS+FEATS (frontend/morph.py) -> Word.upos/feats. Yalnız M1b vurgu katmanları için gerekir (Engine(morph=True)).
+    `cache`: {normalize edilmiş cümle: [(UPOS, FEATS)...] belirteç başına} — toplu üretimde (build_manifest) önbellekten okur."""
+    name = "morph"
+
+    def __init__(self, cache: dict | None = None):
+        self.cache = cache or {}
+        self._an = None
+
+    def version(self) -> str:
+        from dizgetts.frontend.morph import MODEL_ID, SCHEME
+        return f"{MODEL_ID}/{SCHEME}"
+
+    def __call__(self, u: Utterance) -> Utterance:
+        toks = u.norm.split()
+        res = self.cache.get(u.norm)
+        if res is None:
+            if self._an is None:
+                from dizgetts.frontend.morph import MorphAnalyzer
+                self._an = MorphAnalyzer("cpu")
+            res = self._an.analyze(toks)
+        it = iter(w for w in u.words)
+        for t, (pos, feats) in zip(toks, res):
+            if t.isalpha():
+                w = next(it, None)
+                if w is None or w.text != t:
+                    u.meta["morph_hizalama_hatasi"] = True
+                    break
+                w.upos, w.feats = pos, feats
+        return u
+
+
 class StressStage(Stage):
     """Kural tabanlı vurgu (frontend/stress.py, resources/*.tsv). Kural ve eşleme sayaçları u.meta["stress"]'e yazılır."""
     name = "stress"
 
-    def __init__(self):
+    def __init__(self, tiers=()):
         self.rules = StressRules()
+        self.tiers = tuple(tiers)  # M1b katmanları (frontend.stress.TIERS); varsayılan () = M1a (eğitilmiş v2_m1a modeliyle uyumlu)
 
     def version(self) -> str:
-        return self.rules.version()
+        return self.rules.version() + ("+" + ",".join(self.tiers) if self.tiers else "")
 
     def __call__(self, u: Utterance) -> Utterance:
         cnt = u.meta.setdefault("stress", {})
         for w in u.words:
-            k, tag = self.rules.syllable(w.text)
+            k, tag = self.rules.syllable(w.text, w.upos, w.feats, self.tiers)
             cnt[tag] = cnt.get(tag, 0) + 1
             if k is None:
                 continue
@@ -132,8 +167,11 @@ class AssembleStage(Stage):
 
 
 class Engine:
-    def __init__(self, bert_fallback: bool = True):
-        self.stages: list[Stage] = [NormalizeStage(), PhonemeStage(bert_fallback), StressStage(), AssembleStage()]
+    def __init__(self, bert_fallback: bool = True, morph: bool = False, tiers=(), morph_cache: dict | None = None):
+        st: list[Stage] = [NormalizeStage(), PhonemeStage(bert_fallback)]
+        if morph:
+            st.append(MorphStage(morph_cache))
+        self.stages: list[Stage] = st + [StressStage(tiers), AssembleStage()]
         self._acoustic = None
 
     # --- ön uç

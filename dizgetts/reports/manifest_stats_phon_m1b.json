@@ -1,0 +1,46 @@
+{
+ "engine_versions": {
+  "normalize": "28ddc408",
+  "phonemize": "dizge==0.1.6",
+  "morph": "iatagun/DizgeBERT-Morph/imst",
+  "stress": "20680616+yor,neg,ins,person",
+  "assemble": "91d305a0"
+ },
+ "tiers": [
+  "yor",
+  "neg",
+  "ins",
+  "person"
+ ],
+ "out_suffix": "_phon_m1b",
+ "splits": {
+  "train": {
+   "clips": 910,
+   "words": 30420
+  },
+  "val": {
+   "clips": 59,
+   "words": 1970
+  },
+  "test": {
+   "clips": 84,
+   "words": 2948
+  }
+ },
+ "stress_counters": {
+  "varsayılan_son": 29773,
+  "eşleme_eşit": 30827,
+  "eşleme_yan_ünlü_atıldı": 2619,
+  "yor_önü": 1170,
+  "kişi_eki_önü": 1598,
+  "koşaç_önü": 433,
+  "eşleme_sondan": 511,
+  "olumsuzluk_önü": 469,
+  "ins_önü": 274,
+  "kök": 208,
+  "clitic": 1362,
+  "kök+ek": 46,
+  "eşleme_yedek_son": 14,
+  "ünlüsüz": 5
+ }
+}
