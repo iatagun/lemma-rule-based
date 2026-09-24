@@ -37,7 +37,7 @@ experiments:
     eval_label: v2_m1a_ep150
     note: "M1b (vurgusuz ekler) YOK; espeak vurgusu kullanıcı kurallarında 9/28 doğruydu, son-seslem kuralı bunu kısmen düzeltir. Karşılaştırma: v1-dizge (aynı token'lar, vurgusuz)."
   - id: v2-m1b
-    status: queued
+    status: done
     depends_on: v2-m1a
     hypothesis: M1a'ya morfolojik vurgu katmanları (-Iyor önü, olumsuzluk, Case=Ins, kişi eki/koşaç; 11% sözcüğün vurgusunu değiştirir) eklemek CER'i M1a'dan düşürür
     metric: CER (143 cümle, ep150) + WER
@@ -45,6 +45,7 @@ experiments:
     config: configs/v2_engine_m1b.yaml
     eval_label: v2_m1b_ep150
     note: "kuralların bir kısmı kullanıcı listesinden (olumsuzluk, Ins, kişi eki, koşaç), -Iyor benim eklemem (literatür; onaysız). espeak ile örtüşme: yor %95, kişi eki %74, koşaç %78, Ins %68, olumsuzluk %42 (espeak ölçüt değil)."
+    result: "CER 3,0 (M1a 3,6): fark -0,60 [-1,76,+0,25] anlamsız; WER 12,4 (M1a 11,9): +0,59 [-0,86,+1,90] anlamsız; UTMOS 2,83 vs 2,85 anlamsız. Karar kuralı: anlamsız -> katmanlar kullanıcı etiketiyle doğrulanana dek deneysel."
   - id: v2-m3-nostress
     status: not-needed
     note: v1-dizge (aynı token'lar, vurgusuz) zaten bu karşılaştırmayı veriyor (CER 4,6 / WER 13,1); yeniden koşturulmaz
