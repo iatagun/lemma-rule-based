@@ -5,7 +5,7 @@ Sistemler: son_hece (varsayılan kural), m1a (kök sözlüğü + clitic), m1b (m
 bağlamsız -> cümle içindekinden zayıf olabilir), espeak (tr, with_stress). Karşılaştırma vurgulu seslemin SONDAN sırasıyladır (0 = son).
 DİKKAT: tests/stress_gold.tsv'deki kök sözcükleri resources/stress_roots.tsv'de de var (kurallar bu örneklerden yazıldı) -> m1a/m1b skoru orada
 DÖNGÜSEL, yalnız regresyon kontrolüdür. Bağımsız ölçüm için kullanıcının etiketlediği rastgele sözcükler (stress_annotation_sheet -> --gold) gerekir.
-Gold biçimi: sözcük<TAB>sondan_sıra<TAB>kategori[<TAB>not]; kategori "yer adı..." ise sözcük büyük harfle başlatılır (Ordu/ordu ayrımı).
+Gold biçimi: sözcük<TAB>sondan_sıra ("-" = vurgusuz)<TAB>kategori[<TAB>not]; kategori "yer adı..." ise sözcük büyük harfle başlatılır (Ordu/ordu ayrımı).
 """
 from __future__ import annotations
 
@@ -52,13 +52,14 @@ def main():
     hits = defaultdict(int)
     print("sözcük\tgold\t" + "\t".join(systems) + "\tkategori")
     for row in gold:
-        w, g, cat = row[0], int(row[1]), row[2]
+        w, g, cat = row[0], None if row[1] == "-" else int(row[1]), row[2]  # "-" = vurgusuz (kör etiket arayüzü)
         text = w[:1].replace("i", "İ").upper() + w[1:] if cat.startswith("yer adı") else w  # "i".upper() == "I" (Türkçe değil)
         n = _n_vowels(tr_lower(w))
-        pred = {"son_hece": 0, "m1a": n - 1 - rules.syllable(text)[0]}
+        from_end = lambda k: None if k is None else n - 1 - k
+        pred = {"son_hece": 0, "m1a": from_end(rules.syllable(text)[0])}
         if an is not None:
             upos, feats = an.analyze([text])[0]
-            pred["m1b"] = n - 1 - rules.syllable(text, upos, feats, TIERS)[0]
+            pred["m1b"] = from_end(rules.syllable(text, upos, feats, TIERS)[0])
         if tg is not None:
             pred["g2ptts"] = tg(text)["words"][0]["stress_from_end"]
         pred["espeak"] = espeak_from_end(text)
