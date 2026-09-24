@@ -75,7 +75,7 @@ experiments:
       stress_gold 29/35 (model tek başına 12, M1b 33). Kalan: pekiştirme + -CIk sıfat (4; yüzey kuralı sıfat kapısız kullanılamaz: UD'de pek örüntüsü
       1214 NOUN'a karşı 395 ADJ [arasında, birbirine], -CIk 155 NOUN'a karşı 96 ADJ), semracığım, güzeldir (hiçbir sistem bilmiyor).
   - id: g2ptts-v2
-    status: running
+    status: done
     depends_on: g2ptts-v1
     hypothesis: >-
       v1'de sınır başlığı ep1'de tepe yapıp düştü (Antalia x8 tekrar -> aşırı öğrenme), vurgu ep3'e kadar iyileşti; tek checkpoint ikisine en iyi olamadı.
@@ -84,3 +84,16 @@ experiments:
     metric: "test noktalamasız sınır F1 (dep_K2 kıyası + v1 0,491); UD test vurgu son-dışı uyum (v1 %86,5; etiketler değiştiği için v1 ile birebir değil); gold (karma tagger)"
     decision_rule: "v2 tagger'ın varsayılanı olur ancak test sınır F1 >= 0,471 (v1 - 0,02) VE UD son-dışı uyum > %86,5 ise; değilse v1 kalır."
     config: "python -m dizgetts.g2ptts.train --run D:/dizgetts/runs/g2ptts_v2 --antalia-repeat 2"
+    result: >-
+      GEÇTİ -> tagger varsayılanı. Test (seçilen ep1): sınır F1 0,507 (P 0,385 R 0,741) vs dep_K2 0,347, GA [+0,102, +0,214]; UD son-dışı uyum %87,5
+      (genel %97,8), Antalia son-dışı %90,6; model tek başına gold 13/35 (karma tagger 33/35). Hipotez kısmen doğru: sınır artık çökmüyor
+      (val 0,610/0,606/0,592/0,598; v1 0,597->0,549) ama seçim kuralı (yalnız sınır F1) yine ep1'i aldı; vurgu val son-dışı ep1 %86,6 -> ep4 %94,9.
+      Ders: seçim metriği tek başlığa bakıyor; sınır farkı gürültü düzeyindeyken vurgu kazancı büyük -> bkz. g2ptts-v2b.
+  - id: g2ptts-v2b
+    status: running
+    depends_on: g2ptts-v2
+    hypothesis: >-
+      Aynı reçete (v2, tohum 0), yalnız epoch SEÇİMİ değişir: sınır val F1'i en iyiye 0,02 yakın epoch'lar içinden UD son-dışı vurgu uyumu en yüksek olan.
+      v2 val eğrisinde bu ep4'ü seçerdi (sınır 0,598 vs 0,610, vurgu son-dışı %94,9 vs %86,6). Kural v2 val eğrisi GÖRÜLDÜKTEN sonra kondu (post-hoc); test dokunulmadı.
+    decision_rule: "v2b varsayılan olur ancak test sınır F1 >= 0,487 (v2 - 0,02) VE UD son-dışı uyum > %87,5 (v2) ise."
+    config: "python -m dizgetts.g2ptts.train --run D:/dizgetts/runs/g2ptts_v2b --antalia-repeat 2 --select balanced"

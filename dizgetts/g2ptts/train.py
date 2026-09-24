@@ -20,7 +20,7 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer
 from dizgetts.frontend.dep import MODEL_ID as DEP_ID, MODEL_REV as DEP_REV
 
 DATA = "D:/dizgetts/data/g2ptts"
-RUN = "D:/dizgetts/runs/g2ptts_v1"
+RUN = "D:/dizgetts/runs/g2ptts_v2"  # tagger varsayılanı (g2ptts-v2 kararı)
 ENC = "dbmdz/electra-base-turkish-cased-discriminator"
 PUNCT = {",", ".", "?", "!", ";"}
 N_STRESS, N_BOUND = 5, 3
@@ -156,11 +156,23 @@ def train(a):
         res.update(epoch=ep, train_loss=tot / (len(data) / a.bs), sec=round(time.time() - t0))
         log.append(res)
         print("VAL", json.dumps(res, ensure_ascii=False), flush=True)
-        if res["sınır_F1"] > best:  # seçim = dağıtım metriği (noktalamasız sınır F1); vurgu karar kuralında ayrıca denetlenir
-            best = res["sınır_F1"]
-            torch.save(dict(state=m.state_dict(), val=res, args=vars(a)), f"{RUN}/best.pt")
         json.dump(log, open(f"{RUN}/log.json", "w", encoding="utf8"), ensure_ascii=False, indent=1)
-    print("Bitti. En iyi val sınır F1:", best, flush=True)
+        if a.select == "boundary":  # v1/v2: yalnız noktalamasız sınır F1
+            if res["sınır_F1"] > best:
+                best = res["sınır_F1"]
+                torch.save(dict(state=m.state_dict(), val=res, args=vars(a)), f"{RUN}/best.pt")
+        else:  # v2b "balanced": her epoch saklanır, seçim sonda
+            torch.save(dict(state=m.state_dict(), val=res, args=vars(a)), f"{RUN}/ep{ep}.pt")
+    if a.select == "balanced":
+        # sınır F1'i en iyiye 0,02 yakın epoch'lar içinden UD son-dışı vurgu uyumu en yüksek olan (g2ptts-v2: sınır farkı gürültü, vurgu farkı büyük)
+        top = max(r["sınır_F1"] for r in log)
+        pick = max((r for r in log if r["sınır_F1"] >= top - 0.02), key=lambda r: r["vurgu_uyum_sondışı_ud"])
+        os.replace(f"{RUN}/ep{pick['epoch']}.pt", f"{RUN}/best.pt")
+        for r in log:
+            if os.path.exists(f"{RUN}/ep{r['epoch']}.pt"):
+                os.remove(f"{RUN}/ep{r['epoch']}.pt")
+        best = f"ep{pick['epoch']} (sınır {pick['sınır_F1']:.3f}, vurgu son-dışı {pick['vurgu_uyum_sondışı_ud']:.3f})"
+    print("Bitti. Seçilen:", best, flush=True)
 
 
 def test(a):
@@ -225,5 +237,6 @@ if __name__ == "__main__":
     ap.add_argument("--lr", type=float, default=3e-5)
     ap.add_argument("--freeze", type=int, default=6)
     ap.add_argument("--antalia-repeat", type=int, default=8)
+    ap.add_argument("--select", choices=("boundary", "balanced"), default="boundary", help="epoch seçimi (v2b: balanced)")
     a = ap.parse_args()
     test(a) if a.test else train(a)
