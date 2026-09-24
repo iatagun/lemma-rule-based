@@ -70,3 +70,7 @@ experiments:
       Tanı: üretken biçimbilim kuralları öğrenildi (koşaç, Ins, kişi eki, belirteç şimdi/belki); sözlük istisnaları (lokanta, İstanbul, -en belirteçleri) ve
       seyrek örüntüler (pekiştirme, -CIk sıfat) hep son hece -> eğitim verisinde örnek yok. Karar kuralı: pakette vurgu = kural modülü.
       Seçim çelişkisi: sınır val F1 ep1'de tepe (0,597 -> 0,549), vurgu ep3'te (son-dışı UD %91,5) -> tek checkpoint iki başlığa en iyi olamaz.
+    followup: >-
+      Kullanıcı A'yı seçti (2026-09-25): SÖZLÜK ÖNCELİKLİ KARMA (g2ptts/tagger.py) — kural belirleyiciyse (kök/ağırlık/clitic/ünlüsüz) kural, değilse model.
+      stress_gold 29/35 (model tek başına 12, M1b 33). Kalan: pekiştirme + -CIk sıfat (4; yüzey kuralı sıfat kapısız kullanılamaz: UD'de pek örüntüsü
+      1214 NOUN'a karşı 395 ADJ [arasında, birbirine], -CIk 155 NOUN'a karşı 96 ADJ), semracığım, güzeldir (hiçbir sistem bilmiyor).

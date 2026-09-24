@@ -1,5 +1,5 @@
 """Vurgu iç değerlendirmesi (TTS eğitmeden): gold sözcük listesinde vurgulu seslem doğruluğu, sistem sistem.
-  python -X utf8 -m dizgetts.eval.stress_intrinsic [--gold dizgetts/tests/stress_gold.tsv] [--no-morph]
+  python -X utf8 -m dizgetts.eval.stress_intrinsic [--gold dizgetts/tests/stress_gold.tsv] [--no-morph] [--g2ptts]
 
 Sistemler: son_hece (varsayılan kural), m1a (kök sözlüğü + clitic), m1b (m1a + morfolojik katmanlar; DizgeBERT-Morph TEK sözcük üzerinde,
 bağlamsız -> cümle içindekinden zayıf olabilir), espeak (tr, with_stress). Karşılaştırma vurgulu seslemin SONDAN sırasıyladır (0 = son).
@@ -34,6 +34,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--gold", default=str(GOLD))
     ap.add_argument("--no-morph", action="store_true")
+    ap.add_argument("--g2ptts", action="store_true", help="dizge-g2p-tts karma vurgusu (sözlük öncelikli + model; g2ptts/tagger.py)")
     a = ap.parse_args()
 
     gold = [l.split("\t") for l in Path(a.gold).read_text(encoding="utf8").splitlines() if l.strip() and not l.startswith("#")]
@@ -43,7 +44,11 @@ def main():
         from dizgetts.frontend.morph import MorphAnalyzer
         an = MorphAnalyzer("cpu")
 
-    systems = ["son_hece", "m1a"] + ([] if an is None else ["m1b"]) + ["espeak"]
+    tg = None
+    if a.g2ptts:
+        from dizgetts.g2ptts.tagger import Tagger
+        tg = Tagger()
+    systems = ["son_hece", "m1a"] + ([] if an is None else ["m1b"]) + ([] if tg is None else ["g2ptts"]) + ["espeak"]
     hits = defaultdict(int)
     print("sözcük\tgold\t" + "\t".join(systems) + "\tkategori")
     for row in gold:
@@ -54,6 +59,8 @@ def main():
         if an is not None:
             upos, feats = an.analyze([text])[0]
             pred["m1b"] = n - 1 - rules.syllable(text, upos, feats, TIERS)[0]
+        if tg is not None:
+            pred["g2ptts"] = tg(text)["words"][0]["stress_from_end"]
         pred["espeak"] = espeak_from_end(text)
         for s in systems:
             ok = pred[s] == g
