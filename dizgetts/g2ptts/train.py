@@ -20,7 +20,7 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer
 from dizgetts.frontend.dep import MODEL_ID as DEP_ID, MODEL_REV as DEP_REV
 
 DATA = "D:/dizgetts/data/g2ptts"
-RUN = "D:/dizgetts/runs/g2ptts_v2"  # tagger varsayılanı (g2ptts-v2 kararı)
+RUN = "D:/dizgetts/runs/g2ptts_v2b"  # tagger varsayılanı (g2ptts-v2b kararı)
 ENC = "dbmdz/electra-base-turkish-cased-discriminator"
 PUNCT = {",", ".", "?", "!", ";"}
 N_STRESS, N_BOUND = 5, 3

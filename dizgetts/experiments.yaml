@@ -90,10 +90,14 @@ experiments:
       (val 0,610/0,606/0,592/0,598; v1 0,597->0,549) ama seçim kuralı (yalnız sınır F1) yine ep1'i aldı; vurgu val son-dışı ep1 %86,6 -> ep4 %94,9.
       Ders: seçim metriği tek başlığa bakıyor; sınır farkı gürültü düzeyindeyken vurgu kazancı büyük -> bkz. g2ptts-v2b.
   - id: g2ptts-v2b
-    status: running
+    status: done
     depends_on: g2ptts-v2
     hypothesis: >-
       Aynı reçete (v2, tohum 0), yalnız epoch SEÇİMİ değişir: sınır val F1'i en iyiye 0,02 yakın epoch'lar içinden UD son-dışı vurgu uyumu en yüksek olan.
       v2 val eğrisinde bu ep4'ü seçerdi (sınır 0,598 vs 0,610, vurgu son-dışı %94,9 vs %86,6). Kural v2 val eğrisi GÖRÜLDÜKTEN sonra kondu (post-hoc); test dokunulmadı.
     decision_rule: "v2b varsayılan olur ancak test sınır F1 >= 0,487 (v2 - 0,02) VE UD son-dışı uyum > %87,5 (v2) ise."
     config: "python -m dizgetts.g2ptts.train --run D:/dizgetts/runs/g2ptts_v2b --antalia-repeat 2 --select balanced"
+    result: >-
+      GEÇTİ -> tagger varsayılanı. Seçilen ep4 (val sınır 0,598, vurgu son-dışı %94,9; eğri v2 ile birebir, tohum 0). Test: sınır F1 0,498
+      (P 0,419 R 0,615) vs dep_K2 0,347, GA [+0,090, +0,208]; UD son-dışı uyum %94,9 (v2 %87,5), genel %98,4; Antalia son-dışı %97,0;
+      model tek başına gold 17/35 (v2 13), karma tagger 33/35.
