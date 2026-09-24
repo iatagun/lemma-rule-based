@@ -49,3 +49,18 @@ experiments:
   - id: v2-m3-nostress
     status: not-needed
     note: v1-dizge (aynı token'lar, vurgusuz) zaten bu karşılaştırmayı veriyor (CER 4,6 / WER 13,1); yeniden koşturulmaz
+
+  # ---- dizge-g2p-tts: cümle bazlı G2P (fonem = dizge kuralı; vurgu + sınır = model). TTS eğitimi DEĞİL, ön uç modeli. ----
+  - id: g2ptts-v1
+    status: planned
+    hypothesis: >-
+      DizgeBERT-Dep kodlayıcısından başlatılan (alt 6 katman + gömme dondurulmuş) iki başlıklı sözcük sınıflandırıcısı,
+      (a) SINIR: Antalia kayıtlarından ölçülen sözcük-sınırı sessizliğini (>=60 ms) noktalamasız sınırlarda Dep kuralından (dep_K2) daha iyi tahmin eder;
+      (b) VURGU: kural sistemini (M1b + pek/cik + ağırlık; StressRules.version kaydedilir) UD gold biçimbilimi üzerinde damıtır ve yalnız ham metinden yeniden üretir.
+    data: "vurgu: UD BOUN+IMST+Kenet (çok-parçalı belirteçli cümleler hariç) + Antalia train (Morph önbelleği); sınır: Antalia train (breaks.jsonl). Seçim: val. Karar: test."
+    metric: "sınır: test noktalamasız F1 (eşik val'de); vurgu: kural etiketiyle uyum (UD test + Antalia test) + stress_gold.tsv (35)"
+    baseline: "eğitimsiz (eval/boundary_baseline.py, val+test): noktalama F1 0; dep_K2 P 0,342 R 0,442 F1 0,386; tüm sınırlar F1 noktalama 0,738 / dep_K2 0,727"
+    decision_rule: >-
+      SINIR başlığı yayınlanır ancak test noktalamasız F1 - dep_K2 farkının klip-bootstrap %95 alt sınırı > 0 ise; değilse pakette sınır = dep_K2 kuralı.
+      VURGU başlığı yayınlanır ancak kural uyumu >= %97 (UD test) ve gold'da M1b'den (33/35) en çok 1 eksikse; değilse pakette vurgu = kural modülü.
+    note: tek koşu, tek tohum; ikinci varyant ancak sonuç yorumlanınca.
