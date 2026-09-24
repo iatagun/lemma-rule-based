@@ -4,11 +4,8 @@ Referans = cümlenin normalize edilmiş hali (canon). Aşama 6 değerlendirmesin
   D:/dizgetts/venv/Scripts/python.exe -X utf8 dizgetts/eval/asr_check.py D:/dizgetts/samples/<run>/ep25 [--device cpu]
 """
 import argparse, json, os, sys
-
-sys.path.insert(0, os.path.dirname(__file__))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-from asr_floor import canon, lev  # noqa: E402
-from whisper_score import Scorer  # noqa: E402
+from dizgetts.eval.asr_floor import canon, lev  # noqa: E402
+from dizgetts.eval.whisper_score import Scorer  # noqa: E402
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()

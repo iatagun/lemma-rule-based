@@ -30,10 +30,8 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))  # repo kökü
-sys.path.insert(0, os.path.join(ROOT, "dizgetts"))
 from matcha.models.matcha_tts import MatchaTTS  # noqa: E402
-from train.embed import FactorizedEmbedding  # noqa: E402
-from train.data import BucketBatches, TTSDataset, collate, ensure_mels, frontend_table, row_tokens  # noqa: E402
+from dizgetts.train.data import BucketBatches, TTSDataset, collate, ensure_mels, frontend_table, row_tokens  # noqa: E402
 
 
 def deep_merge(a: dict, b: dict) -> dict:
@@ -66,8 +64,6 @@ def build_model(cfg: dict, n_vocab: int, stats: dict) -> MatchaTTS:
                       encoder=OmegaConf.create(m["encoder"]), decoder=OmegaConf.create(m["decoder"]), cfm=OmegaConf.create(m["cfm"]),
                       data_statistics=dict(mel_mean=stats["mel_mean"], mel_std=stats["mel_std"]), out_size=m["out_size"],
                       prior_loss=m["prior_loss"])
-    if m.get("factor_feats"):  # fonem başına öznitelik (frontend/prosody.py): gömme = fonem + öznitelik
-        model.encoder.emb = FactorizedEmbedding(n_vocab, m["factor_feats"], m["encoder"]["encoder_params"]["n_channels"])
     return model
 
 

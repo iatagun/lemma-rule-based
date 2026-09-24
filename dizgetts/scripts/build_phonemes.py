@@ -7,12 +7,10 @@
 import argparse, collections, json, os, re, subprocess, sys
 
 import yaml
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from frontend import espeak  # noqa: E402
-from frontend.normalize import tr_lower  # noqa: E402
-from frontend.phonemize import Phonemizer  # noqa: E402
-from frontend.symbols import PHONES, SYMBOL_TO_ID  # noqa: E402
+from dizgetts.frontend import espeak  # noqa: E402
+from dizgetts.frontend.normalize import tr_lower  # noqa: E402
+from dizgetts.frontend.phonemize import Phonemizer  # noqa: E402
+from dizgetts.frontend.symbols import PHONES, SYMBOL_TO_ID  # noqa: E402
 
 
 def canon(s):  # normalizer karşılaştırması için: küçük harf, noktalama/tire yok

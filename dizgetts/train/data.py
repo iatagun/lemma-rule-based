@@ -16,22 +16,18 @@ from matcha.utils.model import normalize
 from matcha.utils.utils import intersperse
 from torch.utils.data import Dataset
 
-from frontend import symbols as dizge_syms
-from frontend import symbols_espeak as espeak_syms
+from dizgetts.frontend import symbols as dizge_syms
+from dizgetts.frontend import symbols_espeak as espeak_syms
 
 
-# dizge varyantları: dizge (sözcük ayracı ' ') | dizge_nosep (ayraçsız) | dizge_breaks (sesten ölçülen kırılma sınıfları) -> manifest alanı
-DIZGE_FRONTENDS = {"dizge": "tokens", "dizge_nosep": "tokens_nosep", "dizge_breaks": "tokens_breaks", "dizge_stress": "tokens_stress"}
-
-
-# öznitelik tabanlı: sözcük sınırı token değil fonem başına öznitelik (frontend/prosody.py). feat_text: metin kuralı (dağıtılabilir); feat_meas: sesten ölçülen sınıflar (oracle)
-FEAT_FRONTENDS = {"dizge_feat": "feat_text", "dizge_featm": "feat_meas"}
+# frontend: "espeak" (karşılaştırma aracı) | "engine" (dizgetts.engine çıktısı: manifestteki `tokens`; vurgu/kırılma token'ları dahil). "dizge" = "engine" takma adı.
+ENGINE_FRONTENDS = ("engine", "dizge")
 
 
 def frontend_table(frontend: str):
     if frontend == "espeak":
         return espeak_syms.SYMBOLS, espeak_syms.SYMBOL_TO_ID
-    if frontend in DIZGE_FRONTENDS or frontend in FEAT_FRONTENDS:
+    if frontend in ENGINE_FRONTENDS:
         return dizge_syms.SYMBOLS, dizge_syms.SYMBOL_TO_ID
     raise ValueError(f"bilinmeyen frontend: {frontend}")
 
@@ -39,7 +35,7 @@ def frontend_table(frontend: str):
 def row_tokens(row: dict, frontend: str, strip_stress: bool = False) -> list[str]:
     if frontend == "espeak":
         return espeak_syms.tokenize(row["espeak"], strip_stress=strip_stress)
-    return row[DIZGE_FRONTENDS[frontend]]
+    return row["tokens"]
 
 
 def mel_file(root: str, clip_id: str) -> str:
@@ -69,11 +65,7 @@ class TTSDataset(Dataset):
         self.rows = [json.loads(l) for l in open(os.path.join(root, f"{split}_phon.jsonl"), encoding="utf8")]
         _, self.s2i = frontend_table(frontend)
         self.mean, self.std = stats["mel_mean"], stats["mel_std"]
-        if frontend in FEAT_FRONTENDS:  # id = fonem + V*öznitelik (train/embed.py çözer)
-            V = len(dizge_syms.SYMBOLS)
-            self.ids = [intersperse([self.s2i[t] + V * f for t, f in zip(r["tokens_feat"], r[FEAT_FRONTENDS[frontend]])], 0) for r in self.rows]
-        else:
-            self.ids = [intersperse([self.s2i[t] for t in row_tokens(r, frontend, strip_stress)], 0) for r in self.rows]
+        self.ids = [intersperse([self.s2i[t] for t in row_tokens(r, frontend, strip_stress)], 0) for r in self.rows]
         # mel uzunluğu: dosyadan okumadan tahmin için ilk çağrıda önbelleğe alınır
         self._len = None
 

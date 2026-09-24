@@ -1,8 +1,6 @@
 """python -X utf8 dizgetts/tests/test_normalize.py  (assert tabanlı; pytest gerekmez)."""
 import os, sys
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from frontend.normalize import cardinal, normalize  # noqa: E402
+from dizgetts.frontend.normalize import cardinal, normalize  # noqa: E402
 
 CARD = {0: "sıfır", 7: "yedi", 10: "on", 100: "yüz", 101: "yüz bir", 1000: "bin", 2000: "iki bin", 3254: "üç bin iki yüz elli dört",
         1990: "bin dokuz yüz doksan", 2026: "iki bin yirmi altı", 1_000_000: "bir milyon", 12_345_678: "on iki milyon üç yüz kırk beş bin altı yüz yetmiş sekiz"}

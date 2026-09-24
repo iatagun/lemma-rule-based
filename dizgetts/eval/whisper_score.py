@@ -2,7 +2,7 @@
 Normalizer kararlarını (para okunuşu, SMS, www, uzun numara...) sesten bağımsız kanıtla seçmek için.
 Kaba: Whisper'ın dil modeli önyargısı her iki adayda da vardır; yalnız AYNI biçimli adaylar kıyaslanır, küçük fark kanıt sayılmaz.
 
-  from scripts.whisper_score import Scorer; s = Scorer(); s.nll(wav_path, ["metin a", "metin b"])
+  from dizgetts.eval.whisper_score import Scorer; s = Scorer(); s.nll(wav_path, ["metin a", "metin b"])
 """
 import os, sys
 

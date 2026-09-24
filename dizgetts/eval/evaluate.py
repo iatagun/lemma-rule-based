@@ -8,12 +8,9 @@ import argparse, json, os, sys, time
 import numpy as np
 import soundfile as sf
 import torch
-
-sys.path.insert(0, os.path.dirname(__file__))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-from asr_floor import canon, lev  # noqa: E402
-from synth import Synth  # noqa: E402
-from whisper_score import Scorer  # noqa: E402
+from dizgetts.eval.asr_floor import canon, lev  # noqa: E402
+from dizgetts.eval.synth import Synth  # noqa: E402
+from dizgetts.eval.whisper_score import Scorer  # noqa: E402
 
 ROOT = "D:/dizgetts/data/processed/antalia"
 

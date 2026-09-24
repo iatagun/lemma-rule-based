@@ -6,8 +6,6 @@ G2P kapsama. Yalnız stdlib+numpy (+ G2P bölümü için torch/transformers/dizg
 import argparse, collections, json, os, re, sys, wave
 
 import numpy as np
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 FR = 0.010  # 10 ms çerçeve
 
 
@@ -140,8 +138,8 @@ def main():
 
     if not a.skip_g2p:
         import dizge
-        from frontend.g2p import G2P, tr_lower
-        from frontend.symbols import PHONES, tokenize
+        from dizgetts.frontend.g2p import G2P, tr_lower
+        from dizgetts.frontend.symbols import PHONES, tokenize
 
         vocab = sorted(set(tr_lower(w) for w in words))
         ref = set(w.strip() for w in open("D:/playground/turkish_words.txt", encoding="utf8"))

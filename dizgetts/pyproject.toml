@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dizgetts"
+version = "0.2.0"
+description = "DizgeTTS: Turkce metinden konusma (Matcha-TTS + dizge fonemleri + dilbilimsel vurgu)"
+requires-python = ">=3.12"
+
+[tool.setuptools]
+packages = ["dizgetts", "dizgetts.frontend", "dizgetts.tools", "dizgetts.train", "dizgetts.eval", "dizgetts.scripts"]
+package-dir = { "dizgetts" = "." }

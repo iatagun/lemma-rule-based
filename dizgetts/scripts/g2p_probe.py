@@ -9,10 +9,8 @@
   python -X utf8 dizgetts/scripts/g2p_probe.py --words D:/playground/turkish_words.txt
 """
 import argparse, collections, glob, json, os, sys
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from frontend.g2p import G2P  # noqa: E402
-from frontend.symbols import PHONES, tokenize, UnknownSymbol  # noqa: E402
+from dizgetts.frontend.g2p import G2P  # noqa: E402
+from dizgetts.frontend.symbols import PHONES, tokenize, UnknownSymbol  # noqa: E402
 
 
 def main():

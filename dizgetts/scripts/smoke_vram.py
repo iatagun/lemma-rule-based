@@ -7,9 +7,7 @@ import os, sys, time
 
 import torch
 from omegaconf import OmegaConf
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from frontend.symbols import SYMBOLS  # noqa: E402
+from dizgetts.frontend.symbols import SYMBOLS  # noqa: E402
 from matcha.models.matcha_tts import MatchaTTS  # noqa: E402
 
 # Upstream configs/model/* varsayılanları (LJSpeech), n_vocab bizim tablodan

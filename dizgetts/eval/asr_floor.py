@@ -3,11 +3,8 @@ Karşılaştırma: iki taraf da normalize() + noktalamasız küçük harf.
   D:/dizgetts/venv/Scripts/python.exe -X utf8 dizgetts/eval/asr_floor.py [split ...]
 """
 import json, os, re, sys
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
-from frontend.normalize import normalize, tr_lower  # noqa: E402
-from whisper_score import Scorer  # noqa: E402
+from dizgetts.frontend.normalize import normalize, tr_lower  # noqa: E402
+from dizgetts.eval.whisper_score import Scorer  # noqa: E402
 
 ROOT = "D:/dizgetts/data/processed/antalia"
 

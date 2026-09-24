@@ -1,9 +1,7 @@
 """/d/dizgetts/venv/Scripts/python.exe -X utf8 dizgetts/tests/test_phonemize.py"""
 import os, sys
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from frontend.phonemize import Phonemizer  # noqa: E402
-from frontend.symbols import PAUSES, STRESS, SYMBOL_TO_ID, to_ids, tokenize  # noqa: E402
+from dizgetts.frontend.phonemize import Phonemizer  # noqa: E402
+from dizgetts.frontend.symbols import PAUSES, STRESS, SYMBOL_TO_ID, to_ids, tokenize  # noqa: E402
 
 p = Phonemizer(bert_fallback=False)
 norm, toks = p("Merhaba, dünya! 3'te İstanbul'da.")
