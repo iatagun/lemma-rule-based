@@ -134,6 +134,7 @@ def train(a):
     params = [{"params": [p for n, p in m.named_parameters() if p.requires_grad and n.startswith("bert.")], "lr": a.lr},
               {"params": [p for n, p in m.named_parameters() if not n.startswith("bert.")], "lr": 1e-3}]
     opt = torch.optim.AdamW(params, weight_decay=0.01)
+    RUN = a.run
     os.makedirs(RUN, exist_ok=True)
     log, best = [], -1
     for ep in range(1, a.epochs + 1):
@@ -169,7 +170,7 @@ def test(a):
     from dizgetts.frontend.stress import _n_vowels
     import yaml
 
-    device = "cuda"
+    device, RUN = "cuda", a.run
     tok = AutoTokenizer.from_pretrained(DEP_ID, revision=DEP_REV)
     ck = torch.load(f"{RUN}/best.pt", map_location="cpu", weights_only=False)  # kendi checkpoint'imiz (val sözlüğünde numpy skaler)
     m = G2PTTS(); m.load_state_dict(ck["state"]); m.to(device)
@@ -218,6 +219,7 @@ def test(a):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--test", action="store_true")
+    ap.add_argument("--run", default=RUN, help="checkpoint/log dizini")
     ap.add_argument("--epochs", type=int, default=4)
     ap.add_argument("--bs", type=int, default=16)
     ap.add_argument("--lr", type=float, default=3e-5)

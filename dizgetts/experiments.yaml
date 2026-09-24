@@ -74,3 +74,13 @@ experiments:
       Kullanıcı A'yı seçti (2026-09-25): SÖZLÜK ÖNCELİKLİ KARMA (g2ptts/tagger.py) — kural belirleyiciyse (kök/ağırlık/clitic/ünlüsüz) kural, değilse model.
       stress_gold 29/35 (model tek başına 12, M1b 33). Kalan: pekiştirme + -CIk sıfat (4; yüzey kuralı sıfat kapısız kullanılamaz: UD'de pek örüntüsü
       1214 NOUN'a karşı 395 ADJ [arasında, birbirine], -CIk 155 NOUN'a karşı 96 ADJ), semracığım, güzeldir (hiçbir sistem bilmiyor).
+  - id: g2ptts-v2
+    status: running
+    depends_on: g2ptts-v1
+    hypothesis: >-
+      v1'de sınır başlığı ep1'de tepe yapıp düştü (Antalia x8 tekrar -> aşırı öğrenme), vurgu ep3'e kadar iyileşti; tek checkpoint ikisine en iyi olamadı.
+      Antalia tekrarı 8 -> 2 ile sınır tepesi geç epoch'a kayar; seçilen checkpoint'te vurgu (UD son-dışı uyum) v1'den yüksek olur, sınır F1 korunur.
+      Veri düzeltmesi (değişken değil): pekiştirme/-CIk etiketleri artık sıfat sözlüğüne kapılı (v1 UD etiketlerinde arasında/emekli/usulca gürültüsü).
+    metric: "test noktalamasız sınır F1 (dep_K2 kıyası + v1 0,491); UD test vurgu son-dışı uyum (v1 %86,5; etiketler değiştiği için v1 ile birebir değil); gold (karma tagger)"
+    decision_rule: "v2 tagger'ın varsayılanı olur ancak test sınır F1 >= 0,471 (v1 - 0,02) VE UD son-dışı uyum > %86,5 ise; değilse v1 kalır."
+    config: "python -m dizgetts.g2ptts.train --run D:/dizgetts/runs/g2ptts_v2 --antalia-repeat 2"
