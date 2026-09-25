@@ -55,3 +55,8 @@ Komutlar: `python -X utf8 -m dizgetts.eval.status`, `python -X utf8 dizgetts/eva
   pazartesi, perşembe, fatura, merhaba, harika...), vurgusuz ek (~12: -ken, -(y)ince, -(y)ArAk, -(y)AlIm, emir, -sInlAr, -mIş/-dIr koşaç), model (yerleştirdik).
   B grubunda ve A'nın çoğunda sözcük istisna olarak İŞARETLENİNCE ağırlık kuralı konumu doğru veriyor -> darboğaz "hangi sözcük istisna".
   DİKKAT: bu 250'nin hataları incelendi -> artık GELİŞTİRME seti; buradan sözcük sözlüğe eklenirse skor döngüsel olur. Son rapor için yeni kör set gerekir.
+- 2026-09-25 KÖR TEST SETİ (tests/stress_gold_test.tsv; 100 sözcük, 97 etiketli, önceki setlerle çakışmasız; kurallar buna BAKILMADAN yazıldı):
+  son_hece 83,5 [76,3–90,7] / m1a 83,5 / m1b 94,8 [89,7–99,0] / g2ptts-v3 karma 92,8 [87,6–97,9] / espeak 73,2 [63,9–81,4] % (sözcük bootstrap).
+  Eşleşmiş: g2ptts − son_hece +9,3 pp [+2,1, +17,5]; g2ptts − espeak +19,6 [+9,3, +29,9]; g2ptts − m1b −2,1 [−6,2, +2,1] (anlamsız).
+  Test setinde son-dışı oranı %16,5 (geliştirme %37; örnekleme farkı, n küçük). g2ptts hataları: sana (SA-na), neydi (NEY-di), hazırsanız
+  (ha-ZIR-sa-nız: ad + -ysA + kişi), insanidir, oldukça, e/yüzde (model 'vurgusuz' dedi).
