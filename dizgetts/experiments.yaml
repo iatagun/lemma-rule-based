@@ -146,7 +146,8 @@ experiments:
       (kör test %92,8 vs M1a %83,5) v2-m1a'dan daha anlaşılır konuşma verir. Tek değişken v2-m1a'ya göre: vurgu kaynağı.
     metric: "CER/WER + UTMOS, ep150, 543 cümle (143 Antalia + 400 UD); v2-m1a / v2-m1b aynı 543'te (compare.py, eşleşmiş bootstrap)"
     decision_rule: >-
-      Erken kontrol: train_dur ep30'da <= 0,50 değilse durdur (hizalama kurulmadı). Son: v3a CER < v2-m1a ve fark GA üst sınırı < 0 -> g2ptts vurgusu TTS'e
+      Erken kontrol (2026-09-25 DÜZELTİLDİ, v3a ep20'de 0,60 görüldükten sonra): ep60'ta train_dur < 0,55 değilse durdur. İlk kural (ep30 <= 0,50)
+      fazla katıydı: geçmiş koşularda hizalama 'oturma' anı ep10-50 arası değişiyor (v2-m1b ep30'da 0,58, ep50'de 0,45 ve en iyi CER'i verdi). Son: v3a CER < v2-m1a ve fark GA üst sınırı < 0 -> g2ptts vurgusu TTS'e
       yardım ediyor; anlamsız -> TTS katkısı gösterilemedi (paket iddiası ön uç doğruluğuyla sınırlı).
     config: configs/v3a_g2ptts_nobreaks.yaml
     eval_label: v3a_g2ptts_nb_ep150_x543
