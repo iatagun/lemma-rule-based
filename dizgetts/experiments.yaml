@@ -118,7 +118,7 @@ experiments:
 
   # ---- v3: Antalia TTS, dizge-g2p-tts ön ucuyla ----
   - id: v3-g2ptts-tts
-    status: running
+    status: stopped
     hypothesis: >-
       dizge-g2p-tts etiketleri (g2ptts-v3: karma vurgu, geliştirme setinde %86 vs M1a %65; noktalamasız sınır token'ları) ile eğitilen Matcha,
       aynı reçeteyle eğitilmiş v2-m1a'dan daha anlaşılır (CER/WER) ve en az aynı doğallıkta (UTMOS). Ürün testi: iki değişiklik (vurgu + sınır) birlikte.
@@ -134,3 +134,19 @@ experiments:
       değişti) -> eğitim token'larından küçük sapma; v2-m1a Antalia 143'te eski CER 3,6 ile kıyaslanarak kontrol edilir.
     config: configs/v3_g2ptts.yaml
     eval_label: v3_g2ptts_ep150_x543
+    result: >-
+      DURDURULDU ep60 (önceden konmuş kontrol noktası: train_dur ep60'ta <0,55 değilse dur). train_dur ep5-60 0,587-0,594 düz (v2-m1a aynı reçetede
+      ep20 0,47, ep30 0,43); grad_norm iki koşuda aynı (~0,35) -> kararsızlık değil, hizalama (MAS) takılması. v1 breaks koşusu da (ayraçsız + sınır
+      token'ı) 0,80'de hiç kırılmadı -> v1'deki çöküşün bir kısmı da sınır token'larından olabilir. Checkpoint'ler (ep25/ep50/last) duruyor.
+  - id: v3a-g2ptts-nobreaks
+    status: running
+    depends_on: v3-g2ptts-tts
+    hypothesis: >-
+      v3'ten sınır token'ları çıkarılınca (yalnız karma vurgu, sözcük ayracı + noktalama v2 ile aynı) hizalama v2-m1a gibi kurulur ve g2ptts vurgusu
+      (kör test %92,8 vs M1a %83,5) v2-m1a'dan daha anlaşılır konuşma verir. Tek değişken v2-m1a'ya göre: vurgu kaynağı.
+    metric: "CER/WER + UTMOS, ep150, 543 cümle (143 Antalia + 400 UD); v2-m1a / v2-m1b aynı 543'te (compare.py, eşleşmiş bootstrap)"
+    decision_rule: >-
+      Erken kontrol: train_dur ep30'da <= 0,50 değilse durdur (hizalama kurulmadı). Son: v3a CER < v2-m1a ve fark GA üst sınırı < 0 -> g2ptts vurgusu TTS'e
+      yardım ediyor; anlamsız -> TTS katkısı gösterilemedi (paket iddiası ön uç doğruluğuyla sınırlı).
+    config: configs/v3a_g2ptts_nobreaks.yaml
+    eval_label: v3a_g2ptts_nb_ep150_x543

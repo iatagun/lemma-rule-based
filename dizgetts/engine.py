@@ -222,10 +222,10 @@ class AssembleStage(Stage):
 
 class Engine:
     def __init__(self, bert_fallback: bool = True, morph: bool = False, tiers=(), morph_cache: dict | None = None,
-                 g2ptts: bool = False, g2ptts_ckpt: str | None = None):
+                 g2ptts: bool = False, g2ptts_ckpt: str | None = None, g2ptts_breaks: bool = True):
         st: list[Stage] = [NormalizeStage(), PhonemeStage(bert_fallback)]
         if g2ptts:  # dizge-g2p-tts: vurgu + sınır tek aşamada; sınır token'ları açık
-            self.stages = st + [G2PTTSStage(g2ptts_ckpt), AssembleStage(breaks=True)]
+            self.stages = st + [G2PTTSStage(g2ptts_ckpt), AssembleStage(breaks=g2ptts_breaks)]  # v3a: breaks=False (v3'te hizalama takıldı)
             self._acoustic = None
             return
         if morph:

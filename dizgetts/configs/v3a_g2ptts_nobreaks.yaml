@@ -1,0 +1,9 @@
+# v3a: v3 ön ucu (dizge + g2ptts-v3 KARMA vurgu), SINIR TOKEN'I YOK. v3'te | / ‖ token'larıyla hizalama takıldı (train_dur 60 epoch 0,59'da düz;
+# v2-m1a aynı reçetede ep20'de 0,47). Manifest: scripts/build_manifest.py --g2ptts --no-breaks --out-suffix _phon_g2ptts_nb
+base: train_base.yaml
+name: v3a_g2ptts_nb_e150
+frontend: engine
+manifest: _phon_g2ptts_nb
+engine: {g2ptts: true, g2ptts_breaks: false}
+train:
+  epochs: 150

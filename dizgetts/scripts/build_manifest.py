@@ -19,6 +19,7 @@ def main():
     ap.add_argument("--out-suffix", default="_phon", help="çıktı: {split}<suffix>.jsonl (girdi her zaman *_phon.jsonl'in `text` alanı)")
     ap.add_argument("--tiers", default="", help="M1b vurgu katmanları, virgülle (yor,neg,ins,person); boş = M1a")
     ap.add_argument("--g2ptts", action="store_true", help="dizge-g2p-tts ön ucu (karma vurgu + model sınır token'ları); --tiers yok sayılır")
+    ap.add_argument("--no-breaks", action="store_true", help="--g2ptts ile: sınır token'ı ekleme (yalnız karma vurgu; v3a)")
     a = ap.parse_args()
     tiers = tuple(t for t in a.tiers.split(",") if t)
     root = yaml.safe_load(open(os.path.join(HERE, "configs", "data.yaml"), encoding="utf8"))["out_root"]
@@ -30,7 +31,7 @@ def main():
             for l in open(mp, encoding="utf8"):
                 m = json.loads(l)
                 cache[" ".join(m["tokens"])] = list(zip(m["upos"], m["feats"]))
-    e = Engine(bert_fallback=True, g2ptts=True) if a.g2ptts else Engine(bert_fallback=True, morph=bool(tiers), tiers=tiers, morph_cache=cache)
+    e = Engine(bert_fallback=True, g2ptts=True, g2ptts_breaks=not a.no_breaks) if a.g2ptts else Engine(bert_fallback=True, morph=bool(tiers), tiers=tiers, morph_cache=cache)
     ver = e.versions()
     stats, per_split = collections.Counter(), {}
     for split in ("train", "val", "test"):
