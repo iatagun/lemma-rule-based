@@ -51,6 +51,7 @@ class Synth:
             toks = symbols_espeak.tokenize(espeak.phonemize(norm), strip_stress=self.cfg["espeak_strip_stress"])
             return norm, toks, intersperse([symbols_espeak.SYMBOL_TO_ID[t] for t in toks], 0)
         u = self.engine.frontend(text)
+        self._dp = u.dp_feat
         return u.norm, u.tokens, intersperse(self.engine.ids(u), 0)
 
     @torch.inference_mode()
@@ -58,6 +59,9 @@ class Synth:
         norm, toks, ids = self.ids(text)
         x = torch.tensor(ids, dtype=torch.long, device=self.dev)[None]
         xl = torch.tensor([x.shape[1]], device=self.dev)
+        if self.cfg["model"].get("dp_feat"):  # v4: sınır özniteliği yalnız süre tahmincisine
+            from dizgetts.train.dpfeat import intersperse_feat, set_dp_feat
+            set_dp_feat(self.model, torch.tensor(intersperse_feat(self._dp), dtype=torch.long, device=self.dev)[None])
         t = time.time()
         out = self.model.synthesise(x, xl, n_timesteps=steps, temperature=temperature, spks=None, length_scale=length_scale)
         wav = self.vocoder(out["mel"]).clamp(-1, 1)

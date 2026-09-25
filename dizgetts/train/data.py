@@ -60,12 +60,18 @@ def ensure_mels(root: str, rows: list[dict], au: dict) -> int:
 
 
 class TTSDataset(Dataset):
-    def __init__(self, root: str, split: str, frontend: str, stats: dict, strip_stress: bool = False, manifest: str = "_phon"):
+    def __init__(self, root: str, split: str, frontend: str, stats: dict, strip_stress: bool = False, manifest: str = "_phon", dp_feat: bool = False):
         self.root = root
         self.rows = [json.loads(l) for l in open(os.path.join(root, f"{split}{manifest}.jsonl"), encoding="utf8")]
         _, self.s2i = frontend_table(frontend)
         self.mean, self.std = stats["mel_mean"], stats["mel_std"]
         self.ids = [intersperse([self.s2i[t] for t in row_tokens(r, frontend, strip_stress)], 0) for r in self.rows]
+        self.dp = None
+        if dp_feat:  # v4: süre tahmincisi özniteliği (manifestte `dp_feat`, token başına) -> add_blank dizisine yayılır
+            from dizgetts.train.dpfeat import intersperse_feat
+            self.dp = [intersperse_feat(r["dp_feat"]) for r in self.rows]
+            bad = [r["id"] for r, a, b in zip(self.rows, self.ids, self.dp) if len(a) != len(b)]
+            assert not bad, f"dp_feat uzunluğu token'la tutmuyor: {bad[:3]}"
         # mel uzunluğu: dosyadan okumadan tahmin için ilk çağrıda önbelleğe alınır
         self._len = None
 
@@ -74,7 +80,10 @@ class TTSDataset(Dataset):
 
     def __getitem__(self, i):
         mel = torch.load(mel_file(self.root, self.rows[i]["id"]))
-        return dict(x=torch.tensor(self.ids[i], dtype=torch.long), y=normalize(mel, self.mean, self.std), id=self.rows[i]["id"])
+        d = dict(x=torch.tensor(self.ids[i], dtype=torch.long), y=normalize(mel, self.mean, self.std), id=self.rows[i]["id"])
+        if self.dp is not None:
+            d["dp_feat"] = torch.tensor(self.dp[i], dtype=torch.long)
+        return d
 
     def mel_lengths(self) -> list[int]:
         if self._len is None:
@@ -90,7 +99,13 @@ def collate(batch):
     for i, b in enumerate(batch):
         x[i, : xl[i]] = b["x"]
         y[i, :, : yl[i]] = b["y"]
-    return dict(x=x, x_lengths=xl, y=y, y_lengths=yl, spks=None, durations=None, ids=[b["id"] for b in batch])
+    out = dict(x=x, x_lengths=xl, y=y, y_lengths=yl, spks=None, durations=None, ids=[b["id"] for b in batch])
+    if "dp_feat" in batch[0]:
+        f = torch.zeros(len(batch), int(xl.max()), dtype=torch.long)  # 0 = pad
+        for i, b in enumerate(batch):
+            f[i, : xl[i]] = b["dp_feat"]
+        out["dp_feat"] = f
+    return out
 
 
 class BucketBatches:

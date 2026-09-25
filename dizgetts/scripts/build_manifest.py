@@ -41,6 +41,7 @@ def main():
         for r in rows:
             u = e.frontend(r["text"])
             r["text_norm"], r["tokens"], r["engine_versions"] = u.norm, u.tokens, ver
+            r["dp_feat"] = u.dp_feat  # v4 süre tahmincisi özniteliği (token başına; eski koşular okumaz)
             for k in LEGACY:
                 r.pop(k, None)
             for k, v in u.meta.get("stress", {}).items():

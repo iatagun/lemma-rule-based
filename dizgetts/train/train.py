@@ -31,6 +31,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))  # repo kökü
 from matcha.models.matcha_tts import MatchaTTS  # noqa: E402
+from dizgetts.train.dpfeat import set_dp_feat  # noqa: E402
 from dizgetts.train.data import BucketBatches, TTSDataset, collate, ensure_mels, frontend_table, row_tokens  # noqa: E402
 
 
@@ -64,6 +65,9 @@ def build_model(cfg: dict, n_vocab: int, stats: dict) -> MatchaTTS:
                       encoder=OmegaConf.create(m["encoder"]), decoder=OmegaConf.create(m["decoder"]), cfm=OmegaConf.create(m["cfm"]),
                       data_statistics=dict(mel_mean=stats["mel_mean"], mel_std=stats["mel_std"]), out_size=m["out_size"],
                       prior_loss=m["prior_loss"])
+    if m.get("dp_feat"):  # v4: süre tahmincisine sınır özniteliği (train/dpfeat.py)
+        from dizgetts.train import dpfeat
+        dpfeat.enable(model)
     return model
 
 
@@ -86,6 +90,7 @@ def evaluate(model, loader, repeats: int, seed: int, dev) -> dict:
             torch.manual_seed(seed + rep)
             for b in loader:
                 b = {k: (v.to(dev) if torch.is_tensor(v) else v) for k, v in b.items()}
+                set_dp_feat(model, b.get("dp_feat"))
                 l = model.get_losses(b)
                 for k in tot:
                     tot[k] += float(l[k])
@@ -114,7 +119,8 @@ def main():
     assert not tr["amp"], "amp bu donanımda KAPALI olmalı (fp16 cuDNN NaN, reports/stage1_audit.md)"
 
     symbols, _ = frontend_table(cfg["frontend"])
-    ds = {s: TTSDataset(root, s, cfg["frontend"], stats, cfg["espeak_strip_stress"], cfg.get("manifest", "_phon")) for s in ("train", "val")}
+    ds = {s: TTSDataset(root, s, cfg["frontend"], stats, cfg["espeak_strip_stress"], cfg.get("manifest", "_phon"), bool(cfg["model"].get("dp_feat")))
+          for s in ("train", "val")}
     for s in ds:
         wrote = ensure_mels(root, ds[s].rows, au)
         if wrote:
@@ -161,6 +167,7 @@ def main():
         pend = 0
         for b in train_dl:
             b = {k: (v.to(dev, non_blocking=True) if torch.is_tensor(v) else v) for k, v in b.items()}
+            set_dp_feat(model, b.get("dp_feat"))
             l = model.get_losses(b)
             loss = sum(l.values())
             (loss / tr["grad_accum"]).backward()

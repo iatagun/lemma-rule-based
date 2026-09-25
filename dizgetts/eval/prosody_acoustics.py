@@ -136,12 +136,14 @@ def stage_align(a):
     items = [it for it in res if it["split"] in ("test", "val")]
     man = {}
     for sp in ("test", "val"):
-        for l in open(f"{ROOT}/{sp}{ck['cfg']['manifest']}.jsonl", encoding="utf8"):
+        for l in open(f"{ROOT}/{sp}{ck['cfg'].get('manifest', '_phon')}.jsonl", encoding="utf8"):
             r = json.loads(l); man[r["id"]] = r
     eng = Engine(**ck["cfg"].get("engine", {}))
-    # --- DOĞRULAMA 1: sentezde kullanılan token'lar == manifest (hizalama bu token'larla yapılıyor)
-    bad = [it["id"] for it in items if eng.frontend(man[it["id"]]["text"]).tokens != man[it["id"]]["tokens"]]
-    print(f"[D1] token eşitliği: {len(items) - len(bad)}/{len(items)} eşit" + (f"  FARKLI: {bad[:5]}" if bad else ""), flush=True)
+    # --- DOĞRULAMA 1: hizalama SENTEZDE KULLANILAN token'larla yapılır (iki kaynakta aynı); manifestten farkı bilgi olarak raporlanır
+    #     (ör. v2-m1a manifesti donduruldu, sentez güncel kural sürümüyle yapıldı)
+    used = {it["id"]: eng.frontend(man[it["id"]]["text"]).tokens for it in items}
+    bad = [i for i in used if used[i] != man[i]["tokens"]]
+    print(f"[D1] sentez token'ı == manifest: {len(items) - len(bad)}/{len(items)}" + (f"  (farklı: {len(bad)}; hizalama sentez token'larıyla)" if bad else ""), flush=True)
     # --- F0 aralığı: gerçek kayıtlardan iki geçiş (Hirst)
     import parselmouth
     allf = []
@@ -157,8 +159,9 @@ def stage_align(a):
     out = []
     for n, it in enumerate(items):
         row = man[it["id"]]
-        ids = intersperse([SYMBOL_TO_ID[t] for t in row["tokens"]], 0)
-        rec = dict(id=it["id"], i=it["i"], split=it["split"], text=row["text"], tokens=row["tokens"])
+        toks = used[it["id"]]
+        ids = intersperse([SYMBOL_TO_ID[t] for t in toks], 0)
+        rec = dict(id=it["id"], i=it["i"], split=it["split"], text=row["text"], tokens=toks)
         for src, path, lufs in (("real", os.path.join(ROOT, row["wav"]), None), ("synth", f"{EVAL_ROOT}/{a.label}/{it['i']:03d}.wav", -23.0)):
             x, sr, snd, tracks = praat_measures(path, floor, ceiling, lufs)
             assert sr == 22050, (path, sr)
@@ -168,7 +171,7 @@ def stage_align(a):
                 mel = mel_spectrogram(torch.from_numpy(x)[None], au["n_fft"], au["n_feats"], sr, au["hop"], au["win"], au["fmin"], au["fmax"],
                                       center=False).squeeze(0)
             frames, ll = mas_frames(m, ids, mel_normalize(mel, stats["mel_mean"], stats["mel_std"]))
-            words = segments(row["tokens"], frames)
+            words = segments(toks, frames)
             vowel_measures(snd, words, max_formant)
             rec[src] = dict(dur=round(len(x) / sr, 3), mel_frames=int(mel.shape[-1]), frames_sum=int(frames.sum()), mas_ll=round(ll, 4),
                             words=words, tracks=tracks)
@@ -398,9 +401,34 @@ def stage_report(a):
         print(s, json.dumps({k: round(v, 3) if isinstance(v, float) else v for k, v in extra[s].items()}, ensure_ascii=False))
 
 
+def stage_compare(a):
+    """İki SENTEZİ (a.label vs a.against) aynı klipler üzerinde eşleşmiş karşılaştırır; gerçek kayıt referans olarak yanında."""
+    L = {k: json.load(open(f"{EVAL_ROOT}/{k}/prosody/align.json", encoding="utf8")) for k in (a.label, a.against)}
+    ids = [r["id"] for r in L[a.label]["clips"]]
+    assert ids == [r["id"] for r in L[a.against]["clips"]], "klip sırası farklı"
+    ref = L[a.against]["f0_ref_hz"]
+    new = [clip_metrics(r, "synth", ref) for r in L[a.label]["clips"]]
+    old = [clip_metrics(r, "synth", ref) for r in L[a.against]["clips"]]
+    real = [clip_metrics(r, "real", ref) for r in L[a.against]["clips"]]
+    rng = np.random.default_rng(0)
+    out = []
+    print(f"{'ölçü':52s} {'GERÇEK':>8s} {a.against[:10]:>10s} {a.label[:10]:>10s} {'fark':>8s}  %95 GA (yeni - eski)")
+    for key, desc, unit, _ in LABELS:
+        tri = [(np.mean(r[key]), np.mean(o[key]), np.mean(n[key])) for r, o, n in zip(real, old, new) if r[key] and o[key] and n[key]]
+        if len(tri) < 10:
+            continue
+        T = np.array(tri); d = T[:, 2] - T[:, 1]
+        ci = np.percentile(d[rng.integers(0, len(d), size=(2000, len(d)))].mean(1), [2.5, 97.5])
+        sig = "*" if ci[0] > 0 or ci[1] < 0 else " "
+        out.append(dict(key=key, desc=desc, unit=unit, n=len(T), real=T[:, 0].mean(), old=T[:, 1].mean(), new=T[:, 2].mean(), diff=d.mean(), ci=ci.tolist()))
+        print(f"{desc + ' [' + unit + ']':52s} {T[:, 0].mean():8.2f} {T[:, 1].mean():10.2f} {T[:, 2].mean():10.2f} {d.mean():+8.2f}  [{ci[0]:+.2f}, {ci[1]:+.2f}] {sig}")
+    json.dump(out, open(f"{EVAL_ROOT}/{a.label}/prosody/compare_vs_{a.against}.json", "w", encoding="utf8"), ensure_ascii=False, indent=1, default=float)
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--stage", choices=("align", "validate", "report"), required=True)
+    ap.add_argument("--stage", choices=("align", "validate", "report", "compare"), required=True)
+    ap.add_argument("--against", default="v3a_g2ptts_nb_ep150_x543", help="compare: karşılaştırılan eski sentez etiketi")
     ap.add_argument("--label", default="v3a_g2ptts_nb_ep150_x543")
     ap.add_argument("--ckpt", default="D:/dizgetts/runs/v3a_g2ptts_nb_e150_20260925-213638/ep150.pt")
     a = ap.parse_args()
@@ -408,6 +436,8 @@ def main():
         stage_align(a)
     elif a.stage == "report":
         stage_report(a)
+    elif a.stage == "compare":
+        stage_compare(a)
     else:
         validate(json.load(open(f"{EVAL_ROOT}/{a.label}/prosody/align.json", encoding="utf8"))["clips"])
 

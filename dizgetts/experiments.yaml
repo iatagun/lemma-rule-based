@@ -166,3 +166,17 @@ experiments:
       reports/prosody_acoustic_v3a.md. Sözcük içi F0 desenleri gerçek ≈ sentez (anlamsız). Farklar ZAMANLAMADA: ünlü süresi nPVI 45 -> 27, noktalamalı
       duraklama 472 -> 260 ms (>=250 ms noktalamasız %1,7 -> %0), öbek sonu uzaması zayıf (virgül 1,42 -> 1,22), eklemleme 6,5 -> 6,1 hece/sn,
       virgül yükselişi abartılı (+1,0 yt). Yöntem düzeltmesi: add_blank kareleri yarı yarıya dağıtılmazsa ünlüler 1-2 kare kalıyor ve sahte eğim farkı çıkıyordu.
+  - id: v4-dpfeat
+    status: running
+    depends_on: [v3a-g2ptts-nobreaks, prosody-acoustic-v3a]
+    hypothesis: >-
+      Sentezin zamanlaması düz (nPVI 27 vs 45; noktalamalı duraklama 260 vs 472 ms; virgül öncesi uzama 1,22 vs 1,42) çünkü süre tahmincisi log-MSE
+      ile iki tepeli duraklama dağılımının (0 ms ya da 400-1500 ms) geometrik ortasını öğreniyor ve sınırı bilmiyor. Süre tahmincisine YALNIZ sınır
+      sınıfı (g2ptts sınırı + noktalama) verilince duraklama ve öbek sonu uzaması gerçeğe yaklaşır. Kodlayıcı/token'lar v3a ile aynı -> tek değişken.
+    metric: "prosody_acoustics compare v4 vs v3a (143 test+val, eşleşmiş klip bootstrap) + CER/WER/UTMOS 543 cümle"
+    decision_rule: >-
+      v4 KABUL: (a) noktalamalı duraklama VE virgül/; son ünlü uzaması v3a'ya göre anlamlı biçimde gerçeğe doğru (GA alt sınırı > 0) VE
+      (b) CER farkı (v4 - v3a) GA üst sınırı < +0,5 pp. nPVI raporlanır (kısmi etki beklenir; zorunlu değil). Erken kontrol: ep60 train_dur < 0,55.
+    note: "sınır sınıfları eğitim cümlelerinde g2ptts sınır modelinin (Antalia train sesinden öğrendi) tahmini -> train'de gerçeğe yakın, testte değil (bilinen)."
+    config: configs/v4_g2ptts_dpfeat.yaml
+    eval_label: v4_g2ptts_dp_ep150_x543

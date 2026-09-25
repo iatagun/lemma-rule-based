@@ -1,0 +1,11 @@
+# v4: v3a (dizge + g2ptts karma vurgu, sınır token'ı YOK) + SÜRE TAHMİNCİSİNE sınır özniteliği (train/dpfeat.py; sözcük içi / son hece: 0 | ip | IP | cümle).
+# Token dizisi ve kodlayıcı v3a ile birebir aynı (hizalama etkilenmez; tests/test_dpfeat.py). Manifest: build_manifest --g2ptts --no-breaks --out-suffix _phon_g2ptts_nb_dp
+base: train_base.yaml
+name: v4_g2ptts_dpfeat_e150
+frontend: engine
+manifest: _phon_g2ptts_nb_dp
+engine: {g2ptts: true, g2ptts_breaks: false}
+model:
+  dp_feat: true
+train:
+  epochs: 150

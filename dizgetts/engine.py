@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 
 from dizgetts.frontend import normalize as _norm
 from dizgetts.frontend.phonemize import Phonemizer
-from dizgetts.frontend.stress import StressRules, _n_vowels, to_phone_index
+from dizgetts.frontend.stress import StressRules, _is_vowel_atom, _n_vowels, to_phone_index
 from dizgetts.frontend.symbols import BREAK_MAJOR, BREAK_MID, PAUSES, PHONES, STRESS, SYMBOL_TO_ID, WORD_SEP, UnknownSymbol, tokenize
 
 _TOK = re.compile(r"[^\W\d_]+|[,.?!;]")
@@ -47,6 +47,7 @@ class Utterance:
     norm: str = ""
     words: list[Word] = field(default_factory=list)
     tokens: list[str] = field(default_factory=list)   # model girdisi
+    dp_feat: list[int] = field(default_factory=list)  # token başına sınır sınıfı (DP_FEAT; yalnız süre tahmincisine, bkz. train/dpfeat.py)
     meta: dict = field(default_factory=dict)          # uyarılar / sayaçlar (bilinmeyen sembol vb.)
 
 
@@ -198,6 +199,11 @@ class G2PTTSStage(Stage):
         return u
 
 
+# Süre tahmincisi özniteliği (token başına): sözcük içi | son hece + ardından gelen ayraç/noktalama, sonraki sınıra göre.
+# Duraklama kareleri son heceden sonraki ayraç/noktalama/boşluk token'larına düşer; bu yüzden onlar da sınırın sınıfını alır.
+DP_FEAT = {"pad": 0, "in": 1, "0": 2, "ip": 3, "IP": 4, "cümle": 5}
+
+
 class AssembleStage(Stage):
     name = "assemble"
 
@@ -206,17 +212,24 @@ class AssembleStage(Stage):
 
     def __call__(self, u: Utterance) -> Utterance:
         toks: list[str] = []
+        feat: list[int] = []
+        prev_b = DP_FEAT["in"]
         for i, w in enumerate(u.words):
             if i:
-                toks.append(WORD_SEP)
+                toks.append(WORD_SEP); feat.append(prev_b)  # sözcük arası = önceki sözcüğün sınırı (duraklama burada)
+            b = DP_FEAT.get(w.boundary, DP_FEAT["0"])
+            vi = [j for j, p in enumerate(w.phones) if _is_vowel_atom(p)]
+            last_syl = vi[-1] if vi else len(w.phones) - 1  # son hece = son ünlü ve sonrası
             for j, p in enumerate(w.phones):
+                c = b if j >= last_syl else DP_FEAT["in"]
                 if w.stress == j:
-                    toks.append(STRESS)
-                toks.append(p)
+                    toks.append(STRESS); feat.append(c)
+                toks.append(p); feat.append(c)
             if self.breaks and not w.punct and w.boundary in ("ip", "IP"):
-                toks.append(BREAK_MID if w.boundary == "ip" else BREAK_MAJOR)
-            toks.extend(w.punct)
-        u.tokens = toks
+                toks.append(BREAK_MID if w.boundary == "ip" else BREAK_MAJOR); feat.append(b)
+            toks.extend(w.punct); feat.extend([b] * len(w.punct))
+            prev_b = b
+        u.tokens, u.dp_feat = toks, feat
         return u
 
 
