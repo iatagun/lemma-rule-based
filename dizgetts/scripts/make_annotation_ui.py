@@ -14,7 +14,7 @@ SRC, OUT = HERE / "reports" / "stress_annotation_sheet.tsv", HERE / "reports" / 
 
 HTML = r"""<!doctype html>
 <html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Vurgu Etiketleme</title>
+<title>__TITLE__</title>
 <style>
 :root{--bg:#f7f6f2;--card:#fff;--ink:#1d1d1b;--mute:#6b6a64;--line:#dedcd4;--acc:#1f5f8b;--acc-ink:#fff;--ok:#2e7d4f;--warn:#a86b00;--skip:#8a8a8a}
 @media (prefers-color-scheme:dark){:root{--bg:#161615;--card:#212120;--ink:#ecebe6;--mute:#a3a29b;--line:#3a3935;--acc:#6aa9d8;--acc-ink:#0d1b26;--ok:#6cc08f;--warn:#e0a84a;--skip:#8f8f8f}}
@@ -43,7 +43,7 @@ nav{display:flex;justify-content:space-between;margin-top:16px}
 .help{margin-top:18px;font-size:13px}kbd{border:1px solid var(--line);border-radius:4px;padding:0 5px;font-size:12px}
 .tag{font-size:12px;border:1px solid var(--line);border-radius:10px;padding:1px 8px}
 </style></head><body><main>
-<header><div><h1>Vurgu etiketleme</h1><div class="mute"><span id="done">0</span>/<span id="total">0</span> etiketlendi</div><div class="bar"><i id="prog"></i></div></div>
+<header><div><h1>__TITLE__</h1><div class="mute"><span id="done">0</span>/<span id="total">0</span> etiketlendi</div><div class="bar"><i id="prog"></i></div></div>
 <div class="row"><button id="next-empty">İlk boş</button><button class="primary" id="export">Dışa aktar (.tsv)</button></div></header>
 <section class="card" aria-live="polite">
 <div class="meta"><span class="mute" id="pos"></span><span class="mute" id="freq"></span></div>
@@ -60,7 +60,7 @@ Renkler: <span class="tag" style="color:var(--ok)">etiketli</span> <span class="
 </main>
 <script>
 const DATA = __DATA__;
-const KEY = "dizgetts-vurgu-etiket-v1";
+const KEY = "__KEY__";
 let st = {}; try { st = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
 const lo = s => s.toLocaleLowerCase("tr");
@@ -110,19 +110,29 @@ $("export").onclick = () => {
   if (unsure.length) lines.push(`# emin değil (${unsure.length}): ${unsure.join(", ")}`);
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], {type: "text/tab-separated-values"}));
-  a.download = "stress_gold_random.tsv"; a.click();
-  alert(`${n} satır dışa aktarıldı. Dosyayı dizgetts/tests/ altına koyun.`);
+  a.download = "__EXPORT__"; a.click();
+  alert(`${n} satır dışa aktarıldı. Dosyayı dizgetts/tests/ altına koyun (__EXPORT__).`);
 };
 render();
 </script></body></html>"""
 
 
 def main():
-    rows = list(csv.DictReader(open(SRC, encoding="utf8"), delimiter="\t"))
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--src", default=str(SRC))
+    ap.add_argument("--out", default=str(OUT))
+    ap.add_argument("--export-name", default="stress_gold_random.tsv", help="dışa aktarılan dosya (tarayıcı kaydı da bu ada göre ayrılır)")
+    ap.add_argument("--title", default="Vurgu etiketleme")
+    args = ap.parse_args()
+    rows = list(csv.DictReader(open(args.src, encoding="utf8"), delimiter="\t"))
     data = [dict(w=r["sözcük"], f=int(r["sıklık"]), cap=bool(r["özel_ad_olası"]), ex=r["örnek_cümle"],
                  s=[p.replace("İ", "i").replace("I", "ı").lower() for p in r["model_hece"].split("-")]) for r in rows]
-    OUT.write_text(HTML.replace("__DATA__", json.dumps(data, ensure_ascii=False)), encoding="utf8")
-    print(len(data), "sözcük ->", OUT)
+    key = "dizgetts-vurgu-etiket-v1" if args.export_name == "stress_gold_random.tsv" else "dizgetts-vurgu-" + Path(args.export_name).stem
+    html = (HTML.replace("__DATA__", json.dumps(data, ensure_ascii=False)).replace("__KEY__", key)
+            .replace("__EXPORT__", args.export_name).replace("__TITLE__", args.title))
+    Path(args.out).write_text(html, encoding="utf8")
+    print(len(data), "sözcük ->", args.out)
 
 
 if __name__ == "__main__":

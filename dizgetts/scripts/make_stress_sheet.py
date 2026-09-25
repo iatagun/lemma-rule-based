@@ -15,6 +15,13 @@ HERE = os.path.join(os.path.dirname(__file__), "..")
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--bins", default="100,100,50", help="sıklık katmanı başına sözcük: ilk 300 / 300-2000 / kalan")
+    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--exclude", nargs="*", default=[], help="bu gold dosyalarındaki sözcükler örneklenmez")
+    ap.add_argument("--out", default="stress_annotation_sheet.tsv", help="reports/ altında")
+    args = ap.parse_args()
     root = yaml.safe_load(open(os.path.join(HERE, "configs", "data.yaml"), encoding="utf8"))["out_root"]
     freq, example, cap_mid = collections.Counter(), {}, collections.Counter()
     for sp in ("train", "val", "test"):
@@ -30,8 +37,11 @@ def main():
                 if t[:1].isupper() and i > 0 and toks[i - 1] not in (".", "?", "!"):
                     cap_mid[w] += 1
     ranked = [w for w, _ in freq.most_common() if sum(c in VOWEL_LETTERS for c in w) >= 1]
-    rng = random.Random(0)
-    bins = [(0, 300, 100), (300, 2000, 100), (2000, len(ranked), 50)]
+    excl = {l.split("\t")[0] for f in args.exclude for l in open(f, encoding="utf8") if l.strip() and not l.startswith("#")}
+    ranked = [w for w in ranked if w not in excl]
+    rng = random.Random(args.seed)
+    nb = [int(x) for x in args.bins.split(",")]
+    bins = [(0, 300, nb[0]), (300, 2000, nb[1]), (2000, len(ranked), nb[2])]
     picked = []
     for a, b, n in bins:
         picked += rng.sample(ranked[a:b], min(n, len(ranked[a:b])))
@@ -43,7 +53,7 @@ def main():
         if k is not None and k < len(syl):
             syl[k] = syl[k].replace("i", "İ").upper()  # Türkçe büyük harf: i -> İ, ı -> I
         rows.append("\t".join([w, str(freq[w]), "evet" if cap_mid[w] else "", "-".join(syl), tag, "", "", example[w]]))
-    out = os.path.join(HERE, "reports", "stress_annotation_sheet.tsv")
+    out = os.path.join(HERE, "reports", args.out)
     open(out, "w", encoding="utf8").write("\n".join(rows) + "\n")
     print(f"{len(picked)} sözcük -> {out}")
     print("\n".join(rows[:12]))

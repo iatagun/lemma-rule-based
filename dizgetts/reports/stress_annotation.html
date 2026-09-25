@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Vurgu Etiketleme</title>
+<title>Vurgu etiketleme</title>
 <style>
 :root{--bg:#f7f6f2;--card:#fff;--ink:#1d1d1b;--mute:#6b6a64;--line:#dedcd4;--acc:#1f5f8b;--acc-ink:#fff;--ok:#2e7d4f;--warn:#a86b00;--skip:#8a8a8a}
 @media (prefers-color-scheme:dark){:root{--bg:#161615;--card:#212120;--ink:#ecebe6;--mute:#a3a29b;--line:#3a3935;--acc:#6aa9d8;--acc-ink:#0d1b26;--ok:#6cc08f;--warn:#e0a84a;--skip:#8f8f8f}}
@@ -97,7 +97,7 @@ $("export").onclick = () => {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], {type: "text/tab-separated-values"}));
   a.download = "stress_gold_random.tsv"; a.click();
-  alert(`${n} satır dışa aktarıldı. Dosyayı dizgetts/tests/ altına koyun.`);
+  alert(`${n} satır dışa aktarıldı. Dosyayı dizgetts/tests/ altına koyun (stress_gold_random.tsv).`);
 };
 render();
 </script></body></html>
