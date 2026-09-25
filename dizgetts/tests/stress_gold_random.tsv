@@ -1,0 +1,252 @@
+# sözcük	vurgulu hecenin SONDAN sırası (0 = son; - = vurgusuz)	kategori	not
+# Kaynak: kullanıcının KÖR etiketi (model önerisi gösterilmedi), 2026-09-25; "emin değilim" ve boş satırlar dahil edilmedi.
+hangi	1	rastgele	
+giriş	0	rastgele	
+iyi	0	rastgele (büyük harfle de geçiyor)	
+alacağım	1	rastgele	
+şekilde	0	rastgele	
+benim	1	rastgele	
+karşı	0	rastgele	
+miktarı	0	rastgele	
+seni	0	rastgele	
+işlemi	0	rastgele	
+sabah	1	rastgele	
+alacaksınız	2	rastgele	
+başka	1	rastgele (büyük harfle de geçiyor)	
+se	0	rastgele	Kısa
+sürecek	0	rastgele	
+tek	0	rastgele	İkilemelerde (tekrarlama gruplarında) öbek vurgusu genel kural olarak **baştaki sözcük (ilk unsur)** üzerine düşer[
+birlikte	1	rastgele	**Zarf / Edat İşlevinde ("Beraber" Anlamında):** Cümlede birliktelik ve beraberlik bildiren bir zarf veya edat olarak kullanıldığında (*"Bu projeyi* **birlikte** *yürüteceğiz"*), Türkçedeki zarf vurgusu kalıbına uygun olarak birincil vurgu **ikinci seslemde (hecede)** yer alır: **bir-LİK-te** . **İsim + Bulunma Durumu Eki İşlevinde ("Birlik" + "-te"):** "Birlik" (askerî birlik veya bütünlük) cins ismine bulunma durumu eki olan **"-te"** getirildiğinde (*"Askerî* **birlikte** *nöbet değişimi yapıldı"*), ad durum eki vurguyu üzerine çeker ve birincil vurgu **üçüncü (son) sesleme** kayar: **bir-lik-TE**[3]
+gözden	0	rastgele	
+tutar	0	rastgele	
+yapacağım	1	rastgele	**Vurgunun Konumu:** Şahıs ekinden hemen önce gelen gelecek zaman eki **"-cağ-"**, vurguyu üzerinde toplar (ya-pa-**CAĞ**\-ım).
+aynı	1	rastgele	
+olur	0	rastgele	
+yüzden	0	rastgele	
+hem	0	rastgele	
+kontrol	0	rastgele	Türkçedeki alıntı cins isimlerin büyük çoğunluğu dilin genel vurgu kuralına uyar ve birincil kelime vurgusu **son seslemde (hecede)** yer alır: kon-**TROL**
+böyle	1	rastgele	**Zarf / Belirteç İşlevi:** Türkçede "böyle", "şöyle", "öyle" gibi gösterme bildiren zarf ve sıfat işlevli sözcüklerde vurgu ilk seslem üzerinde yer alır (**BÖY-le**)
+gelir	0	rastgele	**'gelir'** sözcüğünde birincil kelime vurgusu, hem **eylem (fiil)** hem de **isim (ad)** kullanımında **ikinci (son) seslemdedir (ge-LİR)**
+akşam	1	rastgele	
+yeniden	2	rastgele	
+dinliyorum	2	rastgele	
+ze	0	rastgele	
+cumartesi	2	rastgele (büyük harfle de geçiyor)	
+şu	0	rastgele (büyük harfle de geçiyor)	
+en	0	rastgele	Türkçede tek heceli sözcükler kendi başlarına söylenirken heceler arası bir karşılaştırma bulunmaz; ancak *"en, pek, çok"* gibi miktar ve derece belirten zarflar, cümle ve öbek içi vurguyu üzerlerine alma bakımından istisnai bir güç taşırlar
+için	1	rastgele	
+saat	0	rastgele	
+açık	0	rastgele	
+bir	0	rastgele	
+paket	0	rastgele	
+yani	1	rastgele	
+adresi	0	rastgele	
+gibi	1	rastgele	
+bin	0	rastgele	
+sizi	0	rastgele	
+sonunda	0	rastgele	Bir sürecin veya kavramın sonunu ifade eden isim kullanımı olarak bakıldığında (*"Filmin* **sonunda** *ne oldu?"*, *"Yolun* **sonunda** *sağa dönün"*), *"son"* köküne gelen iyelik ve kalma (bulunma) durumu eki (`-da`) vurgulu çekim ekleri olduğu için birincil kelime vurgusu **son sesleme** kayar: **so-nun-DA**. Cümlede bir eylemin nihayet gerçekleştiğini bildiren bir zaman zarfı olarak kullanıldığında (*"* **Sonunda** *beklediğimiz haber geldi"*, *"* **Sonunda** *başardık"*), Türkçedeki zarf vurgusu kuralları gereğince birincil vurgu **ilk seslemdedir (hecededir)**: **SO-nun-da**
+size	0	rastgele	
+erken	1	rastgele	
+konu	0	rastgele	
+sekiz	0	rastgele	
+geçerli	0	rastgele	
+perşembe	1	rastgele (büyük harfle de geçiyor)	
+me	0	rastgele	
+kırk	0	rastgele	
+harika	2	rastgele	
+uygun	0	rastgele	
+dilerim	1	rastgele	
+günler	0	rastgele	
+ister	0	rastgele	**Zarf / İkileme:** *"* **İS-ter** *istemez kabul etti."* (Vurgu ilk seslemde). **ekimli Eylem:** *"Bunu öğrenmek* **is-TER** *."* (Kelime vurgusu son seslemde)
+onaylıyor	1	rastgele	
+görünüyor	1	rastgele	
+hemen	1	rastgele	
+bunu	0	rastgele	
+ilk	0	rastgele	
+sadece	2	rastgele	
+geliyor	1	rastgele	
+yeni	0	rastgele	
+teşekkür	0	rastgele	
+demek	0	rastgele	**Vurgu Konumu:** Türkçede mastar ekleri (`-mak / -mek`) vurgulu biçimbirimler olduğu için kelime düzeyindeki birincil vurgu ikinci (son) seslemde yer alır. **Vurgu Konumu:** Türkçede bağlaç ve zarfların genel vurgu kuralı gereğince birincil vurgu ilk sesleme kayar (*"* **DE-mek** *yarın gidiyorsun."*)
+adım	1	rastgele	**Söyleyiş Konumu:** Bu kural gereğince ikileme seslendirilirken ana baskı baştaki hecede toplanır: **A-dım** a-dım.
+otuz	0	rastgele	
+pazartesi	2	rastgele (büyük harfle de geçiyor)	Pazar + ertesi $\rightarrow$ pa-ZAR-te-siCuma + ertesi $\rightarrow$ cu-MAR-te-si1Perşembe $\rightarrow$ per-ŞEM-be
+sokak	0	rastgele (büyük harfle de geçiyor)	
+şunu	0	rastgele	
+ise	1	rastgele	
+re	0	rastgele	
+şeyi	0	rastgele	
+gününden	0	rastgele	
+devam	0	rastgele	
+içinde	0	rastgele	
+teslimat	0	rastgele	
+tam	0	rastgele	
+çünkü	1	rastgele	
+dün	0	rastgele	
+beşte	0	rastgele	
+bak	0	rastgele	
+fatura	1	rastgele (büyük harfle de geçiyor)	
+elbette	1	rastgele (büyük harfle de geçiyor)	
+dilerseniz	2	rastgele	
+beş	0	rastgele	
+vi	0	rastgele	Türkçe'de 'dabılyu' şeklinde okunur
+merhaba	2	rastgele (büyük harfle de geçiyor)	
+yeterli	0	rastgele	
+altmış	0	rastgele	**'altmış'** sözcüğünde birincil kelime vurgusu **ikinci (son) seslemdedir: alt-MIŞ**
+yirmi	0	rastgele	
+lira	1	rastgele	
+gerek	0	rastgele	
+edeceğim	1	rastgele	
+gün	0	rastgele	
+şimdi	1	rastgele	
+yüz	0	rastgele	
+hızınız	0	rastgele	
+sorayım	1	rastgele	
+işaretli	0	rastgele	
+otuzda	0	rastgele	
+düşüyor	1	rastgele	
+taze	0	rastgele	
+yanı	0	rastgele	
+bakmayın	2	rastgele	
+çocuklar	0	rastgele	
+sürahi	0	rastgele	
+altına	0	rastgele	
+dokunun	1	rastgele	
+ederiz	1	rastgele	
+alanı	0	rastgele	
+ayrıntıları	0	rastgele	
+karışmayayım	3	rastgele	
+birinci	0	rastgele	
+geçerlilik	0	rastgele	
+kartınız	0	rastgele	
+sonrasında	3	rastgele	
+acaba	1	rastgele	
+tonları	0	rastgele	
+kolaylık	0	rastgele	
+adresinizi	0	rastgele	
+hatırlanır	0	rastgele	
+uygulayacağım	1	rastgele	
+günün	0	rastgele	
+süreci	0	rastgele	
+köşede	0	rastgele	
+ilgileneceğiz	1	rastgele	
+işinizi	0	rastgele	
+yaparız	1	rastgele	
+sürede	0	rastgele	
+konusunda	0	rastgele	
+yağmur	0	rastgele	
+kapattık	0	rastgele	
+sizin	0	rastgele (büyük harfle de geçiyor)	
+düşünmek	0	rastgele	
+örnek	0	rastgele	
+olan	0	rastgele	
+istiyorsunuz	3	rastgele	
+civarında	0	rastgele	
+beklemeye	0	rastgele	
+ikisi	0	rastgele	
+ödemeyi	0	rastgele	
+rakam	0	rastgele	
+çekinme	1	rastgele	
+gelince	1	rastgele	
+işimin	0	rastgele	
+bekletmek	0	rastgele	
+işimiz	0	rastgele	
+kalırsanız	2	rastgele	
+neyse	1	rastgele	
+sistemlerimizde	0	rastgele (büyük harfle de geçiyor)	
+mısın	-	rastgele	
+pazartesiye	3	rastgele (büyük harfle de geçiyor)	
+dikkatli	0	rastgele	
+konuşalım	1	rastgele	
+dersin	1	rastgele	
+açıklayacağım	1	rastgele	
+işleminiz	0	rastgele	
+bazen	1	rastgele	
+hâlâ	1	rastgele	
+çayın	0	rastgele	
+standart	0	rastgele	
+depoya	2	rastgele	
+hanesini	3	rastgele	
+yazacak	0	rastgele	
+kalmış	0	rastgele	
+asla	1	rastgele	
+beklemeyesiniz	4	rastgele	
+konuşma	0	rastgele	
+hale	0	rastgele	
+çay	0	rastgele	
+hangisi	2	rastgele	
+insan	0	rastgele	
+ihtimal	0	rastgele	
+durumu	0	rastgele	
+servis	0	rastgele	
+sorunla	1	rastgele	
+gönderildi	0	rastgele	
+ödemesi	0	rastgele	
+hatırlatma	0	rastgele	
+çalışması	0	rastgele	
+hafifçe	1	rastgele	
+yakın	0	rastgele	
+nedeniyle	1	rastgele	
+menekşe	1	rastgele (büyük harfle de geçiyor)	
+söyle	1	rastgele	
+görüşürüz	1	rastgele	
+söyler	0	rastgele	
+cevabı	0	rastgele	
+öğlene	2	rastgele	
+alma	0	rastgele	
+ye	0	rastgele	
+şaka	0	rastgele	
+dinlerken	1	rastgele	
+parlak	0	rastgele	
+böyledir	2	rastgele	
+şimdiden	2	rastgele	
+yemlerken	1	rastgele	
+binlik	0	rastgele	
+parçalı	0	rastgele	
+aldığım	0	rastgele	
+özetine	0	rastgele	
+beşinci	0	rastgele	
+demirli	1	rastgele (büyük harfle de geçiyor)	
+haznesini	0	rastgele	
+misafirinizde	0	rastgele	
+sonuçta	0	rastgele	
+ahşap	0	rastgele	
+gülüyorsun	2	rastgele	
+kâsede	0	rastgele	
+teneke	1	rastgele	
+araştırabilirim	1	rastgele	
+rafınızdaki	0	rastgele	
+aktarıyorum	2	rastgele	
+konuşuyormuşsun	2	rastgele	
+girdiğimde	0	rastgele	
+ödendi	0	rastgele	
+geçerim	1	rastgele	
+ileteceğiz	1	rastgele	
+ulaşımdan	0	rastgele	
+yerleştirdik	0	rastgele	
+elle	1	rastgele	
+seviyorum	2	rastgele	
+biçiminde	0	rastgele	
+civarda	0	rastgele	
+grubunuzu	0	rastgele	
+ısı	0	rastgele	
+onayını	0	rastgele	
+yayımladı	0	rastgele	
+asistanına	0	rastgele	
+kilovat	0	rastgele	
+ziyareti	0	rastgele	
+olası	0	rastgele	
+küçükmüş	1	rastgele	
+bölümlerini	0	rastgele	
+heyecanlanma	1	rastgele	
+çayınızı	0	rastgele	
+yap	0	rastgele	
+ilettim	1	rastgele	
+damlası	0	rastgele	
+neler	1	rastgele	
+mesafe	0	rastgele	
+değiştirsinler	2	rastgele	
+yazıyoruz	2	rastgele	
+vezneye	0	rastgele	
+yandaki	0	rastgele	
+izleyerek	1	rastgele	

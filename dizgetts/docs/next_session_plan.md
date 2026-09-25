@@ -49,3 +49,9 @@ Komutlar: `python -X utf8 -m dizgetts.eval.status`, `python -X utf8 dizgetts/eva
   stress_roots.tsv'de sıra yerine `ağırlık`; uzun ünlü şapkayla (esâsen). M1b'ye `pek` (pekiştirme) ve `cik` (-CIk türemiş sıfat) katmanları -> ilk seslem.
   Gold 35 sözcük: son_hece 11,4 / m1a 68,6 / m1b 94,3 / espeak 28,6 % (hâlâ döngüsel). Parity 1053/1053.
   Açık: uzun ünlü sözlüğü (dizge uzunluk işaretlemiyor); asosyal (A-sos-yal) alıntı kuralına aykırı -> önek istisnası mı?; semracığım, güzeldir kuralsız.
+- 2026-09-25 İLK BAĞIMSIZ VURGU ÖLÇÜMÜ (kullanıcının kör etiketi, tests/stress_gold_random.tsv, 250 rastgele sözcük): son_hece 62,8 / m1a 64,4 / m1b 76,8 /
+  g2ptts (v2b karma) 78,0 / espeak 69,2 %; g2ptts örnek cümle içinde 196/250 (bağlam şimdilik katkısız: etiketler bağlamsız kurallardan).
+  Gold'un %37'si son-dışı. 54 hata: belirteç/bağlaç/edat (~25: böyle, için, gibi, hemen, sadece, çünkü, elbette...), alıntı/özel ad (~12: cumartesi,
+  pazartesi, perşembe, fatura, merhaba, harika...), vurgusuz ek (~12: -ken, -(y)ince, -(y)ArAk, -(y)AlIm, emir, -sInlAr, -mIş/-dIr koşaç), model (yerleştirdik).
+  B grubunda ve A'nın çoğunda sözcük istisna olarak İŞARETLENİNCE ağırlık kuralı konumu doğru veriyor -> darboğaz "hangi sözcük istisna".
+  DİKKAT: bu 250'nin hataları incelendi -> artık GELİŞTİRME seti; buradan sözcük sözlüğe eklenirse skor döngüsel olur. Son rapor için yeni kör set gerekir.
