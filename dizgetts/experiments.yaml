@@ -139,7 +139,7 @@ experiments:
       ep20 0,47, ep30 0,43); grad_norm iki koşuda aynı (~0,35) -> kararsızlık değil, hizalama (MAS) takılması. v1 breaks koşusu da (ayraçsız + sınır
       token'ı) 0,80'de hiç kırılmadı -> v1'deki çöküşün bir kısmı da sınır token'larından olabilir. Checkpoint'ler (ep25/ep50/last) duruyor.
   - id: v3a-g2ptts-nobreaks
-    status: running
+    status: done
     depends_on: v3-g2ptts-tts
     hypothesis: >-
       v3'ten sınır token'ları çıkarılınca (yalnız karma vurgu, sözcük ayracı + noktalama v2 ile aynı) hizalama v2-m1a gibi kurulur ve g2ptts vurgusu
@@ -151,3 +151,9 @@ experiments:
       yardım ediyor; anlamsız -> TTS katkısı gösterilemedi (paket iddiası ön uç doğruluğuyla sınırlı).
     config: configs/v3a_g2ptts_nobreaks.yaml
     eval_label: v3a_g2ptts_nb_ep150_x543
+    result: >-
+      TTS KATKISI GÖSTERİLEMEDİ (karar kuralı). 543 cümle: CER v2-m1a 4,0 / v3a 4,0, fark +0,04 [-0,27, +0,38]; WER 15,4 -> 15,2, -0,20 [-1,13, +0,75];
+      UTMOS 3,02 -> 2,99, -0,03 [-0,05, -0,01] (anlamlı, küçük). Antalia 143: CER 3,59 -> 3,77 (+0,18 [-0,24, +0,69]); UD 400: 4,49 -> 4,37 (-0,12
+      [-0,52, +0,24]). v2-m1a Antalia 3,59 (eski 3,6) -> kural sürümü kayması ihmal edilebilir. Hizalama ep20-30 arası oturdu (ep30 0,459).
+      Yorum: Whisper CER vurguya duyarsız (ASR yanlış heceli vurguyu tolere eder); vurgu anlaşılırlıktan çok doğallığı etkiler; UTMOS İngilizce eğitimli.
+      Sonraki: kör AB dinleme testi (vurgusu farklı ~30 cümle, v2-m1a vs v3a).
