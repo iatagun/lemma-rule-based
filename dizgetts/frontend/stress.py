@@ -120,6 +120,12 @@ class StressRules:
         for r in self._roots_longest_first:
             if (cap or r not in self._cap_only) and w.startswith(r) and len(w) > len(r) and _SUFFIX_CHAIN.match(w[len(r):]):
                 return self.roots[r][0], "kök+ek"
+        if "dir" in tiers and upos not in ("VERB", "AUX"):  # ad + koşaç -dIr vurgusuz: vurgu gövdenin kendi vurgusunda (güZEL-dir, BÖY-le-dir)
+            m = _DIR.search(w)
+            if m and _n_vowels(w[:m.start()]) >= 2:  # tek ünlülü gövde çoğu kez kök: kül-tür, yıl-dır, sa-tır
+                k, _ = self.syllable(text[:m.start()], upos, feats, tiers)
+                if k is not None:
+                    return k, "dir_önü"
         mr = _morph_rule(w, upos, feats, tiers, self.adj)
         if mr and mr[0] < n:
             return mr
@@ -158,7 +164,16 @@ _YOR = re.compile(r"([aeıioöuü])yor")
 _PEK = re.compile(r"^([^aeıioöuü]*[aeıioöuü])[pmrs](.+)$")
 _CIK = re.compile(r"[cç][ıiuü][kğ]")
 
-TIERS = ("pek", "cik", "yor", "neg", "ins", "person")
+_DIR = re.compile(r"y?[dt][ıiuü]r$")
+_KEN = re.compile(r"(?:[ae]r|[ıiuü]r|yor|y)ken$")        # dinler-ken, gelir-ken, küçük-y-ken; er-ken de (ER-ken)
+_INCE = re.compile(r"[ıiuü]n[cç][ae]$")                  # gel-in-ce -> ge-LİN-ce (vurgu -cA öncesinde)
+_ARAK = re.compile(r"y?[ae]r[ae]k$")                     # izle-y-erek -> iz-le-YE-rek
+_ALIM = re.compile(r"[ae]l[ıi]m$")                       # konuş-alım -> ko-nu-ŞA-lım
+_IMP3 = re.compile(r"s[ıiuü]n(?:l[ae]r)?$")              # gel-sin, değiştir-sinler
+_IMP2P = re.compile(r"y?[ıiuü]n(?:[ıiuü]z)?$")           # dokun-un, gel-iniz
+
+# 2026-09-25 (kullanıcı onayı): ek = -ken, -(y)IncA, -(y)ArAk, -(y)AlIm, emir kipi; dir = ad + -dIr koşacı; tür = türemiş olmayan belirteç/bağlaç/edat
+TIERS = ("pek", "cik", "ek", "dir", "yor", "neg", "ins", "person", "tür")
 
 
 def _adj_base(s: str, adj: set[str]) -> bool:
@@ -186,6 +201,13 @@ def _morph_rule(w: str, upos: str | None, feats: dict[str, str] | None, tiers, a
         if m and _vowels_before(w, m.start()) >= 2 and _cik_stem_is_adj(w[:m.start()], adj):  # küçük (kü+çük) -CIk DEĞİL
             return 0, "cık_sıfat"
     verbal = upos in ("VERB", "AUX")
+    if "ek" in tiers and upos not in ("NOUN", "PROPN", "ADJ"):  # düşünce, diken, yaprak gibi kökler dışarıda
+        for rx, tag in ((_KEN, "ken_önü"), (_INCE, "ince_önü"), (_ARAK, "arak_önü")):
+            m = rx.search(w)
+            if m:
+                cut = m.end() - (3 if rx is _KEN else 2 if rx is _INCE else 3)  # vurgusuz son parça: ken / cA / rAk
+                if _vowels_before(w, cut) >= 1:
+                    return _vowels_before(w, cut) - 1, tag
     if "yor" in tiers and (upos is None or verbal):
         m = _YOR.search(w)
         if m:
@@ -200,6 +222,17 @@ def _morph_rule(w: str, upos: str | None, feats: dict[str, str] | None, tiers, a
         m = re.search(r"y?l[ae]$", w)
         if m and _vowels_before(w, m.start()) >= 1:
             return _vowels_before(w, m.start()) - 1, "ins_önü"
+    if "ek" in tiers and verbal and feats.get("Mood") == "Opt" and feats.get("Person") == "1" and feats.get("Number") == "Plur":
+        m = _ALIM.search(w)
+        if m and _vowels_before(w, m.start()) >= 1:
+            return _vowels_before(w, m.start()), "alım_önü"  # konuş-a-lım: vurgu -A- ünlüsünde (önündeki ünlü sayısı = onun indeksi)
+    if "ek" in tiers and verbal and feats.get("Mood") == "Imp":
+        per, num = feats.get("Person"), feats.get("Number", "Sing")
+        m = _IMP3.search(w) if per == "3" else _IMP2P.search(w) if (per == "2" and num == "Plur") else None
+        if m and _vowels_before(w, m.start()) >= 1:
+            return _vowels_before(w, m.start()) - 1, "emir_önü"
+        if per == "2" and num == "Sing" and _n_vowels(w) >= 2:
+            return _n_vowels(w) - 2, "emir_2tekil"  # SÖY-le, BEK-le
     if "person" in tiers and upos == "VERB" and feats.get("VerbForm") in (None, "Fin"):
         base, stripped = w, False
         if feats.get("Person") in ("1", "2"):
@@ -211,6 +244,8 @@ def _morph_rule(w: str, upos: str | None, feats: dict[str, str] | None, tiers, a
             return _vowels_before(base, cm.start(1)) - 1, "koşaç_önü"
         if stripped:
             return _n_vowels(base) - 1, "kişi_eki_önü"
+    if "tür" in tiers and upos in ("ADV", "CCONJ", "SCONJ", "ADP") and _n_vowels(w) >= 2 and w not in adj             and not re.search(r"[dt][ae]n$", w):  # sıfattan belirteç (iyi, güzel) son hecede kalır; -DAn türemişleri (yeniden) dışarıda
+        return weight_stress(w, en=False), "tür_ağırlık"
     return None
 
 

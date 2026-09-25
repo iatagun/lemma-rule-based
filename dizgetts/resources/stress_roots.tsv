@@ -23,3 +23,6 @@ kapkara	0	pekiştirme	kullanıcı örneği (KAP-ka-ra; pekiştirme = ilk seslem)
 asosyal	0	ödünçleme önek	kullanıcı örneği (A-sos-yal; alıntı kuralı a-SOS-yal derdi -> önek istisnası mı?)	onaysız
 bugün	0	bileşik	kullanıcı örneği (BU-gün)	onaysız
 başbakan	0	bileşik	kullanıcı örneği (BAŞ-ba-kan)	onaysız
+böyle	0	gösterme belirteci	kullanıcı notu 2026-09-25 (böyle/şöyle/öyle: ilk seslem; böyle geliştirme setinde de var)	kural onaylı
+şöyle	0	gösterme belirteci	kullanıcı notu 2026-09-25	kural onaylı
+öyle	0	gösterme belirteci	kullanıcı notu 2026-09-25	kural onaylı

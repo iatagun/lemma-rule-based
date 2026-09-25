@@ -80,3 +80,20 @@ for w, up, k, tag in [("kıpkırmızı", "ADJ", 0, "pekiştirme"), ("apaçık", 
     got = R.syllable(w, up, {}, T)
     assert got == (k, tag), (w, got, (k, tag))
 print("OK (ağırlık + pekiştirme/-CIk)")
+
+# ---- 2026-09-25 kullanıcı onaylı ek/koşaç/tür kuralları (TIERS: ek, dir, tür) ----
+for w, up, f, k, tag in [
+    ("dinlerken", "ADV", {}, 1, "ken_önü"), ("erken", "ADV", {}, 0, "ken_önü"), ("diken", "NOUN", {}, 1, "varsayılan_son"),
+    ("gelince", "ADV", {}, 1, "ince_önü"), ("düşünce", "NOUN", {}, 2, "varsayılan_son"),
+    ("izleyerek", "VERB", {"VerbForm": "Conv"}, 2, "arak_önü"),
+    ("konuşalım", "VERB", {"Mood": "Opt", "Person": "1", "Number": "Plur"}, 2, "alım_önü"),
+    ("söyle", "VERB", {"Mood": "Imp", "Person": "2", "Number": "Sing"}, 0, "emir_2tekil"),
+    ("dokunun", "VERB", {"Mood": "Imp", "Person": "2", "Number": "Plur"}, 1, "emir_önü"),
+    ("değiştirsinler", "VERB", {"Mood": "Imp", "Person": "3", "Number": "Plur"}, 2, "emir_önü"),
+    ("gelsin", "VERB", {"Mood": "Imp", "Person": "3", "Number": "Sing"}, 0, "emir_önü"),
+    ("güzeldir", "ADJ", {}, 1, "dir_önü"), ("böyledir", "ADV", {}, 0, "kök+ek"), ("kültür", "NOUN", {}, 1, "varsayılan_son"),
+    ("çünkü", "SCONJ", {}, 0, "tür_ağırlık"), ("elbette", "ADV", {}, 1, "tür_ağırlık"), ("acaba", "ADV", {}, 1, "tür_ağırlık"),
+    ("iyi", "ADV", {}, 1, "varsayılan_son"), ("yeniden", "ADV", {}, 2, "varsayılan_son")]:
+    got = R.syllable(w, up, f, T)
+    assert got == (k, tag), (w, got, (k, tag))
+print("OK (ek/koşaç/tür)")
