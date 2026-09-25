@@ -157,3 +157,12 @@ experiments:
       [-0,52, +0,24]). v2-m1a Antalia 3,59 (eski 3,6) -> kural sürümü kayması ihmal edilebilir. Hizalama ep20-30 arası oturdu (ep30 0,459).
       Yorum: Whisper CER vurguya duyarsız (ASR yanlış heceli vurguyu tolere eder); vurgu anlaşılırlıktan çok doğallığı etkiler; UTMOS İngilizce eğitimli.
       Sonraki: kör AB dinleme testi (vurgusu farklı ~30 cümle, v2-m1a vs v3a).
+
+  # ---- ölçüm (eğitim yok) ----
+  - id: prosody-acoustic-v3a
+    status: done
+    hypothesis: "v3a sentezinin 'her sözcük ayrı kayıt' algısının akustik karşılığı nerede (F0 / enerji / eğim / formant / ritim)?"
+    result: >-
+      reports/prosody_acoustic_v3a.md. Sözcük içi F0 desenleri gerçek ≈ sentez (anlamsız). Farklar ZAMANLAMADA: ünlü süresi nPVI 45 -> 27, noktalamalı
+      duraklama 472 -> 260 ms (>=250 ms noktalamasız %1,7 -> %0), öbek sonu uzaması zayıf (virgül 1,42 -> 1,22), eklemleme 6,5 -> 6,1 hece/sn,
+      virgül yükselişi abartılı (+1,0 yt). Yöntem düzeltmesi: add_blank kareleri yarı yarıya dağıtılmazsa ünlüler 1-2 kare kalıyor ve sahte eğim farkı çıkıyordu.
