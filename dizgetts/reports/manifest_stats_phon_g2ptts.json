@@ -1,0 +1,35 @@
+{
+ "engine_versions": {
+  "normalize": "28ddc408",
+  "phonemize": "dizge==0.1.6",
+  "g2ptts": "D:/dizgetts/runs/g2ptts_v3+kurallar=dabad252",
+  "assemble": "2eed8f08"
+ },
+ "tiers": [],
+ "out_suffix": "_phon_g2ptts",
+ "splits": {
+  "train": {
+   "clips": 910,
+   "words": 30420
+  },
+  "val": {
+   "clips": 59,
+   "words": 1970
+  },
+  "test": {
+   "clips": 84,
+   "words": 2948
+  }
+ },
+ "stress_counters": {
+  "model": 33601,
+  "kırılma_ip": 3305,
+  "kırılma_IP": 349,
+  "kural:kök": 286,
+  "kural:clitic": 1362,
+  "kural:kök+ek": 69,
+  "kural:cık_sıfat": 14,
+  "kural:ünlüsüz": 5,
+  "kural:pekiştirme": 1
+ }
+}

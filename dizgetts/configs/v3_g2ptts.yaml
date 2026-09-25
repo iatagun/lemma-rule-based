@@ -1,0 +1,9 @@
+# v3: dizge-g2p-tts ön ucu (g2ptts-v3): dizge fonemleri + KARMA vurgu (sözlük/kural + model) + model SINIR token'ları (| ip, ‖ IP; noktalamasız sınırlarda),
+# sözcük ayracı korunur. Manifest: scripts/build_manifest.py --g2ptts --out-suffix _phon_g2ptts. Reçete v2_engine (M1a) ile aynı; yalnız ön uç değişir.
+base: train_base.yaml
+name: v3_g2ptts_e150
+frontend: engine
+manifest: _phon_g2ptts
+engine: {g2ptts: true}
+train:
+  epochs: 150

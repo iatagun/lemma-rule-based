@@ -21,10 +21,14 @@ if __name__ == "__main__":
     ap.add_argument("--splits", nargs="+", default=["test", "val"])
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--extra", default=None, help="ek metin cümleleri (satır başına bir; # yorum), ör. dizgetts/eval/extra_sentences_ud.txt — ses kaydı gerekmez")
     a = ap.parse_args()
     out = os.path.join("D:/dizgetts/eval_out", a.label)
     os.makedirs(out, exist_ok=True)
     rows = [dict(json.loads(l), split=sp) for sp in a.splits for l in open(f"{ROOT}/{sp}.jsonl", encoding="utf8")]
+    if a.extra:
+        ex = [l.strip() for l in open(a.extra, encoding="utf8") if l.strip() and not l.startswith("#")]
+        rows += [dict(id=f"extra{i:03d}", text=t, split="extra") for i, t in enumerate(ex)]
     torch.manual_seed(a.seed)
     sy = Synth(a.ckpt, a.device)
     sc = Scorer(device=a.device)

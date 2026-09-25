@@ -115,3 +115,22 @@ experiments:
       GEÇTİ -> tagger varsayılanı. Seçilen ep2 (val sınır 0,610, UD son-dışı %89,3; ep3/ep4 sınır toleransı dışında). Random gold (GELİŞTİRME) karma
       g2ptts %86,0 (v2b %78,8; kurallar+Morph %84,4 — model bağlamdan Morph'u yalıtık sözcükte çalıştırmaktan iyi). Test sınır F1 0,496 vs dep_K2 0,347,
       GA [+0,096, +0,201]. UD test uyum %96,6 (son-dışı %89,4; etiketler değişti, v2b ile birebir değil). Model tek başına ilk gold 18/35.
+
+  # ---- v3: Antalia TTS, dizge-g2p-tts ön ucuyla ----
+  - id: v3-g2ptts-tts
+    status: running
+    hypothesis: >-
+      dizge-g2p-tts etiketleri (g2ptts-v3: karma vurgu, geliştirme setinde %86 vs M1a %65; noktalamasız sınır token'ları) ile eğitilen Matcha,
+      aynı reçeteyle eğitilmiş v2-m1a'dan daha anlaşılır (CER/WER) ve en az aynı doğallıkta (UTMOS). Ürün testi: iki değişiklik (vurgu + sınır) birlikte.
+    metric: >-
+      CER/WER (Whisper-small) + UTMOS, ep150, 543 cümle = Antalia test+val 143 (eğitimde görülmedi) + 400 UD test cümlesi (eval/extra_sentences_ud.txt,
+      yalnız metin). v2-m1a ve v2-m1b aynı 543 cümlede yeniden ölçülür (etiket *_x543). Eşleşmiş cümle bootstrap (compare.py).
+    decision_rule: >-
+      v3 CER < v2-m1a CER ve fark GA üst sınırı < 0 -> dizge-g2p-tts TTS'e yardım ediyor (HF paketi için kanıt); anlamsızsa -> TTS katkısı gösterilemedi,
+      paket yine yayınlanabilir ama iddia "ön uç doğruluğu" ile sınırlı kalır. UTMOS anlamlı düşerse -> sınır token'ları ayrı denenir.
+    note: >-
+      Karıştırıcılar: (1) sınır başlığı Antalia TRAIN sesinden öğrendi -> eğitim cümlelerinde sınır tahmini gerçeğe çok yakın, test cümlelerinde değil
+      (kullanıcıyla konuşuldu, bilerek model tahmini kullanılıyor). (2) v2-m1a/m1b sentezi GÜNCEL kural sürümüyle yapılır (böyle/şöyle/öyle, pek/-CIk kapısı
+      değişti) -> eğitim token'larından küçük sapma; v2-m1a Antalia 143'te eski CER 3,6 ile kıyaslanarak kontrol edilir.
+    config: configs/v3_g2ptts.yaml
+    eval_label: v3_g2ptts_ep150_x543

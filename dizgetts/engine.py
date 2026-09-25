@@ -22,8 +22,8 @@ from dataclasses import dataclass, field
 
 from dizgetts.frontend import normalize as _norm
 from dizgetts.frontend.phonemize import Phonemizer
-from dizgetts.frontend.stress import StressRules, to_phone_index
-from dizgetts.frontend.symbols import PAUSES, PHONES, STRESS, SYMBOL_TO_ID, WORD_SEP, UnknownSymbol, tokenize
+from dizgetts.frontend.stress import StressRules, _n_vowels, to_phone_index
+from dizgetts.frontend.symbols import BREAK_MAJOR, BREAK_MID, PAUSES, PHONES, STRESS, SYMBOL_TO_ID, WORD_SEP, UnknownSymbol, tokenize
 
 _TOK = re.compile(r"[^\W\d_]+|[,.?!;]")
 
@@ -169,8 +169,40 @@ class PhraseStage(Stage):
         return u
 
 
+class G2PTTSStage(Stage):
+    """dizge-g2p-tts (g2ptts/tagger.py): karma vurgu + model sınırı; StressStage + PhraseStage yerine (Engine(g2ptts=True))."""
+    name = "g2ptts"
+
+    def __init__(self, ckpt: str | None = None):
+        from dizgetts.g2ptts.tagger import Tagger
+
+        self.t = Tagger(ckpt) if ckpt else Tagger()
+        self.ckpt = ckpt
+
+    def version(self) -> str:
+        from dizgetts.g2ptts.train import RUN
+
+        return f"{self.ckpt or RUN}+kurallar={self.t.rules.version()}"
+
+    def __call__(self, u: Utterance) -> Utterance:
+        cnt = u.meta.setdefault("stress", {})
+        tw = self.t.tag_norm(u.norm)["words"]
+        if [w["word"] for w in tw] != [w.text for w in u.words]:
+            u.meta["g2ptts_hizalama_hatasi"] = True
+            return u
+        for w, t in zip(u.words, tw):
+            w.stress_src, w.boundary = t["stress_src"], t["boundary"]
+            cnt[t["stress_src"]] = cnt.get(t["stress_src"], 0) + 1
+            if t["stress_from_end"] is not None:
+                w.stress, _ = to_phone_index(w.text, w.phones, _n_vowels(_norm.tr_lower(w.text)) - 1 - t["stress_from_end"])
+        return u
+
+
 class AssembleStage(Stage):
     name = "assemble"
+
+    def __init__(self, breaks: bool = False):
+        self.breaks = breaks  # True: noktalamasız ip/IP sınırına | / ‖ token'ı (g2ptts); False: v2 token'ları (parity)
 
     def __call__(self, u: Utterance) -> Utterance:
         toks: list[str] = []
@@ -181,14 +213,21 @@ class AssembleStage(Stage):
                 if w.stress == j:
                     toks.append(STRESS)
                 toks.append(p)
+            if self.breaks and not w.punct and w.boundary in ("ip", "IP"):
+                toks.append(BREAK_MID if w.boundary == "ip" else BREAK_MAJOR)
             toks.extend(w.punct)
         u.tokens = toks
         return u
 
 
 class Engine:
-    def __init__(self, bert_fallback: bool = True, morph: bool = False, tiers=(), morph_cache: dict | None = None):
+    def __init__(self, bert_fallback: bool = True, morph: bool = False, tiers=(), morph_cache: dict | None = None,
+                 g2ptts: bool = False, g2ptts_ckpt: str | None = None):
         st: list[Stage] = [NormalizeStage(), PhonemeStage(bert_fallback)]
+        if g2ptts:  # dizge-g2p-tts: vurgu + sınır tek aşamada; sınır token'ları açık
+            self.stages = st + [G2PTTSStage(g2ptts_ckpt), AssembleStage(breaks=True)]
+            self._acoustic = None
+            return
         if morph:
             st.append(MorphStage(morph_cache))
         self.stages: list[Stage] = st + [StressStage(tiers), PhraseStage(), AssembleStage()]

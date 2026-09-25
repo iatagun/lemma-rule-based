@@ -52,7 +52,10 @@ class Tagger:
         return (None if model_cls == 0 else min(model_cls - 1, n - 1)), "model"
 
     def __call__(self, text: str) -> dict:
-        norm = normalize(text)
+        return self.tag_norm(normalize(text), text)
+
+    def tag_norm(self, norm: str, text: str = "") -> dict:
+        """normalize() çıktısı üzerinde (engine G2PTTSStage aynı normalize'ı paylaşır)."""
         toks = norm.split()
         scls, pb = self._model(toks) if toks else ([], [])
         words = []
