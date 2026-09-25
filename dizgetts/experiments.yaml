@@ -102,7 +102,7 @@ experiments:
       (P 0,419 R 0,615) vs dep_K2 0,347, GA [+0,090, +0,208]; UD son-dışı uyum %94,9 (v2 %87,5), genel %98,4; Antalia son-dışı %97,0;
       model tek başına gold 17/35 (v2 13), karma tagger 33/35.
   - id: g2ptts-v3
-    status: running
+    status: done
     depends_on: g2ptts-v2b
     hypothesis: >-
       v2b reçetesi aynı (Antalia x2, balanced seçim, tohum 0); yalnız VURGU ETİKETLERİ değişir: kullanıcı onaylı yeni kurallar (ek: -ken, -(y)IncA,
@@ -111,3 +111,7 @@ experiments:
     metric: "stress_gold_random (250, GELİŞTİRME seti: hataları incelendi, böyle sözlükte) karma g2ptts doğruluğu; test noktalamasız sınır F1"
     decision_rule: "v3 varsayılan olur ancak random gold'da karma g2ptts > %78,8 VE test sınır F1 >= 0,478 (v2b - 0,02). Son rapor için yeni kör set gerekir."
     config: "python -m dizgetts.g2ptts.train --run D:/dizgetts/runs/g2ptts_v3 --antalia-repeat 2 --select balanced"
+    result: >-
+      GEÇTİ -> tagger varsayılanı. Seçilen ep2 (val sınır 0,610, UD son-dışı %89,3; ep3/ep4 sınır toleransı dışında). Random gold (GELİŞTİRME) karma
+      g2ptts %86,0 (v2b %78,8; kurallar+Morph %84,4 — model bağlamdan Morph'u yalıtık sözcükte çalıştırmaktan iyi). Test sınır F1 0,496 vs dep_K2 0,347,
+      GA [+0,096, +0,201]. UD test uyum %96,6 (son-dışı %89,4; etiketler değişti, v2b ile birebir değil). Model tek başına ilk gold 18/35.
