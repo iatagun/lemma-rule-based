@@ -69,7 +69,8 @@ def build(a):
         key.append(dict(pair=n, id=cid, side1=order[0], side2=order[1]))
         data.append(dict(p=n, t=T[cid], f=files))
     json.dump(dict(a=a.a, b=a.b, seed=a.seed, pairs=key), open(f"{KEYS}/{a.name}.json", "w", encoding="utf8"), ensure_ascii=False, indent=1)
-    html = HTML.replace("__DATA__", json.dumps(data, ensure_ascii=False)).replace("__NAME__", a.name).replace("__ONEQ__", "true" if a.one_question else "false")
+    html = (HTML.replace("__DATA__", json.dumps(data, ensure_ascii=False)).replace("__NAME__", a.name)
+            .replace("__ONEQ__", "true" if a.one_question else "false").replace("__Q1TEXT__", a.question))
     open(f"{out}/index.html", "w", encoding="utf8").write(html)
     print(f"{len(data)} çift -> {out}/index.html  (anahtar: {KEYS}/{a.name}.json)")
 
@@ -143,7 +144,7 @@ sesler aynı yükseklikte. İlerleme bu tarayıcıda saklanır. Bitince <b>Dış
 <script>
 const DATA = __DATA__;
 const ONEQ = __ONEQ__;  // tek soru: ikinci soru gizlenir, cevabı birinciyle aynı kaydedilir
-if (ONEQ) { document.getElementById("q2box").style.display = "none"; document.querySelector('[data-q="1"]').previousElementSibling.textContent = "Hangisi genel olarak daha iyi (doğallık, akıcılık, telaffuz)?"; }
+if (ONEQ) { document.getElementById("q2box").style.display = "none"; document.querySelector('[data-q="1"]').previousElementSibling.textContent = "__Q1TEXT__"; }
 const KEY = "dizgetts-ab-__NAME__";
 let st = {}; try { st = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
@@ -197,6 +198,7 @@ def main():
     ap.add_argument("--name", required=True)
     ap.add_argument("--analyze", default=None, help="dışa aktarılan tsv")
     ap.add_argument("--exclude-key", nargs="*", default=None, help="bu testlerin (anahtar adı) cümlelerini kullanma")
+    ap.add_argument("--question", default="Hangisi genel olarak daha iyi (doğallık, akıcılık, telaffuz)?", help="--one-question ile gösterilen soru")
     ap.add_argument("--one-question", action="store_true", help="yalnız genel tercih sorusu (v3a_v4 testinde iki soru 29/30 aynı cevaplandı)")
     a = ap.parse_args()
     analyze(a) if a.analyze else build(a)
