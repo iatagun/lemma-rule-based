@@ -1,0 +1,23 @@
+ölçü                                                   GERÇEK v4_g2ptts_ v4c_calib_     fark  %95 GA (yeni - eski)
+cümle F0 aralığı (p95-p5) [yt]                          15.79      14.43      14.79    +0.36  [+0.15, +0.54] *
+öbek içi alçalma eğimi [yt/sözcük]                      -0.76      -0.68      -0.70    -0.02  [-0.07, +0.02]  
+sözcük içi F0 aralığı [yt]                               6.77       6.65       6.98    +0.33  [+0.21, +0.45] *
+ilk ünlüden vurgulu ünlüye yükseliş [yt]                 0.86       0.77       1.07    +0.30  [+0.14, +0.48] *
+sözcük tepesi işaretli vurgulu ünlüde (oran) []          0.47       0.49       0.52    +0.03  [+0.01, +0.05] *
+son hece değişimi — noktalamasız [yt]                    2.13       1.83       2.03    +0.20  [+0.05, +0.36] *
+son hece değişimi — virgül/; [yt]                        2.36       3.28       3.40    +0.11  [-0.60, +0.78]  
+son hece değişimi — cümle sonu [yt]                      0.29       0.67       1.02    +0.35  [-0.34, +1.04]  
+sözcük sınırında F0 sıçraması (noktalamasız) [yt]       -1.93      -1.98      -2.02    -0.04  [-0.17, +0.08]  
+duraklama — noktalamasız sınır [ms]                     17.31      10.86      31.58   +20.73  [+17.47, +24.12] *
+duraklama — noktalamalı sınır [ms]                     473.75     280.02     561.45  +281.43  [+251.75, +312.89] *
+vurgulu - vurgusuz ünlü F0 [yt]                          1.39       1.26       1.57    +0.31  [+0.16, +0.46] *
+vurgulu - vurgusuz ünlü yoğunluk [dB]                    3.06       3.62       3.70    +0.09  [+0.00, +0.16] *
+vurgulu - vurgusuz ünlü süre [ms]                       -4.98      -3.52     -15.70   -12.18  [-13.33, -11.09] *
+vurgulu - vurgusuz ünlü spektral eğim (alfa) [dB]       -0.52      -0.39       0.10    +0.49  [+0.34, +0.64] *
+son ünlü uzaması — noktalamasız (oran) [x]               1.07       1.01       1.00    -0.01  [-0.03, +0.00]  
+son ünlü uzaması — virgül/; (oran) [x]                   1.44       1.26       1.22    -0.03  [-0.08, +0.01]  
+son ünlü uzaması — cümle sonu (oran) [x]                 1.34       1.17       1.12    -0.05  [-0.09, -0.01] *
+sözcük içi yoğunluk eğimi (son - ilk ünlü) [dB]          2.91       3.38       3.38    +0.00  [-0.10, +0.10]  
+ünlü süresi nPVI (ritim) []                             45.41      27.11      41.78   +14.67  [+14.05, +15.33] *
+ünlü dağılımı (F1/F2 merkezine uzaklık) [Bark]           1.52       1.52       1.54    +0.02  [+0.01, +0.03] *
+eklemleme hızı [hece/sn]                                 6.51       6.04       5.51    -0.53  [-0.57, -0.50] *

@@ -1,0 +1,13 @@
+gerçek kayıtlar (Whisper tabanı, aynı 143 cümle): CER 4.7%  WER 11.6%
+sistem                            CER %            WER %            UTMOS   (n=543, %95 aralık)
+v2_m1a_ep150_x543        4.0 [ 3.4, 4.7]  15.4 [14.2,16.7]  3.02 [2.99,3.04]
+v3a_g2ptts_nb_ep150_x543   4.0 [ 3.4, 4.8]  15.2 [14.0,16.5]  2.99 [2.97,3.01]
+v2_m1b_ep150_x543        4.8 [ 3.6, 7.0]  18.2 [15.9,22.0]  3.02 [3.00,3.05]
+
+v2_m1a_ep150_x543 referansına göre eşleşmiş fark (pozitif = diğeri daha kötü CER/WER; UTMOS'ta pozitif = diğeri daha iyi):
+  v3a_g2ptts_nb_ep150_x543 CER: +0.04  [-0.27,+0.38]  anlamsız (aralık 0'ı içeriyor)
+  v3a_g2ptts_nb_ep150_x543 WER: -0.20  [-1.13,+0.75]  anlamsız (aralık 0'ı içeriyor)
+  v3a_g2ptts_nb_ep150_x543 UTMOS: -0.03  [-0.05,-0.01]  anlamlı
+  v2_m1b_ep150_x543      CER: +0.83  [-0.63,+3.13]  anlamsız (aralık 0'ı içeriyor)
+  v2_m1b_ep150_x543      WER: +2.81  [+0.58,+6.58]  anlamlı
+  v2_m1b_ep150_x543      UTMOS: +0.01  [-0.01,+0.03]  anlamsız (aralık 0'ı içeriyor)

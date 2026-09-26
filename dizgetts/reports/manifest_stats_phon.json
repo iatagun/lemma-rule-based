@@ -1,0 +1,35 @@
+{
+ "engine_versions": {
+  "normalize": "28ddc408",
+  "phonemize": "dizge==0.1.6",
+  "stress": "dabad252",
+  "phrase": "8371d207",
+  "assemble": "91d305a0"
+ },
+ "tiers": [],
+ "out_suffix": "_phon",
+ "splits": {
+  "train": {
+   "clips": 910,
+   "words": 30420
+  },
+  "val": {
+   "clips": 59,
+   "words": 1970
+  },
+  "test": {
+   "clips": 84,
+   "words": 2948
+  }
+ },
+ "stress_counters": {
+  "varsayılan_son": 33616,
+  "eşleme_eşit": 30827,
+  "eşleme_yan_ünlü_atıldı": 2619,
+  "eşleme_sondan": 525,
+  "kök": 286,
+  "clitic": 1362,
+  "kök+ek": 69,
+  "ünlüsüz": 5
+ }
+}
