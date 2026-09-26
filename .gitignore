@@ -46,6 +46,7 @@ idiom_data/*
 idiom_arc_data/*
 !idiom_arc_data/label_space.json
 dizgebert_idiom_hf/
+dizgebert_g2ptts_hf/
 
 # GLU deyim etiketleme kılavuzu — telifli akademik belge (G. L. Uzun, Ankara Üniv.);
 # damıtılmış hâli .claude/skills/idiom/glu_karar_cercevesi.md'de, PDF yeniden dağıtılmaz.

@@ -82,10 +82,12 @@ def weight_stress(root: str, en: bool) -> int:
 
 
 class StressRules:
-    def __init__(self):
+    def __init__(self, res_dir=None):
+        """res_dir: sözlük dizini (varsayılan resources/); HF paketi kendi resources/ klasörünü verir (dizgebert_g2ptts)."""
+        res = Path(res_dir) if res_dir else RES
         self.roots: dict[str, tuple[int, str]] = {}
         self._cap_only: set[str] = set()  # yer adı kategorisi: yalnız BÜYÜK harfle başlayan yazımda (ordu/Ordu, bebek/Bebek ayrımı)
-        for r in _rows(RES / "stress_roots.tsv"):
+        for r in _rows(res / "stress_roots.tsv"):
             lex, cat = tr_lower(r[0]), r[2]
             idx = weight_stress(lex, "-en" in cat) if r[1] == "ağırlık" else int(r[1])
             root = lex.translate(_PLAIN)
@@ -94,9 +96,9 @@ class StressRules:
             self.roots[root] = (idx, cat)
             if cat.startswith("yer adı"):
                 self._cap_only.add(root)
-        self.clitics = {tr_lower(r[0]) for r in _rows(RES / "clitics.tsv")}
+        self.clitics = {tr_lower(r[0]) for r in _rows(res / "clitics.tsv")}
         self._roots_longest_first = sorted(self.roots, key=len, reverse=True)
-        self.adj = {l for l in (RES / "adj_lemmas.txt").read_text(encoding="utf8").splitlines() if l and not l.startswith("#")}
+        self.adj = {l for l in (res / "adj_lemmas.txt").read_text(encoding="utf8").splitlines() if l and not l.startswith("#")}
 
     @staticmethod
     def version() -> str:
