@@ -269,3 +269,10 @@ experiments:
       Kullanıcı (körlenmemiş): "v5 daha iyi" (UTMOS ile uyumlu). Olası neden: hız gerçeği aştı (val toplam oranı 0,96 + ceil yanlılığı kalktı).
       Sonraki: v5s = length_scale'i YALNIZ val kliplerinde eklemleme hızı gerçeğe eşit olacak şekilde seç; aynı karar kuralı + kör AB.
       Uyarı: test seti bu seride birkaç kez kullanıldı -> iyimser yanlılık olabilir; kör AB asıl onay.
+  - id: v5s-speed
+    status: queued
+    depends_on: v5-dp-linear
+    hypothesis: "v5'in WER/CER kaybı hızın gerçeği %3 aşmasından. length_scale 1,032 (YALNIZ val'de: 6,644/6,440) ile hız eşitlenince zamanlama kazanımları korunur, CER toparlanır."
+    decision_rule: "v5 ile aynı (v4-400'e göre): eklemleme hızı VE noktalamalı duraklama gerçeğe doğru anlamlı, nPVI kötüleşmez, CER farkı GA üst < +0,5 pp; sonra kör AB."
+    config: "D:/dizgetts/runs/v5_dplin/ep400_dp_mse_ls1032.pt (cfg.model.length_scale=1.032)"
+    eval_label: v5s_x543

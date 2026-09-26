@@ -59,7 +59,9 @@ class Synth:
         return u.norm, u.tokens, intersperse(self.engine.ids(u), 0)
 
     @torch.inference_mode()
-    def __call__(self, text: str, steps: int = 10, temperature: float = 0.667, length_scale: float = 1.0):
+    def __call__(self, text: str, steps: int = 10, temperature: float = 0.667, length_scale: float | None = None):
+        if length_scale is None:  # v5s: hız ayarı checkpoint config'inde (val'de seçildi); yoksa 1.0
+            length_scale = float(self.cfg["model"].get("length_scale", 1.0))
         norm, toks, ids = self.ids(text)
         x = torch.tensor(ids, dtype=torch.long, device=self.dev)[None]
         xl = torch.tensor([x.shape[1]], device=self.dev)
