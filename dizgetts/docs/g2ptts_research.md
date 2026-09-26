@@ -40,6 +40,8 @@ Bulgular:
    Kehanetle bile noktalamasız duraklama 12,5 ms (gerçek 17,4) -> kalan açık sınırın YERİNDE değil, SÜRE ÜRETİMİNDE (süre modeli).
 3. **Vurgu** (m1a - default): CER 3,2 -> 5,2 (+2,0 [-1,1, +8,2], anlamsız, birkaç cümle sürüklüyor). Model g2ptts vurgusuyla eğitildiği için
    M1a girdisi dağılım dışı -> adil ölçüm değil. Vurgunun katkısı için KÖR AB gerekir (Whisper vurguya duyarsız).
+   KARAR (kullanıcı, 2026-09-26): vurgu için kör AB YAPILMAYACAK — g2ptts dar ve iyi tanımlı bir görev üstleniyor; başarısı ön uç düzeyinde
+   kör testle ölçüldü (%92,8; son heceye göre +9,3 pp). Hazırlanan test (D:/dizgetts/ab/stress_m1a_g2ptts, v2-m1a vs v3a) kullanılmadı.
 
 
 ## 3. Geliştirme yol haritası (kanıt ve literatürle)
