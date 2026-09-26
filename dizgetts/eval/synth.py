@@ -64,7 +64,8 @@ class Synth:
         x = torch.tensor(ids, dtype=torch.long, device=self.dev)[None]
         xl = torch.tensor([x.shape[1]], device=self.dev)
         if self.cfg["model"].get("dp_feat"):  # v4: sınır özniteliği yalnız süre tahmincisine
-            from dizgetts.train.dpfeat import intersperse_feat, set_dp_feat
+            from dizgetts.train.dpfeat import intersperse_feat, set_dp_feat, set_round
+            set_round(self.model, self.cfg["model"].get("dp_round"))  # v5: "cum" = birikimli yuvarlama (None = Matcha ceil)
             set_dp_feat(self.model, torch.tensor(intersperse_feat(self._dp), dtype=torch.long, device=self.dev)[None])
             if self.calib is not None:
                 from dizgetts.train.dpfeat import calib_groups, set_calib, token_types

@@ -39,6 +39,8 @@ class DPFeatTextEncoder(TextEncoder):
         cal, grp = getattr(self, "_calib", None), getattr(self, "_calib_groups", None)
         if cal is not None and grp is not None:  # v4c: yalnız SENTEZDE (set_calib); eğitimde hiç ayarlanmaz
             logw = apply_calib(logw, x_mask, grp, cal)
+        if getattr(self, "_round", None) == "cum":  # v5: yalnız SENTEZDE (set_round); eğitim/MAS logw'yi değiştirmez
+            logw = cum_round_logw(logw, x_mask)
         return mu, logw, x_mask
 
 
@@ -108,3 +110,19 @@ def identity_table():
     t = torch.zeros(N_DP_FEAT * len(TOKEN_TYPES), 4)
     t[:, 1] = 1.0; t[:, 3] = 1.0
     return t
+
+
+# ---------------------------------------------------------------- v5: birikimli yuvarlama (sentez anı)
+def cum_round_logw(logw, x_mask):
+    """Matcha synthesise() süreleri ceil(exp(logw)) ile tamsayıya çevirir (sabit ~+0,5 kare yanlılığı). Burada hedef tamsayı k birikimli yuvarlamayla
+    bulunur (toplam korunur, token hatası < 1 kare; MAS gibi en az 1 kare) ve logw = log(k - 0,5) döndürülür -> ceil(exp(logw)) = k tam olarak."""
+    w = torch.exp(logw) * x_mask
+    r = torch.round(torch.cumsum(w, dim=-1))
+    k = torch.diff(r, dim=-1, prepend=torch.zeros_like(r[..., :1]))
+    k = torch.clamp(k, min=1.0)
+    return torch.log(k - 0.5) * x_mask
+
+
+def set_round(model, mode) -> None:
+    if isinstance(model.encoder, DPFeatTextEncoder):
+        model.encoder._round = mode

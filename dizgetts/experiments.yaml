@@ -239,3 +239,26 @@ experiments:
     blind_ab: >-
       KÖR AB (reports/ab/ab_v4e150_v4e400.tsv; 30 yeni çift, tek soru, -25 LUFS, kırpma yok): v4-400 16 / v4-150 8 / fark yok 6 (p = 0,15).
       Yön ölçümle aynı, n=30'da anlamsız. KARAR: v4-400 varsayılan model (ölçüm anlamlı + dinleme aynı yönde). Telaffuz notları: docs/pronunciation_issues.md.
+  - id: v5-dp-linear
+    status: running
+    depends_on: v4-e400
+    diagnosis: >-
+      (eğitimsiz, v4-400, 143 test+val) token başına kare: gerçek MAS / ham tahmin / ceil: ünlü 2,27/1,92/2,48, ünsüz 2,36/1,98/2,53,
+      ayraç 4,28/2,75/3,34, noktalama 5,74/4,65/5,16; toplam 1,000/0,78/1,008. MAS hiç 0 kare vermiyor. Mekanizma: log-MSE geometrik ortalamayı
+      öğretir (her şey kısa) + ceil sabit ~+0,5 kare ekler (toplamı tesadüfen düzeltir) -> kısa token'lar (fonemler) uzar, uzun token'lar
+      (duraklamalar) kısa kalır = yavaş eklemleme + kısa duraklama + tekdüze ritim tek mekanizmadan. round tek başına %22 hızlandırırdı.
+    hypothesis: >-
+      Süre tahmincisini (dp + dp_feat gömmesi) v4-400'ün DONDURULMUŞ kodlayıcı/çözücüsü ve kendi MAS hedefleriyle doğrusal kare üzerinde Huber kaybıyla
+      yeniden eğitmek (aritmetik ortalama) + sentezde ceil yerine birikimli yuvarlama: eklemleme hızını ve duraklamaları gerçeğe yaklaştırır;
+      ses kalitesi/telaffuz değişmez (yalnız süreler değişir).
+    decision_rule: >-
+      KABUL: test 143'te eklemleme hızı VE noktalamalı duraklama v4-400'e göre anlamlı biçimde gerçeğe doğru; nPVI anlamlı kötüleşmez;
+      CER (543) farkı GA üst sınırı < +0,5 pp. Ardından kör AB (v4-400 vs v5). Süre değişikliklerinde konuşma hızı korunmalı (v4c dersi).
+    note: >-
+      Kayıp seçimi (test'e bakılmadan, 2026-09-26): Huber (beta=2 kare) büyük hatada L1 gibi -> ortanca öğretir; ilk koşuda val toplam tahmin/hedef
+      0,80 -> ~0,90 (hâlâ %10 kısa; cum yuvarlamada ceil'in +0,5'i yok -> sentez hızlı çıkar). MSE (aritmetik ortalama) da aynı düzenekle eğitilir;
+      testte kullanılacak kayıp VAL'de toplam oran 1'e en yakın olan (eşitlikte val kaybı). İkisi de raporlanır.
+    dp_training: >-
+      Yalıtılmış dp eğitimi (scripts/train_dp.py; denetim: yeniden kurulan yol = model logw, fark 0). Başlangıç (v4-400 log-MSE dp) val
+      tahmin/hedef 0,797 (ayraç 0,67). Huber: en iyi ep7, oran ~0,88. MSE: en iyi ep8, oran 0,961 (ünlü 0,99, ünsüz 0,93, ayraç 1,02, noktalama 1,23).
+      SEÇİLEN: MSE (val oranı 1'e en yakın). Test ckpt: D:/dizgetts/runs/v5_dplin/ep400_dp_mse.pt (dp_round=cum).
