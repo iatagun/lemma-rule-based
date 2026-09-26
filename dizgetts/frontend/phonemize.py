@@ -41,7 +41,9 @@ def fold_foreign(w: str) -> tuple[str, list[str]]:
 class Phonemizer:
     def __init__(self, bert_fallback: bool = True, pron_exceptions: bool = False, register: str = "özenli", length_rules: bool = False):
         import dizge
-        from .pronounce import Exceptions, LengthRules
+        from .pronounce import Atoms, Exceptions, LengthRules
+
+        self._Atoms = Atoms
 
         self._dizge = dizge
         self._bert_ok = bert_fallback
@@ -50,6 +52,7 @@ class Phonemizer:
         self._bert = None
         self.stats = collections.Counter()
         self.dropped: collections.Counter = collections.Counter()  # atılan (eşlenemeyen) karakterler
+        self._trace: dict[str, object] = {}     # sözcük -> Atoms (yalnız sözlük/kural değiştirdiyse): atom kökeni, vurgu eşlemesi için
         self._cache: dict[str, str] = {}      # örnek başına (metot üstünde lru_cache self'i sonsuza dek tutar)
         self.failed: dict[str, str] = {}      # dizge hata verdi -> (BERT çıktısı ya da "")
         self.variants: dict[str, tuple] = {}  # dizge çok-varyantlı döndürdü
@@ -82,17 +85,25 @@ class Phonemizer:
                 self.stats["dizge_fail"] += 1
                 r = self._from_bert(f) if self._bert_ok else ""
                 self.failed[key] = r
-        if r and self._exc is not None:
-            r = self._exc.apply(key, r)
-        if r and self._len is not None:  # sıra: sözlük -> kural (kağıt: sözlük ön a'yı koyar, kural ğ geçişinde ː'yi düşürür)
-            r, durum = self._len.apply(key, r)
-            if durum == "hizalanamadı":
-                self.stats["uzun_hizalanamadi"] += 1
+        if r and (self._exc is not None or self._len is not None):
+            at = self._Atoms(r)
+            if self._exc is not None:
+                self._exc.apply_atoms(key, at)
+            if self._len is not None:  # sıra: sözlük -> kural (kağıt: sözlük ön a'yı koyar, kural ğ geçişinde ː'yi düşürür)
+                if self._len.apply_atoms(key, at) == "hizalanamadı":
+                    self.stats["uzun_hizalanamadi"] += 1
+            if at.changed:
+                r = at.text()
+                self._trace[w] = at
         if not r:  # sözcük konuşmadan düşer: sessiz bırakma
             self.stats["fonemsiz"] += 1
             warnings.warn(f"fonemleştirme: {w!r} için fonem üretilemedi; sözcük konuşulmayacak", RuntimeWarning, stacklevel=2)
         self._cache[w] = r
         return r
+
+    def trace(self, w: str):
+        """`word(w)` sözlük/kuralla DEĞİŞTİYSE Atoms (raw = dizge'nin ham atomları, origin = kökenler), değişmediyse None."""
+        return self._trace.get(w)
 
     def __call__(self, text: str) -> tuple[str, list[str]]:
         """-> (normalize edilmiş metin, token listesi). Bilinmeyen karakterler atlanır ve self.unknown'a sayılır."""

@@ -104,3 +104,10 @@ Sıra: sözlük -> kural (kağıt: sözlük ön `a` koyar, kural ğ geçişinde 
 Hizalama sıkılaştırıldı: olay ile `ː` atomu yalnız KATI ÜNSÜZ sayısı tutarsa eşlenir (iyiliğinden'de iy olayı ğ'nin iː'sini almasın); hizalanamayan hâlâ 6 sözcük (nisan, itibaren, teminat).
 **`değil` (71 geçiş): y'leşme, deyil** (kullanıcı 2026-09-27) = dizge'nin okuması `d e j I l`, DEĞİŞİKLİK YOK (tests/test_length_rules.py sabitler).
 **Hâlâ açık:** kullanıcı `ğ` uzama süresini notlarından kontrol edecek; "şüpheli y'leşme görürsen haber ver" (kalıcı istek).
+
+## Vurgu -> fonem eşlemesi ve köken izi (2026-09-27 düzeltmesi)
+Hata (a198676'da push'landı, bu düzeltmeyle giderildi): `to_phone_index` yan ünlüyü `ː` işaretiyle tanıyordu; uzun ünlü kuralları `ɑː I -> ɑ I` yapınca `bayram`'ın ilk seslem vurgusu yan ünlü `I`'ya düşüyordu
+(kurallar açıkken 3359 geçişte ilk seslem yanlış) ve -diği'de iki ünlü tek `iː`'ye birleşince (`iː I -> iː`) indeksler kayıyordu. Kural bayrakları kapalıyken etkilenmez (parity 1053/1053).
+Çözüm: `pronounce.Atoms` her atomun KÖKENİNİ (dizge'nin ham atom indeksleri) izler; `engine._stress_index` eşlemeyi HAM atomlarda (kanıtlanmış yöntem) yapıp kökenle son diziye taşır. Ekleme (`j`) kökensiz, birleşen atom birden çok köken taşır, silinen ünlünün kökeni en yakın yeni ÜNLÜ atoma gider (değer: `d e j ɛ -> d ɛː`).
+Ayrıca ham eşleme iyileşti: `öy` yan ünlüsü + `iğ` (söylendiğinde) birlikte olduğunda tüm `X ː I` atılmıyor, baştan m tane atılıyor (yalnız eskiden 'sondan' düşen sözcükleri etkiler).
+Ölçüm (Antalia sözcük dağarı, ilk/son seslem eşleme hatası, tekil sözcük): kapalı 271, kurallar açık 271 (düzeltmeden önce açıkken +3359 geçiş). Test: `tests/test_stress_map.py`.

@@ -40,6 +40,8 @@ class Word:
     notes: list[str] = field(default_factory=list)    # sözcük düzeyi açıklamalar (hangi aşama neyi neden değiştirdi)
     upos: str | None = None                     # DizgeBERT-Morph (M1b; morfoloji aşaması açıksa)
     feats: dict | None = None
+    raw_phones: list[str] | None = None         # dizge'nin HAM atomları (yalnız söyleyiş sözlüğü/uzun ünlü kuralı sözcüğü değiştirdiyse)
+    origin: list[list[int]] | None = None       # phones[j] atomunun ham atom indeksleri (birleşen atom birden çok); vurgu eşlemesi için
 
 
 @dataclass
@@ -97,7 +99,9 @@ class PhonemeStage(Stage):
                 atoms = tokenize(ph, strict=False)
             if not atoms:  # Phonemizer.word uyardı; sözcük konuşmadan düşer
                 u.meta.setdefault("fonemsiz_sözcük", []).append(t)
-            u.words.append(Word(text=t, phones=atoms))
+            tr = self.ph.trace(t)
+            iz = tr is not None and tr.a == atoms
+            u.words.append(Word(text=t, phones=atoms, raw_phones=tr.raw if iz else None, origin=tr.origin if iz else None))
         return u
 
 
@@ -134,6 +138,18 @@ class MorphStage(Stage):
         return u
 
 
+def _stress_index(w: Word, k: int) -> tuple[int | None, str]:
+    """Vurgulu seslemin (baştan k) `w.phones` içindeki ünlü atom indeksi. Sözlük/kural sözcüğü değiştirdiyse eşleme HAM dizge atomlarında yapılır (to_phone_index
+    yan ünlüyü `ː` işaretiyle tanır; kurallar işareti düşürür, iki ünlüyü tek atoma birleştirir) ve kökenle son diziye taşınır."""
+    if w.origin is None:
+        return to_phone_index(w.text, w.phones, k)
+    i, how = to_phone_index(w.text, w.raw_phones, k)
+    if i is None:
+        return None, how
+    j = next((j for j, o in enumerate(w.origin) if i in o), None)
+    return (j, how) if j is not None else to_phone_index(w.text, w.phones, k)
+
+
 class StressStage(Stage):
     """Kural tabanlı vurgu (frontend/stress.py, resources/*.tsv). Kural ve eşleme sayaçları u.meta["stress"]'e yazılır."""
     name = "stress"
@@ -153,7 +169,7 @@ class StressStage(Stage):
             w.stress_src = tag
             if k is None:
                 continue
-            idx, how = to_phone_index(w.text, w.phones, k)
+            idx, how = _stress_index(w, k)
             cnt["eşleme_" + how] = cnt.get("eşleme_" + how, 0) + 1
             w.stress = idx
         return u
@@ -210,7 +226,7 @@ class G2PTTSStage(Stage):
             w.stress_src, w.boundary = t["stress_src"], t["boundary"]
             cnt[t["stress_src"]] = cnt.get(t["stress_src"], 0) + 1
             if t["stress_from_end"] is not None:
-                w.stress, _ = to_phone_index(w.text, w.phones, _n_vowels(_norm.tr_lower(w.text)) - 1 - t["stress_from_end"])
+                w.stress, _ = _stress_index(w, _n_vowels(_norm.tr_lower(w.text)) - 1 - t["stress_from_end"])
         return u
 
 

@@ -264,8 +264,11 @@ def to_phone_index(text: str, phones: list[str], k: int) -> tuple[int | None, st
     if len(av) == n_l:
         return av[k], "eşit"
     if "y" in w:  # 'ay' -> 'ɑːI': uzun ünlüden hemen sonraki 'I' yan ünlüdür, seslem çekirdeği değil
-        av2 = [i for i in av if not (phones[i] == "I" and i > 0 and phones[i - 1].endswith("ː"))]
-        if len(av2) == n_l:
-            return av2[k], "yan_ünlü_atıldı"
+        cand = [i for i in av if phones[i] == "I" and i > 0 and phones[i - 1].endswith("ː")]
+        for m in range(len(cand), 0, -1):  # önce hepsi (eski davranış), tutmazsa baştan m tane: ğ kaynaklı `iː I`'nin `I`'sı gerçek ünlüdür (söylendiğinde: öy + diği)
+            drop = set(cand[:m])
+            av2 = [i for i in av if i not in drop]
+            if len(av2) == n_l:
+                return av2[k], "yan_ünlü_atıldı"
     r = n_l - 1 - k  # sondan sıra
     return (av[len(av) - 1 - r], "sondan") if 0 <= r < len(av) else (av[-1], "yedek_son")

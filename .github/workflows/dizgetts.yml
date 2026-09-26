@@ -19,7 +19,7 @@ jobs:
       - run: pip install -e ./dizgetts numpy
       - name: Testler
         run: |
-          for t in test_normalize test_phonemize test_stress test_engine_stages test_pronounce test_length_rules test_engine_parity test_compare test_packaging; do
+          for t in test_normalize test_phonemize test_stress test_engine_stages test_pronounce test_length_rules test_stress_map test_engine_parity test_compare test_packaging; do
             echo "== $t"
             python -X utf8 -m dizgetts.tests.$t
           done

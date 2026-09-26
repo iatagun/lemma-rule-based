@@ -20,6 +20,57 @@ TSV = Path(__file__).resolve().parent.parent / "resources" / "pronunciation_exce
 REGISTERS = ("özenli", "gündelik")
 
 
+class Atoms:
+    """Bir sözcüğün fonem atomları + her atomun KÖKENİ (dizge'nin ham atom indeksleri). Sözlük/kural düzenlemeleri `replace` ile yapılır; böylece vurgu eşlemesi (stress.to_phone_index)
+    HAM atomlarda (kanıtlanmış yöntem, ː/y işaretleri sağlam) yapılıp kökenle son diziye taşınabilir. Birleşen atomlar (iː I -> iː) iki kökeni birden taşır."""
+
+    def __init__(self, phones: str):
+        self.a = tokenize(phones, strict=False)
+        self.raw = list(self.a)
+        self.origin = [[i] for i in range(len(self.a))]
+        self.changed = False
+
+    def copy(self) -> "Atoms":
+        c = Atoms.__new__(Atoms)
+        c.a, c.raw, c.origin, c.changed = list(self.a), self.raw, [list(o) for o in self.origin], self.changed
+        return c
+
+    def adopt(self, other: "Atoms") -> None:
+        self.a, self.origin, self.changed = other.a, other.origin, other.changed
+
+    def text(self) -> str:
+        return "".join(self.a)
+
+    def replace(self, start: int, old_len: int, new: list[str]) -> None:
+        """a[start:start+old_len] yerine `new`. Kökenler eski/yeni atomların TABANLARI (ː çıkarılmış) hizalanarak devredilir (difflib): eşit atom kökenini korur, aynı uzunlukta
+        değişen bölge sırayla devralır, eklenen atom (ör. `j`) kökensizdir. Silinen/artan atomun kökeni EN YAKIN yeni atoma eklenir: silinen ÜNLÜ, en yakın yeni ÜNLÜ atoma
+        (değer: d e j ɛ -> d ɛː, silinen e ɛː'ye gider, d'ye değil); birleşen atom birden çok köken taşır."""
+        from difflib import SequenceMatcher
+
+        old, old_o = self.a[start:start + old_len], self.origin[start:start + old_len]
+        base = lambda a: a.rstrip("ː")
+        new_o: list[list[int]] = [[] for _ in new]
+        pend = []  # (eski atom, köken, yeni dizideki konum)
+        for tag, i1, i2, j1, j2 in SequenceMatcher(None, [base(x) for x in old], [base(x) for x in new], autojunk=False).get_opcodes():
+            n = min(i2 - i1, j2 - j1) if tag in ("equal", "replace") else 0
+            for k in range(n):
+                new_o[j1 + k] = list(old_o[i1 + k])
+            pend += [(old[i], old_o[i], j1 + n) for i in range(i1 + n, i2)]
+        isv = lambda a: a in PHONES and PHONES[a][0] == "ünlü"
+        vnew = [j for j, a in enumerate(new) if isv(a)]
+        for a, o, pos in pend:
+            if new:
+                cand = vnew if isv(a) and vnew else range(len(new))
+                new_o[min(cand, key=lambda j: (abs(j - (pos - 0.5)), j))] += o
+            elif start > 0:
+                self.origin[start - 1] += o
+            elif start + old_len < len(self.origin):
+                self.origin[start + old_len] += o
+        self.a[start:start + old_len] = new
+        self.origin[start:start + old_len] = new_o
+        self.changed = True
+
+
 class Exceptions:
     def __init__(self, register: str = "özenli"):
         if register not in REGISTERS:
@@ -42,9 +93,14 @@ class Exceptions:
         return f"{h.hexdigest()[:8]}/{self.register}"
 
     def apply(self, word: str, phones: str) -> str:
-        """word: yazım (herhangi büyüklük), phones: dizge okuması (dizge). Değişiklik yoksa girdiyi aynen döndürür."""
+        """word: yazım (herhangi büyüklük), phones: dizge okuması. Değişiklik yoksa girdiyi aynen döndürür."""
+        at = Atoms(phones)
+        self.apply_atoms(word, at)
+        return at.text() if at.changed else phones
+
+    def apply_atoms(self, word: str, at: Atoms) -> None:
         w = tr_lower(word)
-        atoms, changed = None, False
+        atoms = at.a
         groups: dict = {}
         for row in self.rows:  # (kökler, kayıt) aynı olan satırlar ALTERNATİFTİR (dizge kökte `d Iː ɛ`, çekimde `d iː e` verebilir): biri yeterli
             groups.setdefault((row[0], row[1]), []).append(row)
@@ -53,21 +109,18 @@ class Exceptions:
                 continue
             if not any(w.startswith(s) and (len(w) == len(s) or _SUFFIX_CHAIN.match(w[len(s):])) for s in stems):
                 continue
-            if atoms is None:
-                atoms = tokenize(phones, strict=False)
             hit = False
             for _, _, frm, to, _ in alts:
                 if tuple(atoms[:len(frm)]) == frm:
-                    atoms[:len(frm)] = to
-                    changed = hit = True
+                    at.replace(0, len(frm), list(to))
+                    hit = True
                     break
                 if tuple(atoms[:len(to)]) == to:  # zaten istenen okuma
                     hit = True
                     break
             if not hit:
                 warnings.warn(f"söyleyiş istisnası: {word!r} için dizge çıktısı {' '.join(atoms)!r} beklenen kalıplarla ({' | '.join(' '.join(a[2]) for a in alts)}) başlamıyor; satır atlandı",
-                              RuntimeWarning, stacklevel=3)
-        return "".join(atoms) if changed else phones
+                              RuntimeWarning, stacklevel=4)
 
 
 
@@ -123,14 +176,23 @@ class LengthRules:
 
     def apply(self, word: str, phones: str) -> tuple[str, str]:
         """-> (fonemler, durum): durum 'aynı' | 'değişti' | 'hizalanamadı'. Değişiklik yoksa girdiyi aynen döndürür."""
+        at = Atoms(phones)
+        status = self.apply_atoms(word, at)
+        return (at.text() if at.changed else phones), status
+
+    def apply_atoms(self, word: str, at: Atoms) -> str:
+        """`at` yerinde değişir (yalnız 'değişti' durumunda; 'hizalanamadı'da DOKUNULMAZ). -> 'aynı' | 'değişti' | 'hizalanamadı'."""
         from .stress import _is_vowel_atom
 
-        atoms = tokenize(phones, strict=False)
+        work = at.copy()
+        atoms = work.a
         w = tr_lower(word)
-        diphthong = self._eceg(w, atoms)  # -eceğ + ünlü: ğ'nin j'si düşer (ɛ I bitişik, diftong)
+        diphthong = self._eceg(w, work)  # -eceğ + ünlü: ğ'nin j'si düşer (ɛ I bitişik, diftong)
         long_idx = [k for k, a in enumerate(atoms) if a.endswith("ː")]
         if not long_idx:
-            return ("".join(atoms), "değişti") if diphthong else (phones, "aynı")
+            if diphthong:
+                at.adopt(work)
+            return "değişti" if diphthong else "aynı"
         ev, edits, e = _events(w), [], 0
         for k in long_idx:
             a, nxt = atoms[k], (atoms[k + 1] if k + 1 < len(atoms) else "")
@@ -138,7 +200,7 @@ class LengthRules:
             while e < len(ev) and not _compatible(ev[e], a, nxt, cb):
                 e += 1
             if e == len(ev):
-                return phones, "hizalanamadı"  # bu `ː` hiçbir harf olayıyla açıklanamıyor: sözcüğe DOKUNMA
+                return "hizalanamadı"  # bu `ː` hiçbir harf olayıyla açıklanamıyor: sözcüğe DOKUNMA
             kind, p, n, _ = ev[e]
             e += 1
             if kind == "ğ":
@@ -153,17 +215,21 @@ class LengthRules:
                 elif nxt == "I":
                     edits.append((k, [a[:-1]]))
         for k, repl, *span in reversed(edits):
-            atoms[k:k + 1 + (span[0] if span else 0)] = repl
-        return ("".join(atoms), "değişti") if edits or diphthong else (phones, "aynı")
+            work.replace(k, 1 + (span[0] if span else 0), repl)
+        if edits or diphthong:
+            at.adopt(work)
+            return "değişti"
+        return "aynı"
 
     @staticmethod
-    def _eceg(w: str, atoms: list[str]) -> bool:
+    def _eceg(w: str, work: "Atoms") -> bool:
         """-eceğ + ünlü (göndereceğim, edeceğiz): dizge `dʒ ɛ j V` verir; ğ'nin j'si düşer -> `dʒ ɛ V` (kullanıcı: diftong, 2026-09-27). Yerinde değiştirir."""
         if not re.search("eceğ[aeıioöuüâîû]", w):
             return False
+        atoms = work.a
         for i in range(len(atoms) - 3, -1, -1):  # sondaki (ekteki) örüntü
             if atoms[i:i + 3] == ["dʒ", "ɛ", "j"] and _is_vowel_atom_name(atoms[i + 3] if i + 3 < len(atoms) else ""):
-                del atoms[i + 2]
+                work.replace(i + 2, 1, [])
                 return True
         return False
 
