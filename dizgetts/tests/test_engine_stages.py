@@ -58,4 +58,23 @@ with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     u4 = Engine(bert_fallback=False).frontend("Merhaba ж dünya")
 assert u4.meta.get("fonemsiz_sözcük") == ["ж"], u4.meta  # normalize harf sayar, dizge tanımaz -> sözcük konuşmadan düşer, kayıt tutulur
+# 5) hazır etiketleyici enjeksiyonu (HF modeli: Space'te yerel checkpoint yok): Engine(g2ptts_tagger=...) -> vurgu + sınır; sürüm ckpt yolu olmadan da çalışır
+class _Cfg:
+    _name_or_path, rules_version, train_info = "iatagun/DizgeBERT-G2PTTS", "abc12345", {"ckpt_sha1": "deadbeef0000"}
+
+
+class _HFLike:
+    """HF DizgeBertG2ptts arayüzü: tag_norm(norm) + config + rules (ckpt özniteliği YOK)."""
+    config, rules = _Cfg(), _Rules()
+
+    def tag_norm(self, norm, text="", tokenizer=None):
+        ws = [t for t in norm.split() if t.isalpha()]
+        return {"words": [dict(word=w, stress_from_end=0, stress_src="model", boundary="ip" if i == 0 else "0", p_break=0.9) for i, w in enumerate(ws)][:-1]
+                + [dict(word=ws[-1], stress_from_end=0, stress_src="model", boundary="cümle", p_break=0.9)]}
+
+
+eg = Engine(bert_fallback=False, g2ptts=True, g2ptts_tagger=_HFLike(), g2ptts_breaks=True, pron_exceptions=True, length_rules=True)
+ug = eg.frontend("Kağıdı verdi ama gitti.")
+assert [w.boundary for w in ug.words] == ["ip", "0", "0", "cümle"] and all(w.stress is not None for w in ug.words), [(w.text, w.stress, w.boundary) for w in ug.words]
+assert "ˈ" in ug.tokens and "hf:iatagun/DizgeBERT-G2PTTS@deadbeef0000" in eg.versions()["g2ptts"] and "abc12345" in eg.versions()["g2ptts"], eg.versions()["g2ptts"]
 print("OK")

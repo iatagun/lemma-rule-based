@@ -195,14 +195,21 @@ class G2PTTSStage(Stage):
     Sözcük listeleri uyuşmazsa (normalize/tagger tutarsızlığı) uyarır ve kural tabanlı M1a vurgusu + noktalama sınırına düşer; sessiz vurgusuz bırakmaz."""
     name = "g2ptts"
 
-    def __init__(self, ckpt: str | None = None):
+    def __init__(self, ckpt: str | None = None, tagger=None):
+        """tagger: hazır etiketleyici (HF `DizgeBertG2ptts`: tag_norm/config/rules) -> yerel checkpoint gerekmez (Space, HF kullanıcısı)."""
+        self._sha = self._fallback = None
+        self.ckpt = ckpt
+        if tagger is not None:
+            self.t = tagger
+            return
         from dizgetts.g2ptts.tagger import Tagger
 
         self.t = Tagger(ckpt) if ckpt else Tagger()
-        self.ckpt = ckpt
-        self._sha = self._fallback = None
 
     def version(self) -> str:
+        if getattr(self.t, "ckpt", None) is None and self.ckpt is None:  # HF modeli: yerel dosya yok, config özeti (checkpoint sha1 + kural özeti)
+            c = self.t.config
+            return f"hf:{c._name_or_path}@{c.train_info.get('ckpt_sha1', '?')}+kurallar={c.rules_version}"
         if self._sha is None:  # checkpoint İÇERİĞİ: aynı yolda (best.pt) ağırlıklar değişince sürüm de değişmeli
             h = hashlib.sha1()
             with open(self.ckpt or self.t.ckpt, "rb") as f:
@@ -267,10 +274,10 @@ class AssembleStage(Stage):
 class Engine:
     def __init__(self, bert_fallback: bool = True, morph: bool = False, tiers=(), morph_cache: dict | None = None,
                  g2ptts: bool = False, g2ptts_ckpt: str | None = None, g2ptts_breaks: bool = True, pron_exceptions: bool = False, register: str = "özenli",
-                 length_rules: bool = False):
+                 length_rules: bool = False, g2ptts_tagger=None):
         st: list[Stage] = [NormalizeStage(), PhonemeStage(bert_fallback, pron_exceptions, register, length_rules)]
         if g2ptts:  # dizge-g2p-tts: vurgu + sınır tek aşamada; sınır token'ları açık
-            self.stages = st + [G2PTTSStage(g2ptts_ckpt), AssembleStage(breaks=g2ptts_breaks)]  # v3a: breaks=False (v3'te hizalama takıldı)
+            self.stages = st + [G2PTTSStage(g2ptts_ckpt, g2ptts_tagger), AssembleStage(breaks=g2ptts_breaks)]  # v3a: breaks=False (v3'te hizalama takıldı)
             self._acoustic = None
             return
         if morph:
