@@ -76,11 +76,11 @@ class NormalizeStage(Stage):
 class PhonemeStage(Stage):
     name = "phonemize"
 
-    def __init__(self, bert_fallback: bool = True, pron_exceptions: bool = False, register: str = "özenli"):
-        self.ph = Phonemizer(bert_fallback=bert_fallback, pron_exceptions=pron_exceptions, register=register)
+    def __init__(self, bert_fallback: bool = True, pron_exceptions: bool = False, register: str = "özenli", length_rules: bool = False):
+        self.ph = Phonemizer(bert_fallback=bert_fallback, pron_exceptions=pron_exceptions, register=register, length_rules=length_rules)
 
     def version(self) -> str:
-        return f"dizge=={md.version('dizge')}" + (f"+istisna={self.ph._exc.version()}" if self.ph._exc else "")
+        return f"dizge=={md.version('dizge')}" + (f"+istisna={self.ph._exc.version()}" if self.ph._exc else "")             + (f"+uzun={self.ph._len.version()}" if self.ph._len else "")
 
     def __call__(self, u: Utterance) -> Utterance:
         for m in _TOK.finditer(u.norm):
@@ -250,8 +250,9 @@ class AssembleStage(Stage):
 
 class Engine:
     def __init__(self, bert_fallback: bool = True, morph: bool = False, tiers=(), morph_cache: dict | None = None,
-                 g2ptts: bool = False, g2ptts_ckpt: str | None = None, g2ptts_breaks: bool = True, pron_exceptions: bool = False, register: str = "özenli"):
-        st: list[Stage] = [NormalizeStage(), PhonemeStage(bert_fallback, pron_exceptions, register)]
+                 g2ptts: bool = False, g2ptts_ckpt: str | None = None, g2ptts_breaks: bool = True, pron_exceptions: bool = False, register: str = "özenli",
+                 length_rules: bool = False):
+        st: list[Stage] = [NormalizeStage(), PhonemeStage(bert_fallback, pron_exceptions, register, length_rules)]
         if g2ptts:  # dizge-g2p-tts: vurgu + sınır tek aşamada; sınır token'ları açık
             self.stages = st + [G2PTTSStage(g2ptts_ckpt), AssembleStage(breaks=g2ptts_breaks)]  # v3a: breaks=False (v3'te hizalama takıldı)
             self._acoustic = None

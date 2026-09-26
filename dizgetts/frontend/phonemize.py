@@ -39,13 +39,14 @@ def fold_foreign(w: str) -> tuple[str, list[str]]:
 
 
 class Phonemizer:
-    def __init__(self, bert_fallback: bool = True, pron_exceptions: bool = False, register: str = "özenli"):
+    def __init__(self, bert_fallback: bool = True, pron_exceptions: bool = False, register: str = "özenli", length_rules: bool = False):
         import dizge
-        from .pronounce import Exceptions
+        from .pronounce import Exceptions, LengthRules
 
         self._dizge = dizge
         self._bert_ok = bert_fallback
         self._exc = Exceptions(register) if pron_exceptions else None  # söyleyiş istisna sözlüğü (varsayılan KAPALI: eski checkpoint/manifestler)
+        self._len = LengthRules(register) if length_rules else None            # uzun ünlü (ː) kuralları: ğ/y (varsayılan KAPALI)
         self._bert = None
         self.stats = collections.Counter()
         self.dropped: collections.Counter = collections.Counter()  # atılan (eşlenemeyen) karakterler
@@ -83,6 +84,10 @@ class Phonemizer:
                 self.failed[key] = r
         if r and self._exc is not None:
             r = self._exc.apply(key, r)
+        if r and self._len is not None:  # sıra: sözlük -> kural (kağıt: sözlük ön a'yı koyar, kural ğ geçişinde ː'yi düşürür)
+            r, durum = self._len.apply(key, r)
+            if durum == "hizalanamadı":
+                self.stats["uzun_hizalanamadi"] += 1
         if not r:  # sözcük konuşmadan düşer: sessiz bırakma
             self.stats["fonemsiz"] += 1
             warnings.warn(f"fonemleştirme: {w!r} için fonem üretilemedi; sözcük konuşulmayacak", RuntimeWarning, stacklevel=2)

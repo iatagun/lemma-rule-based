@@ -22,8 +22,9 @@ def main():
     ap.add_argument("--no-breaks", action="store_true", help="--g2ptts ile: sınır token'ı ekleme (yalnız karma vurgu; v3a)")
     ap.add_argument("--pron", action="store_true", help="söyleyiş istisna sözlüğü (resources/pronunciation_exceptions.tsv); eğitim config'inde engine: {pron_exceptions: true} ile eşlenmeli")
     ap.add_argument("--register", choices=("özenli", "gündelik"), default="özenli", help="--pron ile: söyleyiş kaydı (eğitimde özenli)")
+    ap.add_argument("--length-rules", action="store_true", help="uzun ünlü (ː) kuralları: ünlü arası ğ ve y yan ünlüsünde ː düşer (frontend/pronounce.py LengthRules); config engine: {length_rules: true}")
     a = ap.parse_args()
-    pron = dict(pron_exceptions=a.pron, register=a.register)
+    pron = dict(pron_exceptions=a.pron, register=a.register, length_rules=a.length_rules)
     tiers = tuple(t for t in a.tiers.split(",") if t)
     root = yaml.safe_load(open(os.path.join(HERE, "configs", "data.yaml"), encoding="utf8"))["out_root"]
     cache = None

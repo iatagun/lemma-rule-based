@@ -18,7 +18,7 @@ python -m dizgetts.train.train --config dizgetts/configs/<cfg>.yaml [--pilot]
 python -m dizgetts.eval.evaluate --ckpt <ep150.pt> --label <etiket> [--extra dizgetts/eval/extra_sentences_ud.txt]   # varsayılan YALNIZ test bölümü: CER/WER + UTMOS
 python -m dizgetts.eval.compare <etiket> <etiket> --splits test extra   # id ile eşleşmiş bootstrap; karar için val KULLANMA
 python -m dizgetts.eval.report                                   # EXPERIMENTS.md üret
-python -m dizgetts.tests.test_normalize | test_phonemize | test_stress | test_engine_stages | test_pronounce | test_engine_parity | test_compare | test_packaging   # torch'suz (CI'da da koşar)
+python -m dizgetts.tests.test_normalize | test_phonemize | test_stress | test_engine_stages | test_pronounce | test_length_rules | test_engine_parity | test_compare | test_packaging   # torch'suz (CI'da da koşar)
 python -m dizgetts.tests.test_dpfeat | test_tagger               # torch/matcha/HF (+checkpoint) ister, yerelde
 ```
 

@@ -65,3 +65,42 @@ Eğitim config'ine eklenecekler: `engine: {pron_exceptions: true, register: öze
 **Doğrulanmadı:** model ara vektörü eğitimde hiç görmedi. Mevcut v5s checkpoint'iyle (eğitimsiz bağ) 6 cümlede ASR belirsiz (kaba CER: eski fonem 16,3 | sözlük+bağsız 22,2 | sözlük+bağ 18,5; n çok küçük),
 örnek sesler `D:/dizgetts/samples/alias_check/NN_{A,B,C}.wav` (A eski, B sözlük bağsız, C sözlük+bağ). Karar dinleyerek verilir; eğitim sonrası kör AB.
 Denetim: `python -m dizgetts.frontend.pronounce` (eğitimde < 100 kez geçen atomları listeler; bağ bunları kapatmaz, yalnız işaretler).
+
+## Uzun ünlü (`ː`) kuralları (2026-09-26, `frontend/pronounce.py` LengthRules; `Engine(length_rules=True)` / `build_manifest --length-rules`; varsayılan KAPALI)
+Sorun: dizge `ː`'yi üç ayrı gerçek için kullanıyor; Antalia'da `Vː` atomunun yalnız %8'i gerçek uzama (ğ + ünsüz/son, x1,4 = 64 ms), %20'si ünlü arası ğ (geçiş, ilk ünlü 46 ms),
+%63+'ü y yan ünlüsü (~41 ms). Model `ː`'nin ne demek olduğunu öğrenemez (ölçümde uzun ünlü = kısa ünlü, 46/46 ms).
+Kurallar (dizge kaynağında y kalıpları `Vj -> VːI`, `ij -> iː` dize değiştirmeleridir; kural bunları harf olaylarıyla eşleyip geri alır):
+| bağlam | önce | sonra |
+|---|---|---|
+| ğ + ünsüz / sözcük sonu (dağ, sağlık, doğru, öğle) | `ɑː` | **aynı** (gerçek uzama) |
+| ğ farklı iki ünlü arası (ağır, soğuk, yapacağım, diğer) | `ɑː ɨ` | `ɑ ɨ` (geçiş) |
+| ğ AYNI ünlü arası (yaptığı, çocuğu, olduğunu) | `ɨː`, `uː` | **aynı** (ğ iki ünlüyü uzatıp birleştirir; 143 klipte örnek yok, süresi ÖLÇÜLMEDİ) |
+| y yan ünlüsü, i dışı (ayak, şey, kuyu, boyunca, hikâye) | `ɑː I` | `ɑ I` |
+| i + y (iyi, geliyor, diye), **özenli** | `iː I`, `iː ɔ` | `i j I`, `i j ɔ` (özenli kullanımda y SESLENİR; `j` dizge'nin yapıyor/büyük yazımıyla tutarlı) |
+| i + y, **gündelik** | `iː I` | **aynı** (gündelik kullanımda y seslenmez, "ii"; kullanıcı 2026-09-26) |
+| e + ğ (eğlence, değil, eğer) | `e j l ɛ...` | **aynı** (dizge birincil okuması y'leşmiş: eylence). İSTİSNA: **eğri e UZAR** (`ɛː ɾ I`, sözlük satırı; eğlence ise y'leşir: aynı bağlam, sözcüğe bağlı) |
+| değer, eğer (+ değerli, değerlendirme...) | `d e j ɛ ɣ` | `d ɛː ɣ`, `ɛː ɣ` (UZAMA, kullanıcı 2026-09-27; sözlük satırı) |
+| değişik, değişim, eğitim | `d e j I ʃ...` | **aynı** (y'leşme: dizge'nin okuması; kullanıcı 2026-09-27) |
+| -eceğim/-eceğiz (göndereceğim, edeceğiz) | `dʒ ɛ j I m` | `dʒ ɛ I m` (DİFTONG: ğ'nin `j`'si düşer, ünlüler bitişik; -acağım zaten `ɑ ɨ`) |
+| -diği/-liği/-tiği (söylendiğinde, gönderdiğim, güvenliğiniz) | `d iː I n` | `d iː n` (UZAMA: i-ğ-i tek uzun `iː`'ye birleşir, uğu -> uː gibi) |
+| diğer (tek y'leşen ğ; iğne/öğün/düğün y'leşmez) | `d Iː ɛ ɣ`, çekimde `d iː e ɾ...` | `d I j ɛ ɣ`, `d i j e ɾ...` (sözlük, iki alternatif satır) |
+| ı/ü + y (yapıyor, büyük), dizge sözlüğü (nisan, itibaren, teminat, hakim) | – | dokunulmaz |
+Hizalama: harften `ː` üretebilecek olaylar (ğ, y) ile `ː` atomları ünlü uyumuyla sırayla eşlenir; eşleşmeyen `ː`'li sözcük DOKUNULMAZ ve sayılır (`stats["uzun_hizalanamadi"]`).
+Sıra: sözlük -> kural (kağıt: sözlük ön `a` koyar, kural ğ geçişinde `ː`'yi düşürür = `cʰ a ɨ t` "kaeıt"; gündelik `cʰ aː t` "kaat"). Test: `tests/test_length_rules.py`.
+
+**Antalia'da etki** (sözlük + kural; 1053 klip, 7193 tekil sözcük, 35.338 geçiş): özenli: 1389 tekil sözcük (%19,3), 4396 geçiş (%12,4), **1037 klip (%98,5)** değişir; gündelik: 1085 (%15,1), 3545 (%10,0), 1007 klip -> eğitim yeniden fonemleştirme gerektirir.
+`Vː` özenli 4945 -> 1008, gündelik 4945 -> 1870 (i+y'de `iː` kalır).
+| kural | tekil sözcük | geçiş |
+|---|---|---|
+| y yan ünlüsü (`Vː I -> V I`) | 803 | 2660 |
+| i + y (`iː -> i j`) | 311 | 858 |
+| ğ ünlü arası (`ː` düşer) | 101 | 309 |
+| diğer (y'leşme) | 3 | 15 |
+`Vː` atomu (geçiş bazında): 4945 -> 954 (%81 azalır). Kalan: ğ + ünsüz/son 386, ğ aynı ünlü arası 539, diğer 29. Hizalanamayan: 6 tekil sözcük (nisan, itibaren, teminat: dizge sözlüğü, meşru). Geçersiz atom üretimi: 0.
+Örnek sesler (mevcut v5s checkpoint, model bu diziyi eğitimde görmedi -> yalnız kulakla kontrol): `D:/dizgetts/samples/length_check/NN_{eski,yeni}.wav`.
+
+**ğ'nin y'leşmesi (kullanıcı 2026-09-26):** `diğer` TEK y'leşen sözcük (diyer); iğne/öğün/düğün y'leşmez -> sözlükte. `eğlence` y'leşir (dizge zaten yapıyor), `eğri` UZAR (sözlük satırı). Kullanıcı: "şüpheli y'leşme potansiyeli görürsen haber ver".
+**Kullanıcı kararları 2026-09-27:** değer/eğer UZAMA; değişik/eğitim y'leşme (dizge'nin okuması kalır); -eceğim DİFTONG; -diği/-liği/-tiği UZAMA. Etki (özenli): -diği/-liği 114 sözcük/228 geçiş, -eceğ 55/295, değer/eğer 7/53.
+Hizalama sıkılaştırıldı: olay ile `ː` atomu yalnız KATI ÜNSÜZ sayısı tutarsa eşlenir (iyiliğinden'de iy olayı ğ'nin iː'sini almasın); hizalanamayan hâlâ 6 sözcük (nisan, itibaren, teminat).
+**`değil` (71 geçiş): y'leşme, deyil** (kullanıcı 2026-09-27) = dizge'nin okuması `d e j I l`, DEĞİŞİKLİK YOK (tests/test_length_rules.py sabitler).
+**Hâlâ açık:** kullanıcı `ğ` uzama süresini notlarından kontrol edecek; "şüpheli y'leşme görürsen haber ver" (kalıcı istek).

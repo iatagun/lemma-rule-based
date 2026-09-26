@@ -8,6 +8,7 @@ Kalıp bulunamazsa ve sonuç zaten `yerine` değilse (dizge sürümü/çekim bek
 from __future__ import annotations
 
 import hashlib
+import re
 import warnings
 from pathlib import Path
 
@@ -44,20 +45,127 @@ class Exceptions:
         """word: yazım (herhangi büyüklük), phones: dizge okuması (dizge). Değişiklik yoksa girdiyi aynen döndürür."""
         w = tr_lower(word)
         atoms, changed = None, False
-        for stems, reg, frm, to, _ in self.rows:
+        groups: dict = {}
+        for row in self.rows:  # (kökler, kayıt) aynı olan satırlar ALTERNATİFTİR (dizge kökte `d Iː ɛ`, çekimde `d iː e` verebilir): biri yeterli
+            groups.setdefault((row[0], row[1]), []).append(row)
+        for (stems, reg), alts in groups.items():
             if reg == "gündelik" and self.register != "gündelik":
                 continue
             if not any(w.startswith(s) and (len(w) == len(s) or _SUFFIX_CHAIN.match(w[len(s):])) for s in stems):
                 continue
             if atoms is None:
                 atoms = tokenize(phones, strict=False)
-            if tuple(atoms[:len(frm)]) == frm:
-                atoms[:len(frm)] = to
-                changed = True
-            elif tuple(atoms[:len(to)]) != to:
-                warnings.warn(f"söyleyiş istisnası: {word!r} için dizge çıktısı {' '.join(atoms)!r} beklenen kalıpla ({' '.join(frm)!r}) başlamıyor; satır atlandı",
+            hit = False
+            for _, _, frm, to, _ in alts:
+                if tuple(atoms[:len(frm)]) == frm:
+                    atoms[:len(frm)] = to
+                    changed = hit = True
+                    break
+                if tuple(atoms[:len(to)]) == to:  # zaten istenen okuma
+                    hit = True
+                    break
+            if not hit:
+                warnings.warn(f"söyleyiş istisnası: {word!r} için dizge çıktısı {' '.join(atoms)!r} beklenen kalıplarla ({' | '.join(' '.join(a[2]) for a in alts)}) başlamıyor; satır atlandı",
                               RuntimeWarning, stacklevel=3)
         return "".join(atoms) if changed else phones
+
+
+
+# ---------------------------------------------------------------- uzun ünlü (`ː`) kuralları
+# dizge `ː`'yi üç ayrı gerçek için kullanır (Antalia ölçümü, docs/pronunciation_issues.md): (1) ğ + ünsüz/sözcük sonu = gerçek UZAMA (x1,4),
+# (2) ünlüler arası ğ = GEÇİŞ (ilk ünlü uzamıyor), (3) y yan ünlüsü (ay, ey, iy...): dizge kaynağında `Vj -> VːI`, `ij -> iː` dize değiştirmeleri.
+# Bu kural yalnız gerçek uzamayı `ː` bırakır; (2) ve (3)'te `ː` düşer, i+y için y `j` olarak geri konur (dizge zaten yapıyor/büyük'te `j` yazar).
+# Hizalama: sözcüğün harflerinden `ː` üretebilecek OLAY listesi (ğ, y) ve dizge çıktısındaki `ː` atomları sırayla eşlenir: her `ː` atomu, ünlüsü ve komşusu UYUMLU
+# ilk olayla (olayların hepsi `ː` üretmez: ö+y'de dizge bazen `j` bırakır; â/î/û `ː` üretmez, yalnız k/g'yi yumuşatır). Eşleşmeyen `ː` (dizge sözlüğünden gelen
+# nisan/itibaren/hakim `iː`, `ɑː`) DOKUNULMAZ ve sayılır. e+ğ olay değildir: dizge birincil okumada zaten y'leştirir (eğlence -> e j l ɛ...).
+VOWELS = "aeıioöuüâîû"
+
+
+def _is_vowel_atom_name(a: str) -> bool:
+    return a in PHONES and PHONES[a][0] == "ünlü"
+
+_BASE = str.maketrans("âîû", "aiu")
+_Y_LONG = frozenset("aeouöi")  # y'den önce bunlar gelirse dizge `ː` üretebilir (ı+y, ü+y'de `j` kalır: yapıyor, büyük)
+_LETTER_ATOMS = {"a": "aɑ", "e": "eɛ", "ı": "ɨ", "i": "iI", "o": "oɔ", "ö": "øœ", "u": "uU", "ü": "yY"}
+
+
+def _events(w: str) -> list[tuple[str, str, str, int]]:
+    """(tür, önceki ünlü harf, sonraki harf, olaydan önceki 'katı ünsüz' harf sayısı); ğ ve y katı ünsüz sayılmaz (`j`/`ː` olarak değişken çıkar)."""
+    ev = []
+    for i, c in enumerate(w):
+        p, n = (w[i - 1] if i else ""), (w[i + 1] if i + 1 < len(w) else "")
+        cb = sum(x not in VOWELS and x not in "ğy" for x in w[:i])
+        if c == "ğ" and p in VOWELS and p != "e":
+            ev.append(("ğ", p.translate(_BASE), n, cb))
+        elif c == "y" and p.translate(_BASE) in _Y_LONG:
+            ev.append(("y", p.translate(_BASE), n, cb))
+    return ev
+
+
+def _compatible(ev: tuple[str, str, str, int], atom: str, nxt: str, cb: int) -> bool:
+    """cb: `ː` atomundan önceki katı ünsüz ATOM sayısı (j hariç). Ünsüz sayısı tutmuyorsa olay bu `ː`'ye ait değildir (iyiliğinden: iy olayı ğ'nin iː'sini almasın)."""
+    kind, p, _, ecb = ev
+    if ecb != cb or atom[:-1] not in _LETTER_ATOMS[p]:
+        return False
+    return kind == "ğ" or p == "i" or nxt == "I"  # y: i+y -> iː | Iː; diğerleri Vː I
+
+
+class LengthRules:
+    """register: i+y için (kullanıcı 2026-09-26): özenli y SESLENİR (iyi -> i j I), gündelik y seslenmez, "ii" (dizge'nin `iː`'si aynen kalır)."""
+
+    def __init__(self, register: str = "özenli"):
+        if register not in REGISTERS:
+            raise ValueError(f"register {REGISTERS} içinden olmalı: {register!r}")
+        self.register = register
+
+    def version(self) -> str:
+        return f"{hashlib.sha1(Path(__file__).read_bytes()).hexdigest()[:8]}/{self.register}"
+
+    def apply(self, word: str, phones: str) -> tuple[str, str]:
+        """-> (fonemler, durum): durum 'aynı' | 'değişti' | 'hizalanamadı'. Değişiklik yoksa girdiyi aynen döndürür."""
+        from .stress import _is_vowel_atom
+
+        atoms = tokenize(phones, strict=False)
+        w = tr_lower(word)
+        diphthong = self._eceg(w, atoms)  # -eceğ + ünlü: ğ'nin j'si düşer (ɛ I bitişik, diftong)
+        long_idx = [k for k, a in enumerate(atoms) if a.endswith("ː")]
+        if not long_idx:
+            return ("".join(atoms), "değişti") if diphthong else (phones, "aynı")
+        ev, edits, e = _events(w), [], 0
+        for k in long_idx:
+            a, nxt = atoms[k], (atoms[k + 1] if k + 1 < len(atoms) else "")
+            cb = sum(PHONES[x][0] == "ünsüz" and x != "j" for x in atoms[:k] if x in PHONES)
+            while e < len(ev) and not _compatible(ev[e], a, nxt, cb):
+                e += 1
+            if e == len(ev):
+                return phones, "hizalanamadı"  # bu `ː` hiçbir harf olayıyla açıklanamıyor: sözcüğe DOKUNMA
+            kind, p, n, _ = ev[e]
+            e += 1
+            if kind == "ğ":
+                if n in VOWELS and p.translate(_BASE) != n.translate(_BASE) and _is_vowel_atom(nxt):  # farklı ünlü arası: geçiş
+                    edits.append((k, [a[:-1]]))
+                elif p == n == "i" and a in ("iː", "Iː") and nxt in ("I", "i"):  # -diği/-liği/-tiği: uzama; dizge `iː I` (fazladan i) verir -> tek `iː`
+                    edits.append((k, [a], 1))
+            elif kind == "y":
+                if p == "i":
+                    if self.register == "özenli" and a in ("iː", "Iː"):
+                        edits.append((k, [a[:-1], "j"]))
+                elif nxt == "I":
+                    edits.append((k, [a[:-1]]))
+        for k, repl, *span in reversed(edits):
+            atoms[k:k + 1 + (span[0] if span else 0)] = repl
+        return ("".join(atoms), "değişti") if edits or diphthong else (phones, "aynı")
+
+    @staticmethod
+    def _eceg(w: str, atoms: list[str]) -> bool:
+        """-eceğ + ünlü (göndereceğim, edeceğiz): dizge `dʒ ɛ j V` verir; ğ'nin j'si düşer -> `dʒ ɛ V` (kullanıcı: diftong, 2026-09-27). Yerinde değiştirir."""
+        if not re.search("eceğ[aeıioöuüâîû]", w):
+            return False
+        for i in range(len(atoms) - 3, -1, -1):  # sondaki (ekteki) örüntü
+            if atoms[i:i + 3] == ["dʒ", "ɛ", "j"] and _is_vowel_atom_name(atoms[i + 3] if i + 3 < len(atoms) else ""):
+                del atoms[i + 2]
+                return True
+        return False
 
 
 def coverage(min_count: int = 100, manifest: str | None = None) -> list[tuple[str, int, list[str]]]:
@@ -76,10 +184,17 @@ def coverage(min_count: int = 100, manifest: str | None = None) -> list[tuple[st
     with open(path, encoding="utf8") as f:
         for line in f:
             cnt.update(json.loads(line)["tokens"])
+    # üretilen atomlar: sözlük + uzun ünlü kuralları AÇIKKEN her kök için (eğitim yapılandırması), dizge'nin çıplak çıktısında olmayanlar (kağıt -> `a`, hakim -> `aː`)
+    from .phonemize import Phonemizer
+
+    bare = Phonemizer(bert_fallback=False)
     used = collections.defaultdict(list)
-    for stems, _, frm, to, _ in Exceptions().rows:
-        for a in set(to) - set(frm):
-            used[a] += [stems[0]]
+    for register in REGISTERS:
+        ph = Phonemizer(bert_fallback=False, pron_exceptions=True, register=register, length_rules=True)
+        for stems, *_ in Exceptions().rows:
+            for a in set(tokenize(ph.word(stems[0]))) - set(tokenize(bare.word(stems[0]))):
+                if stems[0] not in used[a]:
+                    used[a].append(stems[0])
     return sorted(((a, cnt.get(a, 0), s) for a, s in used.items() if cnt.get(a, 0) < min_count), key=lambda r: r[1])
 
 
