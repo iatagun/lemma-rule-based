@@ -28,12 +28,12 @@ LEXICAL_TIERS = ("pek", "cik")  # sıfat sözlüğüne kapılı, Morph gerektirm
 
 
 class Tagger:
-    def __init__(self, ckpt: str = f"{RUN}/best.pt", device: str = "cpu"):
+    def __init__(self, ckpt: str = f"{RUN}/best.pt", device: str = "cpu", pron_exceptions: bool = True, register: str = "özenli"):
         ck = torch.load(ckpt, map_location="cpu", weights_only=False)  # kendi checkpoint'imiz
         self.model = G2PTTS(); self.model.load_state_dict(ck["state"]); self.model.eval().to(device)
         self.tau, self.device, self.ckpt = float(ck["val"]["tau"]), device, ckpt
         self.tok = AutoTokenizer.from_pretrained(DEP_ID, revision=DEP_REV)
-        self.rules, self.ph = StressRules(), Phonemizer(bert_fallback=False)
+        self.rules, self.ph = StressRules(), Phonemizer(bert_fallback=False, pron_exceptions=pron_exceptions, register=register)
 
     def _chunks(self, toks: list[str]) -> list[tuple[int, int]]:
         """Belirteç dizisini alt-sözcük sayısı <= MAX_SUBWORDS olan ardışık parçalara böler; kesim cümle sonunda (. ? !), yoksa herhangi bir

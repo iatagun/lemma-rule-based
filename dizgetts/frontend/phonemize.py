@@ -39,11 +39,13 @@ def fold_foreign(w: str) -> tuple[str, list[str]]:
 
 
 class Phonemizer:
-    def __init__(self, bert_fallback: bool = True):
+    def __init__(self, bert_fallback: bool = True, pron_exceptions: bool = False, register: str = "özenli"):
         import dizge
+        from .pronounce import Exceptions
 
         self._dizge = dizge
         self._bert_ok = bert_fallback
+        self._exc = Exceptions(register) if pron_exceptions else None  # söyleyiş istisna sözlüğü (varsayılan KAPALI: eski checkpoint/manifestler)
         self._bert = None
         self.stats = collections.Counter()
         self.dropped: collections.Counter = collections.Counter()  # atılan (eşlenemeyen) karakterler
@@ -79,6 +81,8 @@ class Phonemizer:
                 self.stats["dizge_fail"] += 1
                 r = self._from_bert(f) if self._bert_ok else ""
                 self.failed[key] = r
+        if r and self._exc is not None:
+            r = self._exc.apply(key, r)
         if not r:  # sözcük konuşmadan düşer: sessiz bırakma
             self.stats["fonemsiz"] += 1
             warnings.warn(f"fonemleştirme: {w!r} için fonem üretilemedi; sözcük konuşulmayacak", RuntimeWarning, stacklevel=2)

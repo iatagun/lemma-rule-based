@@ -1,0 +1,9 @@
+# Söyleyiş istisnaları (dizge==0.1.6 çıktısının üstüne). Kaynak: kullanıcı tarifi 2026-09-26 (docs/pronunciation_issues.md); mekanizma: frontend/pronounce.py
+# Sütunlar (TAB): kökler(virgülle; sözcük bu köklerden biri + ek zinciri) | kayıt(özenli|gündelik) | kalıp(sözcük başındaki dizge atomları) | yerine | not
+# Eğitimde ÖZENLİ kayıt kullanılır (kullanıcı kararı). Gündelik satırlar özenli sonucun üstüne uygulanır.
+# Atomlar frontend/symbols.py PHONES içinden olmalı. Yeni atom (ör. ae için æ) = yeniden eğitim; şimdilik `a` (ön) kullanılır.
+kağıt,kağıd,kâğıt,kâğıd	özenli	kʰ ɑː ɨ	cʰ aː ɨ	a ARKA değil (ae karışımı, ön), ğ ile ı'ya geçer; dizge yalnız kök biçimini düzeltiyordu, ünlü öncesi (kağıdı) arka kʰ ɑː veriyordu
+kağıt,kağıd,kâğıt,kâğıd	gündelik	cʰ aː ɨ	cʰ aː	kaat: a güçlü, yakınındaki ı'yi kendine benzetir
+hakim,hâkim	özenli	x ɑː	x aː	a ~1,5 kat uzun ama tam arka dil ünlüsü değil
+iddia	gündelik	I d d I ɑ	I d d ɑː	iddaa: a i'yi kendine benzetir (iddiaya: dizge `ay` -> ɑːI verir, kalıp eşleşmez -> uyarı; henüz kapsanmadı)
+klinik,kliniğ	gündelik	cʰ I l I	kʰ ɨ l I	kılinik: türeyen ünlü schwa benzeri (ɨ) ve arka k; dizge sonraki ön ünlüye uydurup ön I veriyordu

@@ -32,6 +32,7 @@ from torch.utils.tensorboard import SummaryWriter
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))  # repo kökü
 from matcha.models.matcha_tts import MatchaTTS  # noqa: E402
 from dizgetts.train.dpfeat import set_dp_feat  # noqa: E402
+from dizgetts.train.embed_alias import tie  # noqa: E402
 from dizgetts.train.data import BucketBatches, TTSDataset, collate, ensure_mels, frontend_table, row_tokens  # noqa: E402
 
 
@@ -118,7 +119,7 @@ def main():
     dev = torch.device("cuda")
     assert not tr["amp"], "amp bu donanımda KAPALI olmalı (fp16 cuDNN NaN, reports/stage1_audit.md)"
 
-    symbols, _ = frontend_table(cfg["frontend"])
+    symbols, s2i = frontend_table(cfg["frontend"])
     ds = {s: TTSDataset(root, s, cfg["frontend"], stats, cfg["espeak_strip_stress"], cfg.get("manifest", "_phon"), bool(cfg["model"].get("dp_feat")))
           for s in ("train", "val")}
     for s in ds:
@@ -132,11 +133,13 @@ def main():
     model = build_model(cfg, len(symbols), stats)
     init_report = load_pretrained(model, cfg["init"]) if cfg.get("init") and not a.resume else None
     model.to(dev).train()
+    retie = (lambda: tie(model, s2i)) if cfg["model"].get("embed_alias") else (lambda: None)  # a/aː gömmesi = ɑ/ɛ ortalaması (train/embed_alias.py)
     opt = torch.optim.Adam(model.parameters(), lr=tr["lr"])
     epoch0 = step0 = 0
     if a.resume:
         ck = torch.load(a.resume, map_location="cpu", weights_only=False)
         model.load_state_dict(ck["model"]); opt.load_state_dict(ck["opt"]); epoch0, step0 = ck["epoch"], ck.get("step", 0)  # adım sayacı kaldığı yerden (TensorBoard/max_steps)
+    retie()
     n_params = sum(p.numel() for p in model.parameters())
 
     stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -181,6 +184,7 @@ def main():
             gn = torch.nn.utils.clip_grad_norm_(model.parameters(), tr["grad_clip"])
             if torch.isfinite(gn):
                 opt.step()
+                retie()
                 step += 1
             else:
                 print(f"UYARI: sonlu olmayan grad (epoch {epoch}, adım {step}) -> güncelleme atlandı", flush=True)
@@ -192,7 +196,7 @@ def main():
         if pend:  # epoch sonunda kalan yarım grup
             gn = torch.nn.utils.clip_grad_norm_(model.parameters(), tr["grad_clip"])
             if torch.isfinite(gn):
-                opt.step(); step += 1
+                opt.step(); retie(); step += 1
             opt.zero_grad(set_to_none=True)
         sec = time.time() - t0
         peak = torch.cuda.max_memory_allocated() / 2**30
