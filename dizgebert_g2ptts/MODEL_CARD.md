@@ -101,4 +101,4 @@ Bu model **ses üretmez ve ses kullanmaz**; Antalia'dan yalnız sözcükler aras
 
 ## Kaynak
 
-Eğitim, kural modülü, değerlendirme ve kör test setleri: [`iatagun/lemma-rule-based`](https://github.com/iatagun/lemma-rule-based) (`dizgetts/`).
+Eğitim, kural modülü, değerlendirme ve kör test setleri: [`iatagun/lemma-rule-based`, dal `dizgetts-v2`](https://github.com/iatagun/lemma-rule-based/tree/dizgetts-v2/dizgetts) (`dizgetts/`).
