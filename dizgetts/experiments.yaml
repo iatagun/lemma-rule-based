@@ -189,7 +189,7 @@ experiments:
       sıralamayı biliyor, ölçeği yarıya sıkıştırıyor -> token başına log-MSE + küçük (2 conv) tahminci. Öznitelik bilgi veriyor ama yetmiyor.
     user_listening: "2026-09-26: kullanıcı v4'ü v3a'dan 'kulağıma daha iyi geliyor' dedi (körlenmemiş, gayriresmî). Karar kuralı yalnız iki zamanlama ölçütüne bakıyordu; algıyı kapsamayabilir -> kör AB dinleme testi gerekir."
   - id: v4c-calib
-    status: running
+    status: rejected
     depends_on: v4-dpfeat
     hypothesis: >-
       v4 süre tahmincisi sıralamayı biliyor (log-korelasyon 0,72) ama ölçeği daraltıyor. Sentez sırasında (sınıf x token türü) grubu başına log(süre+1)
@@ -197,6 +197,11 @@ experiments:
     decision_rule: >-
       KABUL: test 143'te {noktalamalı duraklama, virgül/; son ünlü uzaması, nPVI} ölçütlerinden EN AZ İKİSİ v4'e göre anlamlı biçimde gerçeğe doğru
       (eşleşmiş GA 0'ı içermez) VE CER farkı (v4c - v4) GA üst sınırı < +0,5 pp (543 cümle).
+    user_listening: >-
+      2026-09-26 ~05:45: kullanıcı "v4, v4c'den belirgin daha iyi; v4c sünmüş gibi, v4 daha akıcı ve doğal" (körlenmemiş). ÖLÇÜM destekliyor: ilk 322 cümlede
+      v4c toplam süresi v4'ün 1,217 katı (cümle medyanı 1,19; p10-p90 1,10-1,31). Neden: log1p alanında moment eşleme yayılımı genişletirken doğrusal
+      ortalamayı büyüttü (Jensen) -> konuşma yavaşladı; zaten sentez gerçekten yavaştı (6,0 vs 6,5 hece/sn). Tek cümlelik ön test tersini göstermişti (yanıltıcı).
+      REDDEDİLDİ (kullanıcı dinlemesi). Ders: süre kalibrasyonu doğrusal ortalamayı (konuşma hızını) korumalı; tek örnekle süre yönü doğrulanmaz.
   - id: v4-e400
     status: queued
     depends_on: v4-dpfeat
