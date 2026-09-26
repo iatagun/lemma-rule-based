@@ -22,7 +22,25 @@ Futamata vd. (2021) tasarımı: tahmin edilen sınır, yalnız noktalama ve ger�
 | oracle | gerçek kayıttaki duraklama (+ noktalama) | g2ptts | kalan pay (oracle − default) |
 | m1a | g2ptts | M1a (≈ son hece) | vurgu katmanının etkisi (CER + kör AB) |
 
-Sonuçlar: (bekleniyor)
+Sonuçlar (2026-09-26, v5 = `ep400_dp_mse.pt`, 143 cümle; eşleşmiş klip bootstrap; gerçek kayıt referans):
+
+| Ölçü | Gerçek | default (g2ptts) | punct (yalnız noktalama) | oracle (kehanet) |
+|---|---|---|---|---|
+| Noktalamasız sınırda duraklama (ms) | 17,4 | **12,9** | 5,0 (-7,9 [-9,2, -6,7]) | 12,5 (-0,5, anlamsız) |
+| Noktalamalı sınırda duraklama (ms) | 469 | **468** | 419 (-49 [-56, -43]) | 457 (-10 [-15, -6]) |
+| Noktalamasız son ünlü uzaması | 1,06 | **1,00** | 0,97 (-0,03 anlamlı) | 1,00 (0) |
+| nPVI | 44,4 | **34,0** | 32,9 (-1,1 anlamlı) | 34,0 (0) |
+| Cümle F0 aralığı (yt) | 15,8 | **15,6** | 15,5 (-0,16 anlamlı) | 15,6 (0) |
+| CER (143) | – | 3,2 | +0,44 (anlamsız) | +0,40 (anlamsız) |
+
+Bulgular:
+1. **Sınır modelinin katkısı ölçülebilir** (default - punct): tüm zamanlama ölçütleri gerçeğe doğru; noktalamada bile duraklamayı 419 -> 468 ms
+   yapıyor (model IP/ip ayrımıyla). CER'e etkisi anlamsız.
+2. **Kehanet ≈ tahmin** (oracle - default ~0): bu konuşmacı ve TTS için sınır SINIFLANDIRMASINDA pay kalmamış (Futamata vd. bulgusuyla aynı).
+   Kehanetle bile noktalamasız duraklama 12,5 ms (gerçek 17,4) -> kalan açık sınırın YERİNDE değil, SÜRE ÜRETİMİNDE (süre modeli).
+3. **Vurgu** (m1a - default): CER 3,2 -> 5,2 (+2,0 [-1,1, +8,2], anlamsız, birkaç cümle sürüklüyor). Model g2ptts vurgusuyla eğitildiği için
+   M1a girdisi dağılım dışı -> adil ölçüm değil. Vurgunun katkısı için KÖR AB gerekir (Whisper vurguya duyarsız).
+
 
 ## 3. Geliştirme yol haritası (kanıt ve literatürle)
 

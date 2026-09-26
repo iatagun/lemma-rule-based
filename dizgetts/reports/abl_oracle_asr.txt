@@ -1,0 +1,9 @@
+gerçek kayıtlar (Whisper tabanı, aynı 143 cümle): CER 4.7%  WER 11.6%
+sistem                            CER %            WER %            UTMOS   (n=143, %95 aralık)
+abl_v5_default           3.2 [ 2.3, 4.5]  10.5 [ 9.1,12.3]  0.00 [0.00,0.00]
+abl_v5_oracle            3.6 [ 2.4, 5.0]  11.0 [ 9.3,12.9]  0.00 [0.00,0.00]
+
+abl_v5_default referansına göre eşleşmiş fark (pozitif = diğeri daha kötü CER/WER; UTMOS'ta pozitif = diğeri daha iyi):
+  abl_v5_oracle          CER: +0.40  [-0.14,+1.28]  anlamsız (aralık 0'ı içeriyor)
+  abl_v5_oracle          WER: +0.53  [-0.39,+1.65]  anlamsız (aralık 0'ı içeriyor)
+  abl_v5_oracle          UTMOS: +0.00  [+0.00,+0.00]  anlamsız (aralık 0'ı içeriyor)
