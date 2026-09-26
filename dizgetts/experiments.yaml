@@ -236,3 +236,6 @@ experiments:
       WER 15,5 -> 12,5 (-2,98 [-3,97, -2,01]) — projenin en iyisi; gerçek kayıt Whisper tabanı (Antalia 143) 4,7. UTMOS 3,01 -> 3,03 (anlamsız).
       Ezgi: cümle F0 aralığı 14,4 -> 15,6 yt (gerçek 15,8), alçalma -0,68 -> -0,79 (gerçek -0,76); sözcük içi F0 aralığı 6,65 -> 7,11 (gerçek 6,77, aştı).
       Değişmeyen: nPVI ~27, eklemleme 6,0 (gerçek 6,5) -> süre modelinin yapısı. train_dur ep400 0,293 (ep150 0,342). Kullanıcı önerisiydi.
+    blind_ab: >-
+      KÖR AB (reports/ab/ab_v4e150_v4e400.tsv; 30 yeni çift, tek soru, -25 LUFS, kırpma yok): v4-400 16 / v4-150 8 / fark yok 6 (p = 0,15).
+      Yön ölçümle aynı, n=30'da anlamsız. KARAR: v4-400 varsayılan model (ölçüm anlamlı + dinleme aynı yönde). Telaffuz notları: docs/pronunciation_issues.md.

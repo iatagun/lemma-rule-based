@@ -1,0 +1,187 @@
+{
+ "a": "v4_g2ptts_dp_ep150_x543",
+ "b": "v4_e400_x543",
+ "seed": 1,
+ "pairs": [
+  {
+   "pair": 1,
+   "id": "vd-scripted-1127aa706441d448b6d0b294-script-seg-1d6ac2d895632a51",
+   "side1": "v4_e400_x543",
+   "side2": "v4_g2ptts_dp_ep150_x543"
+  },
+  {
+   "pair": 2,
+   "id": "vd-scripted-8403e1fe640b662419418a88-script-seg-a7ee0d1e8dbe8ac4",
+   "side1": "v4_g2ptts_dp_ep150_x543",
+   "side2": "v4_e400_x543"
+  },
+  {
+   "pair": 3,
+   "id": "extra011",
+   "side1": "v4_g2ptts_dp_ep150_x543",
+   "side2": "v4_e400_x543"
+  },
+  {
+   "pair": 4,
+   "id": "vd-scripted-1127aa706441d448b6d0b294-script-seg-65e3fcd4526121d1",
+   "side1": "v4_g2ptts_dp_ep150_x543",
+   "side2": "v4_e400_x543"
+  },
+  {
+   "pair": 5,
+   "id": "extra384",
+   "side1": "v4_g2ptts_dp_ep150_x543",
+   "side2": "v4_e400_x543"
+  },
+  {
+   "pair": 6,
+   "id": "vd-scripted-93958be59c25b381841922dc-script-seg-7972f746cc908afe",
+   "side1": "v4_g2ptts_dp_ep150_x543",
+   "side2": "v4_e400_x543"
+  },
+  {
+   "pair": 7,
+   "id": "extra287",
+   "side1": "v4_e400_x543",
+   "side2": "v4_g2ptts_dp_ep150_x543"
+  },
+  {
+   "pair": 8,
+   "id": "extra202",
+   "side1": "v4_e400_x543",
+   "side2": "v4_g2ptts_dp_ep150_x543"
+  },
+  {
+   "pair": 9,
+   "id": "vd-scripted-f125f17594fd301db4d499a3-script-seg-47decd6a1546787c",
+   "side1": "v4_g2ptts_dp_ep150_x543",
+   "side2": "v4_e400_x543"
+  },
+  {
+   "pair": 10,
+   "id": "vd-scripted-0a6690b937e9ad63ed29daaf-script-seg-6ab8d40a5a3c373b",
+   "side1": "v4_e400_x543",
+   "side2": "v4_g2ptts_dp_ep150_x543"
+  },
+  {
+   "pair": 11,
+   "id": "vd-scripted-ad328942fd134080ec4af8b3-script-seg-868f73f5d1021771",
+   "side1": "v4_e400_x543",
+   "side2": "v4_g2ptts_dp_ep150_x543"
+  },
+  {
+   "pair": 12,
+   "id": "vd-scripted-86c9170252d19282ecf202a6-script-seg-7557a08efb27d3b6",
+   "side1": "v4_g2ptts_dp_ep150_x543",
+   "side2": "v4_e400_x543"
+  },
+  {
+   "pair": 13,
+   "id": "extra004",
+   "side1": "v4_g2ptts_dp_ep150_x543",
+   "side2": "v4_e400_x543"
+  },
+  {
+   "pair": 14,
+   "id": "extra013",
+   "side1": "v4_g2ptts_dp_ep150_x543",
+   "side2": "v4_e400_x543"
+  },
+  {
+   "pair": 15,
+   "id": "vd-scripted-ad328942fd134080ec4af8b3-script-seg-a9ab8ce0673cd596",
+   "side1": "v4_e400_x543",
+   "side2": "v4_g2ptts_dp_ep150_x543"
+  },
+  {
+   "pair": 16,
+   "id": "extra168",
+   "side1": "v4_e400_x543",
+   "side2": "v4_g2ptts_dp_ep150_x543"
+  },
+  {
+   "pair": 17,
+   "id": "extra313",
+   "side1": "v4_g2ptts_dp_ep150_x543",
+   "side2": "v4_e400_x543"
+  },
+  {
+   "pair": 18,
+   "id": "extra121",
+   "side1": "v4_g2ptts_dp_ep150_x543",
+   "side2": "v4_e400_x543"
+  },
+  {
+   "pair": 19,
+   "id": "vd-scripted-01f1c633f97da9f46ab8fd76-script-seg-b818c0712f237c96",
+   "side1": "v4_g2ptts_dp_ep150_x543",
+   "side2": "v4_e400_x543"
+  },
+  {
+   "pair": 20,
+   "id": "extra344",
+   "side1": "v4_e400_x543",
+   "side2": "v4_g2ptts_dp_ep150_x543"
+  },
+  {
+   "pair": 21,
+   "id": "extra141",
+   "side1": "v4_e400_x543",
+   "side2": "v4_g2ptts_dp_ep150_x543"
+  },
+  {
+   "pair": 22,
+   "id": "extra370",
+   "side1": "v4_e400_x543",
+   "side2": "v4_g2ptts_dp_ep150_x543"
+  },
+  {
+   "pair": 23,
+   "id": "vd-scripted-01f1c633f97da9f46ab8fd76-script-seg-03dfb41f645580f7",
+   "side1": "v4_e400_x543",
+   "side2": "v4_g2ptts_dp_ep150_x543"
+  },
+  {
+   "pair": 24,
+   "id": "vd-scripted-8403e1fe640b662419418a88-script-seg-842d7255c9b48134",
+   "side1": "v4_g2ptts_dp_ep150_x543",
+   "side2": "v4_e400_x543"
+  },
+  {
+   "pair": 25,
+   "id": "extra235",
+   "side1": "v4_g2ptts_dp_ep150_x543",
+   "side2": "v4_e400_x543"
+  },
+  {
+   "pair": 26,
+   "id": "vd-scripted-1127aa706441d448b6d0b294-script-seg-bb03a96086942350",
+   "side1": "v4_g2ptts_dp_ep150_x543",
+   "side2": "v4_e400_x543"
+  },
+  {
+   "pair": 27,
+   "id": "extra015",
+   "side1": "v4_e400_x543",
+   "side2": "v4_g2ptts_dp_ep150_x543"
+  },
+  {
+   "pair": 28,
+   "id": "vd-scripted-93958be59c25b381841922dc-script-seg-33c087992ee25c69",
+   "side1": "v4_e400_x543",
+   "side2": "v4_g2ptts_dp_ep150_x543"
+  },
+  {
+   "pair": 29,
+   "id": "vd-scripted-ad328942fd134080ec4af8b3-script-seg-3660126654e68950",
+   "side1": "v4_g2ptts_dp_ep150_x543",
+   "side2": "v4_e400_x543"
+  },
+  {
+   "pair": 30,
+   "id": "extra055",
+   "side1": "v4_g2ptts_dp_ep150_x543",
+   "side2": "v4_e400_x543"
+  }
+ ]
+}
