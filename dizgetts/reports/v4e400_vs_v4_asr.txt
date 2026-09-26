@@ -1,0 +1,9 @@
+gerçek kayıtlar (Whisper tabanı, aynı 143 cümle): CER 4.7%  WER 11.6%
+sistem                            CER %            WER %            UTMOS   (n=543, %95 aralık)
+v4_g2ptts_dp_ep150_x543   4.0 [ 3.4, 4.7]  15.5 [14.3,16.8]  3.01 [2.99,3.03]
+v4_e400_x543             3.1 [ 2.6, 3.8]  12.5 [11.4,13.7]  3.03 [3.01,3.05]
+
+v4_g2ptts_dp_ep150_x543 referansına göre eşleşmiş fark (pozitif = diğeri daha kötü CER/WER; UTMOS'ta pozitif = diğeri daha iyi):
+  v4_e400_x543           CER: -0.87  [-1.49,-0.30]  anlamlı
+  v4_e400_x543           WER: -2.98  [-3.97,-2.01]  anlamlı
+  v4_e400_x543           UTMOS: +0.02  [-0.00,+0.04]  anlamsız (aralık 0'ı içeriyor)

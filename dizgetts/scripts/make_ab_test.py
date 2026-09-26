@@ -33,14 +33,20 @@ def texts():
 
 def loud(x, sr, target=-23.0):
     import pyloudnorm as pyln
-    return np.clip(pyln.normalize.loudness(x, pyln.Meter(sr).integrated_loudness(x), target), -0.99, 0.99)
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # kırpma build()'de tepe denetimiyle yakalanır (sessiz np.clip YOK)
+        return pyln.normalize.loudness(x, pyln.Meter(sr).integrated_loudness(x), target)
 
 
 def build(a):
     rng = random.Random(a.seed)
     T = texts()
     items = {lab: {it["id"]: it for it in json.load(open(f"{EVAL}/{lab}/results.json", encoding="utf8"))["items"]} for lab in (a.a, a.b)}
-    common = [k for k in items[a.a] if k in items[a.b]]
+    used = set()
+    for kf in a.exclude_key or []:  # önceki testlerin cümleleri tekrar kullanılmaz (turlar bağımsız, birleştirilebilir)
+        used |= {p["id"] for p in json.load(open(f"{KEYS}/{kf}.json", encoding="utf8"))["pairs"]}
+    common = [k for k in items[a.a] if k in items[a.b] and k not in used]
     ant = [k for k in common if not k.startswith("extra")]
     ud = [k for k in common if k.startswith("extra")]
     pick = rng.sample(ant, a.n // 2) + rng.sample(ud, a.n - a.n // 2)
@@ -55,12 +61,15 @@ def build(a):
         for side, lab in zip((1, 2), order):
             x, sr = sf.read(f"{EVAL}/{lab}/{items[lab][cid]['i']:03d}.wav", dtype="float64")
             fn = f"p{n:02d}_{side}.wav"
-            sf.write(f"{out}/audio/{fn}", loud(x, sr), sr, subtype="PCM_16")
+            y = loud(x, sr, a.lufs)
+            peak = float(np.abs(y).max())
+            assert peak < 0.99, f"{lab}/{cid}: LUFS {a.lufs} ile tepe {peak:.2f} (kırpma) -> --lufs değerini düşürün"
+            sf.write(f"{out}/audio/{fn}", y, sr, subtype="PCM_16")
             files.append(fn)
         key.append(dict(pair=n, id=cid, side1=order[0], side2=order[1]))
         data.append(dict(p=n, t=T[cid], f=files))
     json.dump(dict(a=a.a, b=a.b, seed=a.seed, pairs=key), open(f"{KEYS}/{a.name}.json", "w", encoding="utf8"), ensure_ascii=False, indent=1)
-    html = HTML.replace("__DATA__", json.dumps(data, ensure_ascii=False)).replace("__NAME__", a.name)
+    html = HTML.replace("__DATA__", json.dumps(data, ensure_ascii=False)).replace("__NAME__", a.name).replace("__ONEQ__", "true" if a.one_question else "false")
     open(f"{out}/index.html", "w", encoding="utf8").write(html)
     print(f"{len(data)} çift -> {out}/index.html  (anahtar: {KEYS}/{a.name}.json)")
 
@@ -123,7 +132,7 @@ nav{display:flex;justify-content:space-between;margin-top:18px}
 <p class="hint mute" id="gate">Cevaplamak için iki sesi de dinleyin.</p>
 <div class="q"><p>Hangisi daha doğal ve akıcı?</p><div class="opts" data-q="1">
  <button data-v="1">Ses 1</button><button data-v="0">Fark yok</button><button data-v="2">Ses 2</button></div></div>
-<div class="q"><p>Hangisinin telaffuzu ve vurgusu daha doğru?</p><div class="opts" data-q="2">
+<div class="q" id="q2box"><p>Hangisinin telaffuzu ve vurgusu daha doğru?</p><div class="opts" data-q="2">
  <button data-v="1">Ses 1</button><button data-v="0">Fark yok</button><button data-v="2">Ses 2</button></div></div>
 <input type="text" id="note" placeholder="Not (isteğe bağlı): ör. Ses 2'de 'gidiyorum' yanlış vurgulu">
 <nav><button id="prev">← Önceki</button><button id="next">Sonraki →</button></nav>
@@ -133,6 +142,8 @@ sesler aynı yükseklikte. İlerleme bu tarayıcıda saklanır. Bitince <b>Dış
 </main>
 <script>
 const DATA = __DATA__;
+const ONEQ = __ONEQ__;  // tek soru: ikinci soru gizlenir, cevabı birinciyle aynı kaydedilir
+if (ONEQ) { document.getElementById("q2box").style.display = "none"; document.querySelector('[data-q="1"]').previousElementSibling.textContent = "Hangisi genel olarak daha iyi (doğallık, akıcılık, telaffuz)?"; }
 const KEY = "dizgetts-ab-__NAME__";
 let st = {}; try { st = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
@@ -160,7 +171,7 @@ function render() {
 ["a1", "a2"].forEach((id, k) => $(id).addEventListener("play", () => { rec(cur)["h" + (k + 1)] = true; save(); gate(); }));
 document.querySelectorAll(".opts").forEach(o => o.addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
-  rec(cur)["q" + o.dataset.q] = +b.dataset.v; save(); render();
+  rec(cur)["q" + o.dataset.q] = +b.dataset.v; if (ONEQ) rec(cur).q2 = +b.dataset.v; save(); render();
   if (done(rec(cur)) && cur < DATA.length - 1) setTimeout(() => { cur++; render(); }, 250);
 }));
 $("note").oninput = e => { rec(cur).note = e.target.value.replace(/[\t\n]/g, " "); save(); };
@@ -182,8 +193,11 @@ def main():
     ap.add_argument("--a"); ap.add_argument("--b")
     ap.add_argument("--n", type=int, default=30)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--lufs", type=float, default=-23.0, help="ortak ses yüksekliği; kırpma olursa düşürün")
     ap.add_argument("--name", required=True)
     ap.add_argument("--analyze", default=None, help="dışa aktarılan tsv")
+    ap.add_argument("--exclude-key", nargs="*", default=None, help="bu testlerin (anahtar adı) cümlelerini kullanma")
+    ap.add_argument("--one-question", action="store_true", help="yalnız genel tercih sorusu (v3a_v4 testinde iki soru 29/30 aynı cevaplandı)")
     a = ap.parse_args()
     analyze(a) if a.analyze else build(a)
 
