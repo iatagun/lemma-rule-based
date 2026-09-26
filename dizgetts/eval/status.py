@@ -3,9 +3,11 @@ import csv, glob, os, time
 
 import yaml
 
+from dizgetts import paths
+
 HERE = os.path.join(os.path.dirname(__file__), "..")
 print("== Eğitim koşuları (D:/dizgetts/runs, yalnız v2)")
-for run in sorted(glob.glob("D:/dizgetts/runs/v2_*")):
+for run in sorted(glob.glob(f"{paths.RUNS}/v2_*")):
     m = os.path.join(run, "metrics.csv")
     rows = list(csv.DictReader(open(m, encoding="utf8"))) if os.path.exists(m) else []
     if not rows:

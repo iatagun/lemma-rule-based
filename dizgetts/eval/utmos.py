@@ -7,7 +7,8 @@ import numpy as np
 import soundfile as sf
 import torch
 
-m = torch.hub.load("tarepan/SpeechMOS:v1.2.0", "utmos22_strong", trust_repo=True).eval()
+# v1.2.0 etiketinin commit'i (etiket taşınabilir; trust_repo=True uzak kod çalıştırır)
+m = torch.hub.load("tarepan/SpeechMOS:ed25eacbfa42b99156c36ebec67a733b5dbb9b79", "utmos22_strong", trust_repo=True).eval()
 
 
 @torch.no_grad()

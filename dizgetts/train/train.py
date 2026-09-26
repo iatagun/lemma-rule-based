@@ -133,10 +133,10 @@ def main():
     init_report = load_pretrained(model, cfg["init"]) if cfg.get("init") and not a.resume else None
     model.to(dev).train()
     opt = torch.optim.Adam(model.parameters(), lr=tr["lr"])
-    epoch0 = 0
+    epoch0 = step0 = 0
     if a.resume:
         ck = torch.load(a.resume, map_location="cpu", weights_only=False)
-        model.load_state_dict(ck["model"]); opt.load_state_dict(ck["opt"]); epoch0 = ck["epoch"]
+        model.load_state_dict(ck["model"]); opt.load_state_dict(ck["opt"]); epoch0, step0 = ck["epoch"], ck.get("step", 0)  # adım sayacı kaldığı yerden (TensorBoard/max_steps)
     n_params = sum(p.numel() for p in model.parameters())
 
     stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -145,7 +145,7 @@ def main():
     yaml.safe_dump(cfg, open(os.path.join(run, "config.resolved.yaml"), "w", encoding="utf8"), allow_unicode=True, sort_keys=False)
     json.dump(dict(git=git_info(), seed=cfg["seed"], torch=torch.__version__, cuda=torch.version.cuda, gpu=torch.cuda.get_device_name(0),
                    python=platform.python_version(), n_params=n_params, n_vocab=len(symbols), train_clips=len(ds["train"]),
-                   val_clips=len(ds["val"]), init=init_report, engine_versions=ds["train"].rows[0].get("engine_versions"), manifest=cfg.get("manifest", "_phon"), cmd=sys.argv, resumed_from=a.resume, epoch0=epoch0),
+                   val_clips=len(ds["val"]), init=init_report, engine_versions=ds["train"].rows[0].get("engine_versions"), manifest=cfg.get("manifest", "_phon"), cmd=sys.argv, resumed_from=a.resume, epoch0=epoch0, step0=step0),
               open(os.path.join(run, "env.json"), "w", encoding="utf8"), ensure_ascii=False, indent=1)
     json.dump(symbols, open(os.path.join(run, "symbols.json"), "w", encoding="utf8"), ensure_ascii=False)
     tb = SummaryWriter(os.path.join(run, "tensorboard"))
@@ -157,7 +157,7 @@ def main():
           f"{init_report and init_report['loaded']} tensör yüklendi", flush=True)
 
     max_steps = 30 if a.pilot else (a.max_steps or tr["max_steps"])
-    step, best = 0, float("inf")
+    step, best = step0, float("inf")
     save = lambda name, ep: torch.save(dict(model=model.state_dict(), opt=opt.state_dict(), epoch=ep, cfg=cfg, step=step, symbols=symbols), os.path.join(run, name))
     for epoch in range(epoch0 + 1, tr["epochs"] + 1):
         sampler.epoch = epoch

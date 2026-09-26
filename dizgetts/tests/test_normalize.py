@@ -43,4 +43,30 @@ bad = [(k, normalize(k), v) for k, v in CASES.items() if normalize(k) != v]
 for b in bad:
     print("FAIL", b)
 assert not bad, f"{len(bad)}/{len(CASES)} başarısız"
-print(f"OK: {len(CARD)} sayı + {len(CASES)} normalize vakası")
+
+# regresyon (2026-09-26 code review): normalize() çıktısındaki her belirteç harf ya da duraklama olmalı ve engine'in sözcük ayrıştırması (_TOK)
+# ile tagger'ın str.isalpha()'sı AYNI sözcükleri görmeli. "m²" (No kategorisi: \w ama isalpha değil) g2ptts hizalamasını sessizce bozuyordu.
+import random
+from dizgetts.engine import _TOK
+
+PUNCT = set(",.?!;")
+
+
+def _check(s):
+    n = normalize(s)
+    toks = n.split()
+    assert all(t.isalpha() or t in PUNCT for t in toks), (s, n)
+    assert [t for t in toks if t not in PUNCT] == [m.group() for m in _TOK.finditer(n) if m.group() not in PUNCT], (s, n)
+    return n
+
+
+assert _check("Oda 12 m² büyüklüğünde, ama ışık yok.") == "Oda on iki metrekare büyüklüğünde , ama ışık yok ."
+assert _check("3 m³ su, 5 km² alan") == "üç metreküp su , beş kilometrekare alan ."
+assert _check("Ali² geldi ½ kez ① ﬁyat") .endswith(".")
+assert _check("çay ve göz") == "çay ve göz ."  # NFD (ç = c + ◌̧) yazım: sözcük ikiye bölünmemeli
+rng = random.Random(0)
+POOLS = [(0x20, 0x24F), (0x300, 0x36F), (0x400, 0x4FF), (0x660, 0x6FF), (0x900, 0x97F), (0x2070, 0x209F), (0x2150, 0x218F), (0x2460, 0x24FF),
+         (0xFB00, 0xFB06), (0xFF10, 0xFF5A), (0x4E00, 0x4E80)]
+for _ in range(4000):
+    _check("".join(chr(rng.randint(*rng.choice(POOLS))) for _ in range(rng.randint(1, 30))))
+print(f"OK: {len(CARD)} sayı + {len(CASES)} normalize vakası + biçimsel değişmez (4000 rastgele girdi)")

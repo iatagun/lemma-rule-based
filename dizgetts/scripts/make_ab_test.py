@@ -14,9 +14,9 @@ import random
 import numpy as np
 import soundfile as sf
 
-EVAL = "D:/dizgetts/eval_out"
-AB, KEYS = "D:/dizgetts/ab", "D:/dizgetts/ab_keys"
-ANTALIA = "D:/dizgetts/data/processed/antalia"
+from dizgetts import paths
+
+EVAL, AB, KEYS, ANTALIA = paths.EVAL_OUT, paths.AB, paths.AB_KEYS, paths.ANTALIA
 EXTRA = os.path.join(os.path.dirname(__file__), "..", "eval", "extra_sentences_ud.txt")
 
 

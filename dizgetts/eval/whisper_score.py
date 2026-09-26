@@ -5,6 +5,7 @@ Kaba: Whisper'ın dil modeli önyargısı her iki adayda da vardır; yalnız AYN
   from dizgetts.eval.whisper_score import Scorer; s = Scorer(); s.nll(wav_path, ["metin a", "metin b"])
 """
 import os, sys
+import warnings
 
 import numpy as np
 import soundfile as sf
@@ -27,6 +28,8 @@ class Scorer:
 
     def _feats(self, wav):
         x, sr = sf.read(wav, dtype="float32")
+        if len(x) / sr > 30:  # Whisper öznitelik çıkarıcısı 30 sn'de SESSİZCE keser -> sentezin sonu transkripte girmez, CER şişer
+            warnings.warn(f"{wav}: {len(x) / sr:.1f} sn > 30 sn; Whisper yalnız ilk 30 saniyeyi işler (CER/WER güvenilmez)", RuntimeWarning, stacklevel=2)
         if sr != 16000:
             g = np.gcd(16000, sr)
             x = resample_poly(x, 16000 // g, sr // g).astype(np.float32)

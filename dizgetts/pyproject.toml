@@ -7,7 +7,18 @@ name = "dizgetts"
 version = "0.2.0"
 description = "DizgeTTS: Turkce metinden konusma (Matcha-TTS + dizge fonemleri + dilbilimsel vurgu)"
 requires-python = ">=3.12"
+# Çekirdek ön uç (normalize -> fonem -> vurgu -> token): yalnız dizge. Eğitim/değerlendirme yığını (torch, matcha-tts...) requirements.txt'te.
+dependencies = ["dizge==0.1.6"]
+
+[project.optional-dependencies]
+# Engine(g2ptts=True): DizgeBERT tabanlı vurgu/sınır etiketleyici
+g2ptts = ["torch", "transformers", "huggingface_hub", "safetensors", "numpy", "PyYAML"]
 
 [tool.setuptools]
-packages = ["dizgetts", "dizgetts.frontend", "dizgetts.tools", "dizgetts.train", "dizgetts.eval", "dizgetts.scripts"]
+# tests kasten yok (site-packages'a sızmasın)
+packages = ["dizgetts", "dizgetts.frontend", "dizgetts.g2ptts", "dizgetts.tools", "dizgetts.train", "dizgetts.eval", "dizgetts.scripts"]
 package-dir = { "dizgetts" = "." }
+
+[tool.setuptools.package-data]
+# Python dışı veri: wheel'e girmezse StressRules() kurulu pakette FileNotFoundError verir (paketleme dersi; tests/test_packaging.py denetler)
+dizgetts = ["resources/*.tsv", "resources/*.txt", "configs/*.yaml", "eval/*.txt"]

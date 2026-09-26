@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import warnings
 
 import torch
 from transformers import AutoTokenizer
@@ -22,6 +23,7 @@ from dizgetts.g2ptts.train import RUN, G2PTTS
 
 PUNCT_BOUNDARY = {",": "ip", ";": "IP", ".": "cümle", "?": "cümle", "!": "cümle"}
 RANK = ("0", "ip", "IP", "cümle")
+MAX_SUBWORDS = 254  # eğitimdeki max_length=256 - [CLS] - [SEP]
 LEXICAL_TIERS = ("pek", "cik")  # sıfat sözlüğüne kapılı, Morph gerektirmeyen katmanlar (pekiştirme, -CIk sıfat)
 
 
@@ -29,17 +31,50 @@ class Tagger:
     def __init__(self, ckpt: str = f"{RUN}/best.pt", device: str = "cpu"):
         ck = torch.load(ckpt, map_location="cpu", weights_only=False)  # kendi checkpoint'imiz
         self.model = G2PTTS(); self.model.load_state_dict(ck["state"]); self.model.eval().to(device)
-        self.tau, self.device = float(ck["val"]["tau"]), device
+        self.tau, self.device, self.ckpt = float(ck["val"]["tau"]), device, ckpt
         self.tok = AutoTokenizer.from_pretrained(DEP_ID, revision=DEP_REV)
         self.rules, self.ph = StressRules(), Phonemizer(bert_fallback=False)
 
-    @torch.no_grad()
+    def _chunks(self, toks: list[str]) -> list[tuple[int, int]]:
+        """Belirteç dizisini alt-sözcük sayısı <= MAX_SUBWORDS olan ardışık parçalara böler; kesim cümle sonunda (. ? !), yoksa herhangi bir
+        noktalamada, o da yoksa sözcük sınırında. Eskiden fazlası max_length'te kesiliyor, kesilen sözcükler [CLS] temsilini alıyordu."""
+        n = [0] * len(toks)
+        for w in self.tok(toks, is_split_into_words=True, add_special_tokens=False).word_ids():
+            if w is not None:
+                n[w] += 1
+        out, start, used, last_sent, last_punct = [], 0, 0, None, None
+        for i, c in enumerate(n):
+            if used + c > MAX_SUBWORDS and i > start:
+                cut = next((x + 1 for x in (last_sent, last_punct) if x is not None and x >= start), i)
+                out.append((start, cut))
+                start, used = cut, sum(n[cut:i])
+                last_sent = last_punct = None
+            used += c
+            if toks[i] in PUNCT_BOUNDARY:
+                last_punct = i
+                if toks[i] in ".?!":
+                    last_sent = i
+        if toks:
+            out.append((start, len(toks)))
+        return out
+
     def _model(self, toks: list[str]):
+        stress, prob = [], []
+        for a, b in self._chunks(toks):
+            s, p = self._model_chunk(toks[a:b])
+            stress += s
+            prob += p
+        return stress, prob
+
+    @torch.no_grad()
+    def _model_chunk(self, toks: list[str]):
         enc = self.tok(toks, is_split_into_words=True, truncation=True, max_length=256, return_tensors="pt")
         first, seen = [0] * len(toks), set()
         for i, wid in enumerate(enc.word_ids(0)):
             if wid is not None and wid not in seen:
                 seen.add(wid); first[wid] = i
+        if len(seen) < len(toks):  # yalnız tek başına 254 alt-sözcüğü aşan sözcükte olur
+            warnings.warn(f"g2ptts: {len(toks) - len(seen)} sözcük max_length'te kesildi; etiketleri güvenilmez", RuntimeWarning, stacklevel=2)
         ls, lb = self.model(enc["input_ids"].to(self.device), enc["attention_mask"].to(self.device), torch.tensor([first], device=self.device))
         return ls[0].argmax(-1).tolist(), lb[0].softmax(-1).tolist()
 

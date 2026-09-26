@@ -1,0 +1,25 @@
+name: dizgetts
+
+on:
+  push:
+    paths: ["dizgetts/**", ".github/workflows/dizgetts.yml"]
+  pull_request:
+    paths: ["dizgetts/**", ".github/workflows/dizgetts.yml"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Yalnız çekirdek ön uç bağımlılığı (dizge) + numpy: torch/GPU/veri gerektirmeyen testler. test_dpfeat ve test_tagger (torch, matcha, HF, checkpoint)
+      # yerelde çalışır. test_engine_parity manifest yoksa yalnız birim kısmını çalıştırır; test_packaging wheel içeriğini + kurulu paketi denetler.
+      - run: pip install -e ./dizgetts numpy
+      - name: Testler
+        run: |
+          for t in test_normalize test_phonemize test_stress test_engine_stages test_engine_parity test_compare test_packaging; do
+            echo "== $t"
+            python -X utf8 -m dizgetts.tests.$t
+          done

@@ -1,0 +1,3 @@
+recursive-include resources *.tsv *.txt
+recursive-include configs *.yaml
+include eval/*.txt

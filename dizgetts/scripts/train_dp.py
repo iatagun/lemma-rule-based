@@ -20,11 +20,12 @@ from matcha.utils.model import normalize as mel_norm
 from matcha.utils.model import sequence_mask
 from matcha.utils.utils import intersperse
 
+from dizgetts import paths
 from dizgetts.eval.prosody_acoustics import _load_model, mas_frames
 from dizgetts.frontend.symbols import SYMBOL_TO_ID
 from dizgetts.train.dpfeat import intersperse_feat, set_dp_feat, token_types
 
-ROOT = "D:/dizgetts/data/processed/antalia"
+ROOT = paths.ANTALIA
 
 
 @torch.no_grad()

@@ -36,9 +36,6 @@ class DPFeatTextEncoder(TextEncoder):
             assert feat.shape == x_mask.shape[::2], (tuple(feat.shape), tuple(x_mask.shape))
             x_dp = x_dp + self.dp_feat_emb(feat).transpose(1, 2) * x_mask
         logw = self.proj_w(x_dp, x_mask)
-        cal, grp = getattr(self, "_calib", None), getattr(self, "_calib_groups", None)
-        if cal is not None and grp is not None:  # v4c: yalnız SENTEZDE (set_calib); eğitimde hiç ayarlanmaz
-            logw = apply_calib(logw, x_mask, grp, cal)
         if getattr(self, "_round", None) == "cum":  # v5: yalnız SENTEZDE (set_round); eğitim/MAS logw'yi değiştirmez
             logw = cum_round_logw(logw, x_mask)
         return mu, logw, x_mask
@@ -66,7 +63,8 @@ def intersperse_feat(feat: list[int]) -> list[int]:
     return out
 
 
-# ---------------------------------------------------------------- v4c: sentez anı süre kalibrasyonu (eğitim yok)
+# ---------------------------------------------------------------- token türü (scripts/train_dp.py tür başına raporlama)
+# (v4c sentez anı süre kalibrasyonu REDDEDİLDİ ve kod silindi: experiments.yaml v4c-calib, son sürüm git ad2b1a1'de)
 TOKEN_TYPES = ("blank", "vowel", "consonant", "sep", "punct", "stress")
 
 
@@ -86,30 +84,6 @@ def token_types(tokens: list[str]) -> list[int]:
     for t in tokens:
         out += [ty(t), 0]
     return out
-
-
-def calib_groups(feat_inter: list[int], types_inter: list[int]) -> list[int]:
-    return [f * len(TOKEN_TYPES) + t for f, t in zip(feat_inter, types_inter)]
-
-
-def apply_calib(logw, x_mask, groups, table):
-    """Grup başına log1p(süre) üzerinde moment eşleme: d' = my + (sy/sx)(d - mx). table: (N_grup, 4) = mx, sx, my, sy (özdeşlik: 0,1,0,1)."""
-    d = torch.log1p(torch.exp(logw))
-    p = table[groups]  # (B, T, 4)
-    mx, sx, my, sy = (p[..., k].unsqueeze(1) for k in range(4))
-    d2 = my + (sy / sx) * (d - mx)
-    return torch.log(torch.expm1(d2).clamp(min=0) + 1e-8) * x_mask
-
-
-def set_calib(model, table, groups) -> None:
-    if isinstance(model.encoder, DPFeatTextEncoder):
-        model.encoder._calib, model.encoder._calib_groups = table, groups
-
-
-def identity_table():
-    t = torch.zeros(N_DP_FEAT * len(TOKEN_TYPES), 4)
-    t[:, 1] = 1.0; t[:, 3] = 1.0
-    return t
 
 
 # ---------------------------------------------------------------- v5: birikimli yuvarlama (sentez anı)

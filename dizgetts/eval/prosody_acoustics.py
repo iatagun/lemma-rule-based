@@ -18,8 +18,10 @@ import os
 
 import numpy as np
 
-EVAL_ROOT = "D:/dizgetts/eval_out"
-ROOT = "D:/dizgetts/data/processed/antalia"
+from dizgetts import paths
+
+EVAL_ROOT = paths.EVAL_OUT
+ROOT = paths.ANTALIA
 HOP_S = 256 / 22050
 PUNCT = {",", ".", "?", "!", ";"}
 
@@ -364,9 +366,14 @@ LABELS = [  # (anahtar, açıklama, birim, özet: "mean" ya da eşik tuple)
 ]
 
 
+def _clips(clips, splits):
+    """--splits: yalnız bu bölümlerin klipleri (test | val); karar için val kullanma (dp/epoch/tau/length_scale seçimi val'de yapıldı)."""
+    return [r for r in clips if not splits or r["split"] in splits]
+
+
 def stage_report(a):
     D = json.load(open(f"{EVAL_ROOT}/{a.label}/prosody/align.json", encoding="utf8"))
-    ref, clips = D["f0_ref_hz"], D["clips"]
+    ref, clips = D["f0_ref_hz"], _clips(D["clips"], a.splits)
     per = [(clip_metrics(r, "real", ref), clip_metrics(r, "synth", ref)) for r in clips]
     rng = np.random.default_rng(0)
     B = rng.integers(0, len(per), size=(2000, len(per)))
@@ -404,12 +411,13 @@ def stage_report(a):
 def stage_compare(a):
     """İki SENTEZİ (a.label vs a.against) aynı klipler üzerinde eşleşmiş karşılaştırır; gerçek kayıt referans olarak yanında."""
     L = {k: json.load(open(f"{EVAL_ROOT}/{k}/prosody/align.json", encoding="utf8")) for k in (a.label, a.against)}
-    ids = [r["id"] for r in L[a.label]["clips"]]
-    assert ids == [r["id"] for r in L[a.against]["clips"]], "klip sırası farklı"
+    C = {k: _clips(L[k]["clips"], a.splits) for k in L}
+    assert [r["id"] for r in C[a.label]] == [r["id"] for r in C[a.against]], "klip sırası farklı"
+    print(f"klip: {len(C[a.label])} (bölümler: {a.splits or 'hepsi'})")
     ref = L[a.against]["f0_ref_hz"]
-    new = [clip_metrics(r, "synth", ref) for r in L[a.label]["clips"]]
-    old = [clip_metrics(r, "synth", ref) for r in L[a.against]["clips"]]
-    real = [clip_metrics(r, "real", ref) for r in L[a.against]["clips"]]
+    new = [clip_metrics(r, "synth", ref) for r in C[a.label]]
+    old = [clip_metrics(r, "synth", ref) for r in C[a.against]]
+    real = [clip_metrics(r, "real", ref) for r in C[a.against]]
     rng = np.random.default_rng(0)
     out = []
     print(f"{'ölçü':52s} {'GERÇEK':>8s} {a.against[:10]:>10s} {a.label[:10]:>10s} {'fark':>8s}  %95 GA (yeni - eski)")
@@ -430,7 +438,8 @@ def main():
     ap.add_argument("--stage", choices=("align", "validate", "report", "compare"), required=True)
     ap.add_argument("--against", default="v3a_g2ptts_nb_ep150_x543", help="compare: karşılaştırılan eski sentez etiketi")
     ap.add_argument("--label", default="v3a_g2ptts_nb_ep150_x543")
-    ap.add_argument("--ckpt", default="D:/dizgetts/runs/v3a_g2ptts_nb_e150_20260925-213638/ep150.pt")
+    ap.add_argument("--splits", nargs="*", default=None, help="report/compare: yalnız bu bölümler (test|val); karar için val kullanma")
+    ap.add_argument("--ckpt", default=f"{paths.RUNS}/v3a_g2ptts_nb_e150_20260925-213638/ep150.pt")
     a = ap.parse_args()
     if a.stage == "align":
         stage_align(a)

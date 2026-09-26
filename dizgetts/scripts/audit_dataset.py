@@ -6,6 +6,9 @@ G2P kapsama. Yalnız stdlib+numpy (+ G2P bölümü için torch/transformers/dizg
 import argparse, collections, json, os, re, sys, wave
 
 import numpy as np
+
+from dizgetts import paths
+
 FR = 0.010  # 10 ms çerçeve
 
 
@@ -71,7 +74,7 @@ def hist(a, edges):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--root", default="D:/dizgetts/data/raw/antalia")
+    ap.add_argument("--root", default=f"{paths.HOME}/data/raw/antalia")
     ap.add_argument("--out", default=os.path.join(os.path.dirname(__file__), "..", "reports", "antalia_audit.json"))
     ap.add_argument("--skip-g2p", action="store_true")
     a = ap.parse_args()

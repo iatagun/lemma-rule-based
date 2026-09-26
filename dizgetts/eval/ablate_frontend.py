@@ -19,6 +19,7 @@ import soundfile as sf
 import torch
 from matcha.utils.utils import intersperse
 
+from dizgetts import paths
 from dizgetts.engine import AssembleStage
 from dizgetts.eval.asr_floor import canon, lev
 from dizgetts.eval.synth import Synth
@@ -26,7 +27,7 @@ from dizgetts.eval.whisper_score import Scorer
 
 from dizgetts.frontend.stress import StressRules, to_phone_index
 
-ROOT = "D:/dizgetts/data/processed/antalia"
+ROOT = paths.ANTALIA
 RANK = ("0", "ip", "IP", "cümle")
 PUNCT = {",": "ip", ";": "IP", ".": "cümle", "?": "cümle", "!": "cümle"}
 
@@ -60,7 +61,7 @@ def main():
     ap.add_argument("--label", required=True)
     ap.add_argument("--device", default="cuda")
     a = ap.parse_args()
-    out = os.path.join("D:/dizgetts/eval_out", a.label)
+    out = os.path.join(paths.EVAL_OUT, a.label)
     os.makedirs(out, exist_ok=True)
     rows = [dict(json.loads(l), split=sp) for sp in ("test", "val") for l in open(f"{ROOT}/{sp}.jsonl", encoding="utf8")]
     br = {b["id"]: b for b in map(json.loads, open(f"{ROOT}/breaks.jsonl", encoding="utf8"))}

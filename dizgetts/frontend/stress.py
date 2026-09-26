@@ -244,7 +244,8 @@ def _morph_rule(w: str, upos: str | None, feats: dict[str, str] | None, tiers, a
             return _vowels_before(base, cm.start(1)) - 1, "koşaç_önü"
         if stripped:
             return _n_vowels(base) - 1, "kişi_eki_önü"
-    if "tür" in tiers and upos in ("ADV", "CCONJ", "SCONJ", "ADP") and _n_vowels(w) >= 2 and w not in adj             and not re.search(r"[dt][ae]n$", w):  # sıfattan belirteç (iyi, güzel) son hecede kalır; -DAn türemişleri (yeniden) dışarıda
+    if ("tür" in tiers and upos in ("ADV", "CCONJ", "SCONJ", "ADP") and _n_vowels(w) >= 2 and w not in adj
+            and not re.search(r"[dt][ae]n$", w)):  # sıfattan belirteç (iyi, güzel) son hecede kalır; -DAn türemişleri (yeniden) dışarıda
         return weight_stress(w, en=False), "tür_ağırlık"
     return None
 

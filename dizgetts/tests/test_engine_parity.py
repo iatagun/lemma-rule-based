@@ -3,9 +3,10 @@
 Manifestler (D:/dizgetts/data/processed/antalia/*_phon.jsonl) yoksa atlanır."""
 import json, os, sys
 
+from dizgetts import paths
 from dizgetts.engine import Engine
 
-ROOT = "D:/dizgetts/data/processed/antalia"
+ROOT = paths.ANTALIA
 
 # birim: sabit cümle
 e = Engine(bert_fallback=False)

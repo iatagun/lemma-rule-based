@@ -18,6 +18,7 @@ import importlib.metadata as md
 import inspect
 import json
 import re
+import warnings
 from dataclasses import dataclass, field
 
 from dizgetts.frontend import normalize as _norm
@@ -94,6 +95,8 @@ class PhonemeStage(Stage):
             except UnknownSymbol:
                 u.meta.setdefault("unknown_chars", []).extend(c for c in ph if c not in "".join(PHONES))
                 atoms = tokenize(ph, strict=False)
+            if not atoms:  # Phonemizer.word uyardı; sözcük konuşmadan düşer
+                u.meta.setdefault("fonemsiz_sözcük", []).append(t)
             u.words.append(Word(text=t, phones=atoms))
         return u
 
@@ -125,6 +128,7 @@ class MorphStage(Stage):
                 w = next(it, None)
                 if w is None or w.text != t:
                     u.meta["morph_hizalama_hatasi"] = True
+                    warnings.warn(f"morph: sözcük listesi hizalanamadı ({t!r}); morfolojik vurgu katmanları bu cümlede devre dışı", RuntimeWarning, stacklevel=2)
                     break
                 w.upos, w.feats = pos, feats
         return u
@@ -171,7 +175,8 @@ class PhraseStage(Stage):
 
 
 class G2PTTSStage(Stage):
-    """dizge-g2p-tts (g2ptts/tagger.py): karma vurgu + model sınırı; StressStage + PhraseStage yerine (Engine(g2ptts=True))."""
+    """dizge-g2p-tts (g2ptts/tagger.py): karma vurgu + model sınırı; StressStage + PhraseStage yerine (Engine(g2ptts=True)).
+    Sözcük listeleri uyuşmazsa (normalize/tagger tutarsızlığı) uyarır ve kural tabanlı M1a vurgusu + noktalama sınırına düşer; sessiz vurgusuz bırakmaz."""
     name = "g2ptts"
 
     def __init__(self, ckpt: str | None = None):
@@ -179,17 +184,27 @@ class G2PTTSStage(Stage):
 
         self.t = Tagger(ckpt) if ckpt else Tagger()
         self.ckpt = ckpt
+        self._sha = self._fallback = None
 
     def version(self) -> str:
-        from dizgetts.g2ptts.train import RUN
-
-        return f"{self.ckpt or RUN}+kurallar={self.t.rules.version()}"
+        if self._sha is None:  # checkpoint İÇERİĞİ: aynı yolda (best.pt) ağırlıklar değişince sürüm de değişmeli
+            h = hashlib.sha1()
+            with open(self.ckpt or self.t.ckpt, "rb") as f:
+                for chunk in iter(lambda: f.read(1 << 20), b""):
+                    h.update(chunk)
+            self._sha = h.hexdigest()[:8]
+        return f"{self.ckpt or self.t.ckpt}@{self._sha}+kurallar={self.t.rules.version()}"
 
     def __call__(self, u: Utterance) -> Utterance:
         cnt = u.meta.setdefault("stress", {})
         tw = self.t.tag_norm(u.norm)["words"]
         if [w["word"] for w in tw] != [w.text for w in u.words]:
             u.meta["g2ptts_hizalama_hatasi"] = True
+            warnings.warn(f"g2ptts: tagger ve fonemleştirici sözcük listeleri uyuşmuyor ({u.norm!r}); kural tabanlı vurguya düşüldü", RuntimeWarning, stacklevel=2)
+            if self._fallback is None:
+                self._fallback = (StressStage(), PhraseStage())
+            for stage in self._fallback:
+                u = stage(u)
             return u
         for w, t in zip(u.words, tw):
             w.stress_src, w.boundary = t["stress_src"], t["boundary"]

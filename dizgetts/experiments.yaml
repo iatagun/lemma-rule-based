@@ -219,6 +219,9 @@ experiments:
       (gerçek 474; AŞTI), noktalamasız 11 -> 32 ms (gerçek 17; AŞTI), eklemleme 6,04 -> 5,51 hece/sn (gerçek 6,51; daha yavaş), cümle sonu uzama
       1,17 -> 1,12 (-). CER (543) +4,09 pp [+1,30, +8,36] anlamlı kötü; UTMOS aynı. Ders: süre yayılımı geri getirilebilir (nPVI 42) ama
       hız/anlaşılırlık korunarak; log1p moment eşleme ortalamayı şişirip hataları gerdi.
+    code_removed: >-
+      2026-09-26 code review: reddedilen kalibrasyon kodu silindi (train/dpfeat.py apply_calib/set_calib/calib_groups/identity_table, eval/synth.py calib,
+      evaluate.py --calib, scripts/fit_duration_calib.py). Son sürüm: git ad2b1a1. token_types korunur (scripts/train_dp.py kullanıyor).
   - id: v4-e400
     status: done
     depends_on: v4-dpfeat
@@ -281,3 +284,12 @@ experiments:
       anlamlı kötü). Zamanlama (143; gerçek): eklemleme 5,98 -> 6,51 (6,51 birebir), noktalamalı duraklama 310 -> 482 (469), virgül uzaması 1,29 -> 1,47
       (1,47), cümle sonu 1,20 -> 1,33 (1,36), nPVI 26,7 -> 34,8 (44,4); UTMOS 3,03 -> 3,10 (+0,07 anlamlı). Hız ayarı v5'in kaybını azalttı
       (CER +0,51 -> +0,14, WER +1,61 -> +0,99). Doğallık/anlaşılırlık TAKASI -> kör AB (v4-400 vs v5s) kullanıcıya önerildi; kural sonradan esnetilmedi.
+    audit_2026_09_26: >-
+      Code review: v5/v5s karar tablolarındaki '143 cümle' = 84 test + 59 VAL (val: dp epoch seçimi, MSE/Huber seçimi, length_scale=1,032 seçimi bunlarla yapıldı;
+      'eklemleme hızı birebir' kısmen tasarım gereğiydi). Önceki girdilerdeki '143 test' de aynı bileşimdi; seçim yalnız v5/v5s'te val ile yapıldığından kirlenme orada belirgin.
+      VAL HARİÇ yeniden ölçüm (eval/compare.py --splits test extra = 84 test + 400 UD; reports/v5s_vs_v4e400_{asr,prosody}_testonly.txt):
+      CER v4-400 2,8 / v5s 3,1 (+0,29 [+0,03, +0,54] ANLAMLI kötü; val dahilken +0,14 [-0,38, +0,51] anlamsızdı), WER 13,0 / 14,2 (+1,23 [+0,36, +2,24]),
+      UTMOS +0,06 [+0,04, +0,09]. v5 (hız ayarsız): CER +0,51 [+0,24, +0,79], WER +1,83 [+0,90, +2,84]. Zamanlama (84 test): noktalamalı duraklama 286 -> 448 ms (gerçek 436),
+      eklemleme 6,02 -> 6,55 (6,57), nPVI 26,9 -> 35,2 (45,6). SONUÇ: zamanlama kazanımı temiz kliplerde de geçerli; karar kuralı yine geçilmedi (CER üst sınırı 0,54)
+      ve CER kaybı artık istatistiksel olarak anlamlı -> doğallık/anlaşılırlık takası gerçek; kör AB (v4-400 vs v5s) hâlâ karar noktası. Kural esnetilmedi.
+      Bundan sonra: evaluate.py varsayılanı yalnız test; karar ölçütlerinde val kullanılmaz (compare.py/prosody_acoustics.py --splits).

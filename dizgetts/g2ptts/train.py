@@ -17,10 +17,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
+from dizgetts import paths
 from dizgetts.frontend.dep import MODEL_ID as DEP_ID, MODEL_REV as DEP_REV
 
-DATA = "D:/dizgetts/data/g2ptts"
-RUN = "D:/dizgetts/runs/g2ptts_v3"  # tagger varsayılanı (g2ptts-v3 kararı)
+DATA = paths.G2PTTS_DATA
+RUN = f"{paths.RUNS}/g2ptts_v3"  # tagger varsayılanı (g2ptts-v3 kararı)
 ENC = "dbmdz/electra-base-turkish-cased-discriminator"
 PUNCT = {",", ".", "?", "!", ";"}
 N_STRESS, N_BOUND = 5, 3

@@ -9,6 +9,7 @@ ponytail: kural tabanlı ve kasten dar. Bilinmeyen kısaltma/yabancı sözcük L
 ordinal-nokta belirsizliği) çözümler yok. Büyük harfli 2-4 harflik sözcük harf harf okunur (WORD_ACRONYMS istisna).
 """
 import re
+import unicodedata
 
 ONES = ["", "bir", "iki", "üç", "dört", "beş", "altı", "yedi", "sekiz", "dokuz"]
 TENS = ["", "on", "yirmi", "otuz", "kırk", "elli", "altmış", "yetmiş", "seksen", "doksan"]
@@ -19,6 +20,7 @@ LETTERS = {  # Türkçe alfabe harf adları (antalia referansı: USB -> "u se be
     "ı": "ı", "i": "i", "j": "je", "k": "ke", "l": "le", "m": "me", "n": "ne", "o": "o", "ö": "ö", "p": "pe", "r": "re",
     "s": "se", "ş": "şe", "t": "te", "u": "u", "ü": "ü", "v": "ve", "y": "ye", "z": "ze", "w": "çift ve", "x": "iks", "q": "kü",
 }
+SQUARE = {"km": "kilometre", "m": "metre", "cm": "santimetre", "mm": "milimetre"}  # m² / m³ (Unicode üst simge)
 UNITS = {"GB": "gigabayt", "MB": "megabayt", "KB": "kilobayt", "TB": "terabayt", "km": "kilometre", "kg": "kilogram",
          "cm": "santimetre", "mm": "milimetre", "dk": "dakika", "sn": "saniye", "°C": "derece", "TL": "lira", "₺": "lira"}
 # Sözlük: harfle okunmayacak / özel okunacak (tümü küçük harf anahtar). Genişletmek serbest.
@@ -198,6 +200,10 @@ def _sub_numbers(t):
     return re.sub(rf"\b(\d+)\b{SUF}", lambda m: attach(number_words(m.group(1)), m.group(2), poss(m)), t)
 
 
+def _sub_squares(t):
+    return re.sub(r"(?<![^\W\d_])(km|cm|mm|m)([²³])", lambda m: SQUARE[m.group(1)] + ("kare" if m.group(2) == "²" else "küp"), t)
+
+
 def _sub_x(t):
     return re.sub(r"(?<=\d)\s?[x×]\s?(?=\d)", " çarpı ", t)  # 55x40x23 -> 55 çarpı 40 çarpı 23
 
@@ -228,10 +234,10 @@ def _sub_letters(t):
 
 
 def normalize(text: str) -> str:
-    t = text.replace(" ", " ").replace("\t", " ")
+    t = unicodedata.normalize("NFC", text).replace(" ", " ").replace("\t", " ")  # NFD yazımda (c + ◌̧) sözcük ikiye bölünüyordu
     t = re.sub(r"[ \t]*\n[ \t]*\n\s*", " . ", t)  # boş satır = cümle sonu
     t = t.replace("\n", " ")
-    for f in (_sub_codes, _sub_x, _sub_thousands, _sub_dates, _sub_times, _sub_percent, _sub_currency, _sub_units, _split_alnum, _sub_ordinals, _sub_abbr, _sub_numbers):
+    for f in (_sub_squares, _sub_codes, _sub_x, _sub_thousands, _sub_dates, _sub_times, _sub_percent, _sub_currency, _sub_units, _split_alnum, _sub_ordinals, _sub_abbr, _sub_numbers):
         t = f(t)
     t = _sub_letters(t)
     for k, v in SYMBOLS.items():
@@ -242,7 +248,9 @@ def normalize(text: str) -> str:
     t = re.sub(r"[\"“”„‘’'«»]", "", t)
     t = re.sub(r"[()\[\]{}:]", " , ", t).replace("…", " . ")
     t = re.sub(r"([,.?!;])", r" \1 ", t)
-    t = re.sub(r"[^\w\s,.?!;çğıöşüÇĞİÖŞÜâîûÂÎÛ]|_", " ", t)  # kalan simgeler
+    # kalan simgeler: yalnız harf, ondalık rakam ve duraklama kalır. \w burada YETMEZ: ², ½, ① gibi No/Nl karakterleri \w'dir ama str.isalpha() değildir;
+    # engine (_TOK) ile g2ptts tagger (isalpha) sözcük listeleri ayrışır ve g2ptts sessizce vurgu/sınır üretmezdi (tests/test_normalize.py)
+    t = re.sub(r"[^\s,.?!;]", lambda m: m.group() if m.group().isalpha() or m.group().isdecimal() else " ", t)
     t = re.sub(r"\d+", lambda m: " " + digits(m.group()) + " ", t)  # güvenlik ağı: kimsenin yakalamadığı rakamlar sessizce silinmesin
     toks, out = t.split(), []
     for tok in toks:

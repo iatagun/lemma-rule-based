@@ -1,5 +1,6 @@
 """Aşama 6 değerlendirme çekirdeği: bir checkpoint'i test (+val) cümlelerinde sentezle, Whisper-small CER/WER ve UTMOS hesapla.
-Cümleler eğitimde hiç görülmeyen test klipleri (val kayıp izlemede kullanıldı). Çıktı: D:/dizgetts/eval_out/<label>/{NNN.wav, results.json}.
+Varsayılan bölüm YALNIZ test (+ --extra cümleleri). `val` dp/epoch seçimi, tau ve length_scale için kullanıldı: karar ölçütlerinde kullanma
+(2026-09-26 denetimi: v5/v5s karar tablosundaki "143 cümle" 84 test + 59 val idi). Çıktı: <DIZGETTS_HOME>/eval_out/<label>/{NNN.wav, results.json}.
 
   D:/dizgetts/venv/Scripts/python.exe -X utf8 dizgetts/eval/evaluate.py --ckpt D:/dizgetts/runs/<run>/ep150.pt --label espeak_ep150 [--splits test val] [--device cuda]
 """
@@ -8,32 +9,32 @@ import argparse, json, os, sys, time
 import numpy as np
 import soundfile as sf
 import torch
+from dizgetts import paths  # noqa: E402
 from dizgetts.eval.asr_floor import canon, lev  # noqa: E402
 from dizgetts.eval.synth import Synth  # noqa: E402
 from dizgetts.eval.whisper_score import Scorer  # noqa: E402
 
-ROOT = "D:/dizgetts/data/processed/antalia"
+ROOT = paths.ANTALIA
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--ckpt", required=True)
     ap.add_argument("--label", required=True)
-    ap.add_argument("--splits", nargs="+", default=["test", "val"])
+    ap.add_argument("--splits", nargs="+", default=["test"], help="val karar için kullanılmamalı (seçim val'de yapıldı)")
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--calib", default=None, help="v4c: süre kalibrasyon tablosu (duration_calib.json)")
     ap.add_argument("--extra", default=None, help="ek metin cümleleri (satır başına bir; # yorum), ör. dizgetts/eval/extra_sentences_ud.txt — ses kaydı gerekmez")
     a = ap.parse_args()
-    out = os.path.join("D:/dizgetts/eval_out", a.label)
+    out = os.path.join(paths.EVAL_OUT, a.label)
     os.makedirs(out, exist_ok=True)
     rows = [dict(json.loads(l), split=sp) for sp in a.splits for l in open(f"{ROOT}/{sp}.jsonl", encoding="utf8")]
     if a.extra:
         ex = [l.strip() for l in open(a.extra, encoding="utf8") if l.strip() and not l.startswith("#")]
         rows += [dict(id=f"extra{i:03d}", text=t, split="extra") for i, t in enumerate(ex)]
     torch.manual_seed(a.seed)
-    sy = Synth(a.ckpt, a.device, calib=a.calib)
+    sy = Synth(a.ckpt, a.device)
     sc = Scorer(device=a.device)
-    utmos = torch.hub.load("tarepan/SpeechMOS:v1.2.0", "utmos22_strong", trust_repo=True).eval()
+    utmos = torch.hub.load("tarepan/SpeechMOS:ed25eacbfa42b99156c36ebec67a733b5dbb9b79", "utmos22_strong", trust_repo=True).eval()
     res = []
     t0 = time.time()
     for i, r in enumerate(rows):

@@ -3,6 +3,8 @@ import json, os
 
 import yaml
 
+from dizgetts import paths
+
 HERE = os.path.join(os.path.dirname(__file__), "..")
 exps = yaml.safe_load(open(os.path.join(HERE, "experiments.yaml"), encoding="utf8"))["experiments"]
 lines = ["# Deneyler (otomatik üretildi: `python -m dizgetts.eval.report`; kaynak `experiments.yaml`)", "",
@@ -10,7 +12,7 @@ lines = ["# Deneyler (otomatik üretildi: `python -m dizgetts.eval.report`; kayn
 for e in exps:
     cer = wer = mos = ""
     lab = e.get("eval_label")
-    p = f"D:/dizgetts/eval_out/{lab}/results.json" if lab and lab != "TBD" else None
+    p = f"{paths.EVAL_OUT}/{lab}/results.json" if lab and lab != "TBD" else None
     if p and os.path.exists(p):
         s = json.load(open(p, encoding="utf8"))["summary"]
         cer, wer, mos = f"{s['cer']*100:.1f}", f"{s['wer']*100:.1f}", f"{s['utmos']:.2f}"

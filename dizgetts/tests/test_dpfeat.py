@@ -8,12 +8,13 @@ import os
 import torch
 from matcha.utils.utils import intersperse
 
+from dizgetts import paths
 from dizgetts.engine import DP_FEAT, Engine
 from dizgetts.frontend.symbols import SYMBOL_TO_ID
 from dizgetts.train import dpfeat
 from dizgetts.train.train import build_model
 
-CK = "D:/dizgetts/runs/v3a_g2ptts_nb_e150_20260925-213638/ep150.pt"
+CK = f"{paths.RUNS}/v3a_g2ptts_nb_e150_20260925-213638/ep150.pt"
 
 # 4) engine + yayılım (model gerektirmez)
 e = Engine(bert_fallback=False)
@@ -27,6 +28,20 @@ i = u.tokens.index(",")
 assert u.dp_feat[i] == DP_FEAT["ip"] and u.dp_feat[i + 1] == DP_FEAT["ip"], (u.tokens, u.dp_feat)  # virgül + sonraki ayraç
 assert u.dp_feat[-1] == DP_FEAT["cümle"] and u.dp_feat[0] == DP_FEAT["in"]
 print("OK (engine dp_feat)")
+
+# 5) birikimli yuvarlama (v5, model gerektirmez): docstring iddiaları = ceil(exp(logw)) tam k, toplam korunur, en az 1 kare, pad etkisiz
+for w, want in (([1.4, 2.6, 3.2, 0.0, 0.0, 0.0, 0.0], [1, 3, 3]),          # hiç kırpma yok: toplam = round(7,2) = 7
+                ([0.4, 2.6, 0.2, 5.5, 1.1, 0.0, 0.0], [1, 3, 1, 6, 1])):  # 0'a yuvarlananlar 1'e çekilir (MAS de 0 kare vermez)
+    x = torch.tensor([[w]])
+    lw = torch.log(x.clamp(min=1e-6))
+    n = len(want)
+    mask = torch.zeros(1, 1, len(w)); mask[..., :n] = 1
+    out = dpfeat.cum_round_logw(lw, mask)
+    assert torch.ceil(torch.exp(out))[0, 0, :n].tolist() == want, (w, torch.ceil(torch.exp(out))[0, 0].tolist())
+    assert (out[0, 0, n:] == 0).all()  # pad: logw 0 (maske)
+    if want == [1, 3, 3]:
+        assert sum(want) == round(sum(w))
+print("OK (cum_round_logw)")
 
 if not os.path.exists(CK):
     print("checkpoint yok, model testleri atlandı"); raise SystemExit

@@ -17,6 +17,7 @@ from pathlib import Path
 
 import yaml
 
+from dizgetts import paths
 from dizgetts.frontend.morph import parse_feats
 from dizgetts.frontend.stress import TIERS, StressRules, _n_vowels
 from dizgetts.frontend.normalize import tr_lower
@@ -26,7 +27,7 @@ HERE = Path(__file__).resolve().parents[1]
 UD = {"train": ["morph_data/raw/tr_boun-ud-train.conllu", "morph_data/raw/tr_imst-ud-train.conllu", "data/treebanks/UD_Turkish-Kenet/tr_kenet-ud-train.conllu"],
       "val": ["morph_data/raw/tr_boun-ud-dev.conllu", "morph_data/raw/tr_imst-ud-dev.conllu", "data/treebanks/UD_Turkish-Kenet/tr_kenet-ud-dev.conllu"],
       "test": ["morph_data/raw/tr_boun-ud-test.conllu", "morph_data/raw/tr_imst-ud-test.conllu", "data/treebanks/UD_Turkish-Kenet/tr_kenet-ud-test.conllu"]}
-OUT = "D:/dizgetts/data/g2ptts"
+OUT = paths.G2PTTS_DATA
 R = StressRules()
 
 
