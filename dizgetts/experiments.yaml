@@ -240,7 +240,7 @@ experiments:
       KÖR AB (reports/ab/ab_v4e150_v4e400.tsv; 30 yeni çift, tek soru, -25 LUFS, kırpma yok): v4-400 16 / v4-150 8 / fark yok 6 (p = 0,15).
       Yön ölçümle aynı, n=30'da anlamsız. KARAR: v4-400 varsayılan model (ölçüm anlamlı + dinleme aynı yönde). Telaffuz notları: docs/pronunciation_issues.md.
   - id: v5-dp-linear
-    status: running
+    status: done
     depends_on: v4-e400
     diagnosis: >-
       (eğitimsiz, v4-400, 143 test+val) token başına kare: gerçek MAS / ham tahmin / ceil: ünlü 2,27/1,92/2,48, ünsüz 2,36/1,98/2,53,
@@ -262,3 +262,10 @@ experiments:
       Yalıtılmış dp eğitimi (scripts/train_dp.py; denetim: yeniden kurulan yol = model logw, fark 0). Başlangıç (v4-400 log-MSE dp) val
       tahmin/hedef 0,797 (ayraç 0,67). Huber: en iyi ep7, oran ~0,88. MSE: en iyi ep8, oran 0,961 (ünlü 0,99, ünsüz 0,93, ayraç 1,02, noktalama 1,23).
       SEÇİLEN: MSE (val oranı 1'e en yakın). Test ckpt: D:/dizgetts/runs/v5_dplin/ep400_dp_mse.pt (dp_round=cum).
+    result: >-
+      KARAR KURALI GEÇİLMEDİ (CER koşulu). Zamanlama v4-400 -> v5 (gerçek): noktalamalı duraklama 310 -> 468 ms (469), virgül uzaması 1,29 -> 1,48
+      (1,47), cümle sonu 1,20 -> 1,31 (1,36), nPVI 26,7 -> 34,0 (44,4), eklemleme 5,98 -> 6,71 hece/sn (6,51; artık %3 HIZLI). UTMOS 3,03 -> 3,11
+      (+0,08 anlamlı). CER (543) 3,1 -> 3,6 (+0,51 [-0,12, +1,17], üst sınır > 0,5), WER 12,5 -> 14,2 (+1,61 anlamlı kötü).
+      Kullanıcı (körlenmemiş): "v5 daha iyi" (UTMOS ile uyumlu). Olası neden: hız gerçeği aştı (val toplam oranı 0,96 + ceil yanlılığı kalktı).
+      Sonraki: v5s = length_scale'i YALNIZ val kliplerinde eklemleme hızı gerçeğe eşit olacak şekilde seç; aynı karar kuralı + kör AB.
+      Uyarı: test seti bu seride birkaç kez kullanıldı -> iyimser yanlılık olabilir; kör AB asıl onay.
