@@ -214,6 +214,11 @@ experiments:
       v4c toplam süresi v4'ün 1,217 katı (cümle medyanı 1,19; p10-p90 1,10-1,31). Neden: log1p alanında moment eşleme yayılımı genişletirken doğrusal
       ortalamayı büyüttü (Jensen) -> konuşma yavaşladı; zaten sentez gerçekten yavaştı (6,0 vs 6,5 hece/sn). Tek cümlelik ön test tersini göstermişti (yanıltıcı).
       REDDEDİLDİ (kullanıcı dinlemesi). Ders: süre kalibrasyonu doğrusal ortalamayı (konuşma hızını) korumalı; tek örnekle süre yönü doğrulanmaz.
+    result: >-
+      Karar kuralıyla da RED (CER koşulu). v4c - v4 (143 test): nPVI 27,1 -> 41,8 (gerçek 45,4; +14,7 anlamlı), noktalamalı duraklama 280 -> 561 ms
+      (gerçek 474; AŞTI), noktalamasız 11 -> 32 ms (gerçek 17; AŞTI), eklemleme 6,04 -> 5,51 hece/sn (gerçek 6,51; daha yavaş), cümle sonu uzama
+      1,17 -> 1,12 (-). CER (543) +4,09 pp [+1,30, +8,36] anlamlı kötü; UTMOS aynı. Ders: süre yayılımı geri getirilebilir (nPVI 42) ama
+      hız/anlaşılırlık korunarak; log1p moment eşleme ortalamayı şişirip hataları gerdi.
   - id: v4-e400
     status: queued
     depends_on: v4-dpfeat
