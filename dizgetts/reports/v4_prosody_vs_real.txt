@@ -1,0 +1,25 @@
+ölçü                                                    n    GERÇEK    SENTEZ     fark  %95 GA
+cümle F0 aralığı (p95-p5) [yt]                        143     15.79     14.43    -1.35  [-1.60, -1.10] *
+öbek içi alçalma eğimi [yt/sözcük]                    143     -0.76     -0.68    +0.08  [+0.02, +0.14] *
+sözcük içi F0 aralığı [yt]                            143      6.77      6.65    -0.13  [-0.29, +0.04]  
+ilk ünlüden vurgulu ünlüye yükseliş [yt]              143      0.86      0.77    -0.09  [-0.33, +0.15]  
+sözcük tepesi işaretli vurgulu ünlüde (oran) []       143      0.47      0.49    +0.03  [+0.00, +0.05] *
+son hece değişimi — noktalamasız [yt]                 143      2.13      1.83    -0.30  [-0.54, -0.07] *
+son hece değişimi — virgül/; [yt]                     129      2.33      3.28    +0.95  [+0.10, +1.83] *
+son hece değişimi — cümle sonu [yt]                   105      0.34      0.76    +0.42  [-0.56, +1.39]  
+sözcük sınırında F0 sıçraması (noktalamasız) [yt]     143     -1.93     -1.98    -0.05  [-0.22, +0.12]  
+duraklama — noktalamasız sınır [ms]                   143     17.31     10.86    -6.45  [-8.22, -4.84] *
+duraklama — noktalamalı sınır [ms]                    143    473.75    280.02  -193.73  [-220.31, -168.64] *
+vurgulu - vurgusuz ünlü F0 [yt]                       143      1.39      1.26    -0.13  [-0.33, +0.07]  
+vurgulu - vurgusuz ünlü yoğunluk [dB]                 143      3.06      3.62    +0.56  [+0.41, +0.71] *
+vurgulu - vurgusuz ünlü süre [ms]                     143     -4.98     -3.52    +1.46  [+0.27, +2.74] *
+vurgulu - vurgusuz ünlü spektral eğim (alfa) [dB]     143     -0.52     -0.39    +0.13  [-0.13, +0.39]  
+son ünlü uzaması — noktalamasız (oran) [x]            143      1.07      1.01    -0.05  [-0.08, -0.03] *
+son ünlü uzaması — virgül/; (oran) [x]                138      1.44      1.26    -0.18  [-0.27, -0.10] *
+son ünlü uzaması — cümle sonu (oran) [x]              143      1.34      1.17    -0.16  [-0.23, -0.10] *
+sözcük içi yoğunluk eğimi (son - ilk ünlü) [dB]       143      2.91      3.38    +0.47  [+0.26, +0.68] *
+ünlü süresi nPVI (ritim) []                           143     45.41     27.11   -18.31  [-19.05, -17.49] *
+ünlü dağılımı (F1/F2 merkezine uzaklık) [Bark]        143      1.52      1.52    +0.00  [-0.02, +0.02]  
+eklemleme hızı [hece/sn]                              143      6.51      6.04    -0.47  [-0.52, -0.42] *
+real {">=30 ms": 0.116, ">=60 ms": 0.082, ">=100 ms": 0.055, ">=250 ms": 0.017, "n": 3930, "yükseliş>=3yt": 0.329, "son_hece_yükselişi>=3yt(noktalamasız)": 0.385}
+synth {">=30 ms": 0.105, ">=60 ms": 0.059, ">=100 ms": 0.027, ">=250 ms": 0.003, "n": 3930, "yükseliş>=3yt": 0.305, "son_hece_yükselişi>=3yt(noktalamasız)": 0.361}

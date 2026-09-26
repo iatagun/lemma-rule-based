@@ -167,7 +167,7 @@ experiments:
       duraklama 472 -> 260 ms (>=250 ms noktalamasız %1,7 -> %0), öbek sonu uzaması zayıf (virgül 1,42 -> 1,22), eklemleme 6,5 -> 6,1 hece/sn,
       virgül yükselişi abartılı (+1,0 yt). Yöntem düzeltmesi: add_blank kareleri yarı yarıya dağıtılmazsa ünlüler 1-2 kare kalıyor ve sahte eğim farkı çıkıyordu.
   - id: v4-dpfeat
-    status: running
+    status: done
     depends_on: [v3a-g2ptts-nobreaks, prosody-acoustic-v3a]
     hypothesis: >-
       Sentezin zamanlaması düz (nPVI 27 vs 45; noktalamalı duraklama 260 vs 472 ms; virgül öncesi uzama 1,22 vs 1,42) çünkü süre tahmincisi log-MSE
@@ -180,3 +180,10 @@ experiments:
     note: "sınır sınıfları eğitim cümlelerinde g2ptts sınır modelinin (Antalia train sesinden öğrendi) tahmini -> train'de gerçeğe yakın, testte değil (bilinen)."
     config: configs/v4_g2ptts_dpfeat.yaml
     eval_label: v4_g2ptts_dp_ep150_x543
+    result: >-
+      KABUL EDİLMEDİ (karar kuralı): noktalamalı duraklama 260 -> 280 ms (+20 [+16, +25], gerçek 472); virgül öncesi uzama 1,22 -> 1,26
+      (+0,03 [-0,00, +0,07] anlamsız, gerçek 1,42); nPVI 26,8 -> 27,1 anlamsız. CER 4,0 = 4,0 (-0,06 [-0,35, +0,23]); UTMOS +0,02 anlamlı.
+      Yan etki: vurguya yükseliş -0,33 yt, vurgulu-vurgusuz F0 -0,25 yt (ezgi hareketi biraz azaldı).
+      TANI (eğitimsiz): virgül bölgesi hedef/tahmin — train medyan 360/263 ms, std 202/99, log-korelasyon 0,72; val 395/278, std 233/96, 0,74.
+      Hipotez (iki tepeli dağılım) YANLIŞ: virgüllerin yalnız %9-12'si <100 ms. Asıl sorun süre tahmincisinin DARALTMASI (eğitim kliplerinde bile):
+      sıralamayı biliyor, ölçeği yarıya sıkıştırıyor -> token başına log-MSE + küçük (2 conv) tahminci. Öznitelik bilgi veriyor ama yetmiyor.
