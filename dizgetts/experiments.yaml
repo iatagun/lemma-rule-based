@@ -194,6 +194,12 @@ experiments:
       vurguya yükseliş 1,10 -> 0,77 yt (gerçek 0,95; v3a aşırıydı), sözcük içi F0 aralığı 6,84 -> 6,65 (gerçek 6,77), noktalamalı duraklama +20 ms.
       Yani süre özniteliği kod çözücü üzerinden sözcük başına ezgi "zıplamasını" azalttı. DERS: karar kurallarına dinleme (kör AB) girmeli;
       akustik ölçütler yön gösterir ama algıyı tek başına temsil etmez. v4 fiilen en iyi aday.
+    blind_ab: >-
+      KÖR AB (reports/ab/ab_v3a_v4.tsv, anahtar reports/ab/v3a_v4_key.json; 30 çift = 15 Antalia + 15 UD, LUFS eşit, taraf rastgele):
+      doğallık v4 16 / v3a 9 / fark yok 5 (işaret testi p = 0,23); telaffuz v4 16 / v3a 8 / fark yok 6 (p = 0,15). Yön körlenmemiş yargıyla aynı,
+      ama n=30'da ANLAMSIZ (%64 tercih için ~80-100 çift gerekir). İki soruya 29/30 aynı cevap (hale etkisi). Notlar: v4 'sağlık'ı 'salık' okudu
+      (ğ uzatmalı ɑː kısa kaldı; dizge doğru) -> süre değişikliğinin yan etkisi; v3a 'afiyet'te a kısa (dizge â uzunluğu yok); ikisinde de yanlış:
+      kağıt (cʰ aː ɨ t), mahzurlar, tahlil, Osmanlıca/Arapça sözcükler -> dizge fonem sorunu (kullanıcıya soruldu).
   - id: v4c-calib
     status: rejected
     depends_on: v4-dpfeat
