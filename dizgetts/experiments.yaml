@@ -187,7 +187,13 @@ experiments:
       TANI (eğitimsiz): virgül bölgesi hedef/tahmin — train medyan 360/263 ms, std 202/99, log-korelasyon 0,72; val 395/278, std 233/96, 0,74.
       Hipotez (iki tepeli dağılım) YANLIŞ: virgüllerin yalnız %9-12'si <100 ms. Asıl sorun süre tahmincisinin DARALTMASI (eğitim kliplerinde bile):
       sıralamayı biliyor, ölçeği yarıya sıkıştırıyor -> token başına log-MSE + küçük (2 conv) tahminci. Öznitelik bilgi veriyor ama yetmiyor.
-    user_listening: "2026-09-26: kullanıcı v4'ü v3a'dan 'kulağıma daha iyi geliyor' dedi (körlenmemiş, gayriresmî). Karar kuralı yalnız iki zamanlama ölçütüne bakıyordu; algıyı kapsamayabilir -> kör AB dinleme testi gerekir."
+    user_listening: >-
+      2026-09-26: kullanıcı v4'ü v3a'dan 'kulağıma daha iyi geliyor' dedi; ardından: "sözcükleri her defasında nefes alıyormuş gibi okuma
+      (kayıt başlıyor, sözcük okunuyor, kayıt bitiyor) hissi v4 ve v4c'de YOK" -> projenin baştan beri süren ana algısal şikâyeti v4 ile giderildi
+      (körlenmemiş). Karar kuralının iki zamanlama ölçütü bunu yakalamadı. Sonradan bakılan (post-hoc) aday açıklama, v4-v3a anlamlı farkları:
+      vurguya yükseliş 1,10 -> 0,77 yt (gerçek 0,95; v3a aşırıydı), sözcük içi F0 aralığı 6,84 -> 6,65 (gerçek 6,77), noktalamalı duraklama +20 ms.
+      Yani süre özniteliği kod çözücü üzerinden sözcük başına ezgi "zıplamasını" azalttı. DERS: karar kurallarına dinleme (kör AB) girmeli;
+      akustik ölçütler yön gösterir ama algıyı tek başına temsil etmez. v4 fiilen en iyi aday.
   - id: v4c-calib
     status: rejected
     depends_on: v4-dpfeat
