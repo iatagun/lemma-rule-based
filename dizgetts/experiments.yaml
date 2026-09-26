@@ -187,3 +187,24 @@ experiments:
       TANI (eğitimsiz): virgül bölgesi hedef/tahmin — train medyan 360/263 ms, std 202/99, log-korelasyon 0,72; val 395/278, std 233/96, 0,74.
       Hipotez (iki tepeli dağılım) YANLIŞ: virgüllerin yalnız %9-12'si <100 ms. Asıl sorun süre tahmincisinin DARALTMASI (eğitim kliplerinde bile):
       sıralamayı biliyor, ölçeği yarıya sıkıştırıyor -> token başına log-MSE + küçük (2 conv) tahminci. Öznitelik bilgi veriyor ama yetmiyor.
+    user_listening: "2026-09-26: kullanıcı v4'ü v3a'dan 'kulağıma daha iyi geliyor' dedi (körlenmemiş, gayriresmî). Karar kuralı yalnız iki zamanlama ölçütüne bakıyordu; algıyı kapsamayabilir -> kör AB dinleme testi gerekir."
+  - id: v4c-calib
+    status: running
+    depends_on: v4-dpfeat
+    hypothesis: >-
+      v4 süre tahmincisi sıralamayı biliyor (log-korelasyon 0,72) ama ölçeği daraltıyor. Sentez sırasında (sınıf x token türü) grubu başına log(süre+1)
+      üzerinde moment eşleme (tahmin ort/std -> hedef ort/std; TRAIN kliplerinde uydurulur) duraklama, öbek sonu uzaması ve nPVI'yı gerçeğe yaklaştırır. Eğitim yok.
+    decision_rule: >-
+      KABUL: test 143'te {noktalamalı duraklama, virgül/; son ünlü uzaması, nPVI} ölçütlerinden EN AZ İKİSİ v4'e göre anlamlı biçimde gerçeğe doğru
+      (eşleşmiş GA 0'ı içermez) VE CER farkı (v4c - v4) GA üst sınırı < +0,5 pp (543 cümle).
+  - id: v4-e400
+    status: queued
+    depends_on: v4-dpfeat
+    hypothesis: >-
+      ep150'de süre kayıpları hâlâ düşüyordu (doymamış). v4'ü ep400'e sürdürmek süre tahmincisinin eğitim verisinde bile görülen yetersiz öğrenmesini
+      azaltır -> duraklama / öbek sonu uzaması / nPVI v4 ep150'ye göre gerçeğe yaklaşır; CER kötüleşmez. (Kullanıcı önerisi, 2026-09-26.)
+    decision_rule: >-
+      KABUL: test 143'te {noktalamalı duraklama, virgül/; son ünlü uzaması, nPVI}'dan en az ikisi v4 ep150'ye göre anlamlı biçimde gerçeğe doğru VE
+      CER farkı GA üst sınırı < +0,5 pp. Ara checkpoint'ler (ep200/250/300/350) kayıp eğrisi için saklanır.
+    config: configs/v4_g2ptts_dpfeat_e400.yaml (--resume v4 ep150 last.pt)
+    eval_label: v4_e400_x543

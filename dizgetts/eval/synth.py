@@ -31,7 +31,7 @@ def load_vocoder(dev):
 
 
 class Synth:
-    def __init__(self, ckpt: str, device: str = "cpu", engine: Engine | None = None):
+    def __init__(self, ckpt: str, device: str = "cpu", engine: Engine | None = None, calib: str | None = None):
         self.dev = torch.device(device)
         ck = torch.load(ckpt, map_location="cpu", weights_only=False)
         self.cfg = ck["cfg"]
@@ -44,6 +44,10 @@ class Synth:
         self.vocoder, self.denoiser = load_vocoder(self.dev)
         self.fe = self.cfg["frontend"]
         self.engine = (engine or Engine(**self.cfg.get("engine", {}))) if self.fe in ("engine", "dizge") else None  # cfg["engine"]: morph/tiers (M1b)
+        self.calib = None
+        if calib:  # v4c: sentez anı süre kalibrasyonu (scripts/fit_duration_calib.py)
+            assert self.cfg["model"].get("dp_feat"), "kalibrasyon dp_feat'li model gerektirir"
+            self.calib = torch.tensor(json.load(open(calib, encoding="utf8"))["table"], dtype=torch.float32, device=self.dev)
 
     def ids(self, text: str):
         if self.fe == "espeak":
@@ -62,6 +66,10 @@ class Synth:
         if self.cfg["model"].get("dp_feat"):  # v4: sınır özniteliği yalnız süre tahmincisine
             from dizgetts.train.dpfeat import intersperse_feat, set_dp_feat
             set_dp_feat(self.model, torch.tensor(intersperse_feat(self._dp), dtype=torch.long, device=self.dev)[None])
+            if self.calib is not None:
+                from dizgetts.train.dpfeat import calib_groups, set_calib, token_types
+                g = calib_groups(intersperse_feat(self._dp), token_types(toks))
+                set_calib(self.model, self.calib, torch.tensor(g, dtype=torch.long, device=self.dev)[None])
         t = time.time()
         out = self.model.synthesise(x, xl, n_timesteps=steps, temperature=temperature, spks=None, length_scale=length_scale)
         wav = self.vocoder(out["mel"]).clamp(-1, 1)

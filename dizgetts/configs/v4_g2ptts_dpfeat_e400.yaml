@@ -1,0 +1,6 @@
+# v4-e400: v4 ile aynı; ep150 checkpoint'inden (last.pt, optimizer durumu dahil; lr sabit 1e-4, zamanlayıcı yok) 400'e DEVAM.
+# Gerekçe: ep150'de train_dur ve val_dur hâlâ düşüyordu (0,352->0,342; 0,37->0,36 / 25 ep) -> süre tahmincisi doymamış.
+base: v4_g2ptts_dpfeat.yaml
+name: v4_g2ptts_dpfeat_e400
+train:
+  epochs: 400

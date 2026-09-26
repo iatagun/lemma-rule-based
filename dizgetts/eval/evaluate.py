@@ -21,6 +21,7 @@ if __name__ == "__main__":
     ap.add_argument("--splits", nargs="+", default=["test", "val"])
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--calib", default=None, help="v4c: süre kalibrasyon tablosu (duration_calib.json)")
     ap.add_argument("--extra", default=None, help="ek metin cümleleri (satır başına bir; # yorum), ör. dizgetts/eval/extra_sentences_ud.txt — ses kaydı gerekmez")
     a = ap.parse_args()
     out = os.path.join("D:/dizgetts/eval_out", a.label)
@@ -30,7 +31,7 @@ if __name__ == "__main__":
         ex = [l.strip() for l in open(a.extra, encoding="utf8") if l.strip() and not l.startswith("#")]
         rows += [dict(id=f"extra{i:03d}", text=t, split="extra") for i, t in enumerate(ex)]
     torch.manual_seed(a.seed)
-    sy = Synth(a.ckpt, a.device)
+    sy = Synth(a.ckpt, a.device, calib=a.calib)
     sc = Scorer(device=a.device)
     utmos = torch.hub.load("tarepan/SpeechMOS:v1.2.0", "utmos22_strong", trust_repo=True).eval()
     res = []
