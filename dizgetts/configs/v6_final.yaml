@@ -1,0 +1,15 @@
+# v6 (yayın adayı): v4-e400 tarifi + söyleyiş sözlüğü (özenli) + uzun ünlü kuralları + a/aː gömme bağı.
+# Manifest: build_manifest --g2ptts --no-breaks --pron --register özenli --length-rules --out-suffix _phon_v6 (895/910 train klibi değişti, çoğu ː).
+# Sıcak başlangıç: v4-e400 ep400 (aynı sembol tablosu ve mel istatistiği -> tüm ağırlıklar yüklenir); hizalama baştan kurulmaz.
+base: v4_g2ptts_dpfeat.yaml
+name: v6_final
+manifest: _phon_v6
+engine: {g2ptts: true, g2ptts_breaks: false, pron_exceptions: true, register: özenli, length_rules: true}
+model:
+  dp_feat: true
+  embed_alias: true
+init:
+  ckpt: D:/dizgetts/runs/v4_g2ptts_dpfeat_e400_20260926-055905/ep400.pt
+  skip_prefixes: []
+train:
+  epochs: 250

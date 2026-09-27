@@ -293,3 +293,18 @@ experiments:
       eklemleme 6,02 -> 6,55 (6,57), nPVI 26,9 -> 35,2 (45,6). SONUÇ: zamanlama kazanımı temiz kliplerde de geçerli; karar kuralı yine geçilmedi (CER üst sınırı 0,54)
       ve CER kaybı artık istatistiksel olarak anlamlı -> doğallık/anlaşılırlık takası gerçek; kör AB (v4-400 vs v5s) hâlâ karar noktası. Kural esnetilmedi.
       Bundan sonra: evaluate.py varsayılanı yalnız test; karar ölçütlerinde val kullanılmaz (compare.py/prosody_acoustics.py --splits).
+  - id: v6-final
+    status: done
+    depends_on: v4-e400
+    hypothesis: >-
+      Yeni ön uç (söyleyiş istisna sözlüğü, özenli kayıt; uzun ünlü kuralları; a/aː gömme bağı) ile v4-e400'den sıcak başlangıçla ince ayar:
+      söyleyiş hedefleri (kağıt, hakim, değer, eğri, -eceğim, iyi) sese geçer, anlaşılırlık kötüleşmez. Yayın adayı (HF iatagun/DizgeTTS-Antalia).
+    decision_rule: "test 84 + UD 400 (val HARİÇ): CER farkı GA üst sınırı < +0,5 pp (v4-e400'e göre). Kontrol noktası yalnız val'de seçilir."
+    config: configs/v6_final.yaml (ep1-74, RAM çökmesi: yan CPU değerlendirmesi) + configs/v6_final_e150.yaml (--resume last.pt, ep75-150)
+    eval_label: v6_ep150_x484
+    result: >-
+      KABUL. Val seçimi (59): CER ep50 5,1 / ep74 4,5 / ep100 3,9 / ep125 3,7 / ep150 3,4 (v4-e400 4,0); UTMOS ep150 +0,13 anlamlı -> ep150.
+      Val kaybı v4 ep250'den beri düz (1,60) ama CER düşmeye devam etti: val kaybı durdurma ölçütü DEĞİL. Test+UD 484: CER 2,8 -> 2,7
+      (-0,13 [-0,37, +0,11]), WER 13,0 -> 12,6 (anlamsız), UTMOS 3,05 -> 3,10 (+0,04 [+0,02, +0,07] anlamlı). Gerçek kayıt tabanı (84 test) CER 3,1.
+      Paket: D:/dizgetts/hf/DizgeTTS-Antalia (scripts/export_tts_hf.py --check: token birebir, dalga farkı < 1e-4). Ders: eğitim sürerken aynı
+      makinede ağır CPU işi (Whisper) sistem RAM'ini bitirdi -> eğitimin yanında değerlendirme koşma.

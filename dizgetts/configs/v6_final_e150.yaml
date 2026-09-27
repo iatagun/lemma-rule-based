@@ -1,0 +1,6 @@
+# v6: ep74'te sistem RAM'i bitince (yan CPU değerlendirmesi) çöktü -> last.pt'den (ep74, optimizer dahil) 150'ye DEVAM.
+# 250 yerine 150: val kaybı v4 ep250'den beri düz, süre tahmincisi aşırı öğrenme eğiliminde (val_dur yükseliyor).
+base: v6_final.yaml
+name: v6_final_e150
+train:
+  epochs: 150

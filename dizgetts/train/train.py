@@ -73,7 +73,8 @@ def build_model(cfg: dict, n_vocab: int, stats: dict) -> MatchaTTS:
 
 
 def load_pretrained(model: MatchaTTS, init: dict) -> dict:
-    sd = torch.load(init["ckpt"], map_location="cpu", weights_only=False)["state_dict"]
+    ck = torch.load(init["ckpt"], map_location="cpu", weights_only=False)
+    sd = ck["state_dict"] if "state_dict" in ck else ck["model"]  # Lightning (LJSpeech) | kendi koşumuz (sıcak başlangıç)
     own = model.state_dict()
     keep = {k: v for k, v in sd.items() if not any(k.startswith(p) for p in init["skip_prefixes"]) and k in own and own[k].shape == v.shape}
     model.load_state_dict(keep, strict=False)

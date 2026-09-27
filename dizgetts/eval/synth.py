@@ -24,20 +24,22 @@ from dizgetts.train.train import ROOT, build_model
 VOCODER = paths.VOCODER
 
 
-def load_vocoder(dev):
+def load_vocoder(dev, path: str = VOCODER):
     g = HiFiGAN(AttrDict(v1)).to(dev)
-    g.load_state_dict(torch.load(VOCODER, map_location=dev)["generator"])
+    g.load_state_dict(torch.load(path, map_location=dev)["generator"])
     g.eval(); g.remove_weight_norm()
     return g, Denoiser(g, mode="zeros")
 
 
 class Synth:
-    def __init__(self, ckpt: str, device: str = "cpu", engine: Engine | None = None, embed_alias: bool | None = None):
+    def __init__(self, ckpt: str, device: str = "cpu", engine: Engine | None = None, embed_alias: bool | None = None, vocoder: str = VOCODER):
         self.dev = torch.device(device)
         ck = torch.load(ckpt, map_location="cpu", weights_only=False)
         self.cfg = ck["cfg"]
-        dcfg = yaml.safe_load(open(os.path.join(ROOT, self.cfg["data_config"]), encoding="utf8"))
-        stats = json.load(open(os.path.join(dcfg["out_root"], "stats.json"), encoding="utf8"))
+        stats = ck.get("stats")  # yayın paketi (scripts/export_tts_hf.py) mel istatistiğini taşır; eğitim checkpoint'i veri kökünden okur
+        if stats is None:
+            dcfg = yaml.safe_load(open(os.path.join(ROOT, self.cfg["data_config"]), encoding="utf8"))
+            stats = json.load(open(os.path.join(dcfg["out_root"], "stats.json"), encoding="utf8"))
         self.model = build_model(self.cfg, len(ck["symbols"]), stats)
         self.model.load_state_dict(ck["model"])
         if self.cfg["model"].get("embed_alias") if embed_alias is None else embed_alias:  # eğitimde görülmeyen a/aː gömmesi = ɑ/ɛ ortalaması (eski checkpoint'te de açılabilir)
@@ -45,7 +47,7 @@ class Synth:
             tie(self.model, {s: i for i, s in enumerate(ck["symbols"])})
         self.model.to(self.dev).eval()
         self.epoch = ck["epoch"]
-        self.vocoder, self.denoiser = load_vocoder(self.dev)
+        self.vocoder, self.denoiser = load_vocoder(self.dev, vocoder)
         self.fe = self.cfg["frontend"]
         self.engine = (engine or Engine(**self.cfg.get("engine", {}))) if self.fe in ("engine", "dizge") else None  # cfg["engine"]: morph/tiers (M1b)
 
@@ -57,6 +59,19 @@ class Synth:
         u = self.engine.frontend(text)
         self._dp = u.dp_feat
         return u.norm, u.tokens, intersperse(self.engine.ids(u), 0)
+
+    @classmethod
+    def from_hub(cls, repo: str = "iatagun/DizgeTTS-Antalia", device: str = "cpu", revision: str | None = None) -> "Synth":
+        """HF paketinden yükle (yerel veri/koşu gerekmez): model.pt + vokoder + vurgu/sınır etiketleyici iatagun/DizgeBERT-G2PTTS."""
+        from huggingface_hub import hf_hub_download
+        from transformers import AutoModel
+
+        get = lambda f: hf_hub_download(repo, f, revision=revision)
+        ck = get("model.pt")
+        ecfg = dict(torch.load(ck, map_location="cpu", weights_only=False)["cfg"].get("engine", {}))
+        if ecfg.pop("g2ptts", False):
+            ecfg["g2ptts"], ecfg["g2ptts_tagger"] = True, AutoModel.from_pretrained(ecfg.pop("g2ptts_repo", "iatagun/DizgeBERT-G2PTTS"), trust_remote_code=True).eval()
+        return cls(ck, device, engine=Engine(**ecfg), vocoder=get("hifigan_univ_v1"))
 
     @torch.inference_mode()
     def __call__(self, text: str, steps: int = 10, temperature: float = 0.667, length_scale: float | None = None):

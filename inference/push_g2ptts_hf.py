@@ -23,12 +23,13 @@ FOLDER = Path(__file__).resolve().parent.parent / "dizgebert_g2ptts_hf"  # repo 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", default="iatagun/DizgeBERT-G2PTTS")
+    ap.add_argument("--folder", type=Path, default=FOLDER, help="başka paket (ör. TTS: D:/dizgetts/hf/DizgeTTS-Antalia)")
     ap.add_argument("--public", action="store_true", help="varsayılan özel; herkese açmak için")
     ap.add_argument("--message", default="DizgeBERT-G2PTTS v0 (deneysel): hibrit vurgu (kural + ELECTRA) + sınır")
     args = ap.parse_args()
 
-    if not FOLDER.exists():
-        return sys.exit(f"{FOLDER} yok — önce: python -X utf8 -m dizgetts.g2ptts.export_hf")
+    if not args.folder.exists():
+        return sys.exit(f"{args.folder} yok — önce: python -X utf8 -m dizgetts.g2ptts.export_hf")
     try:
         who = whoami()
     except Exception:
@@ -38,7 +39,7 @@ def main() -> int:
     api = HfApi()
     api.create_repo(args.repo, repo_type="model", private=not args.public, exist_ok=True)
     print(f"repo hazır ({'herkese açık' if args.public else 'ÖZEL'}): https://huggingface.co/{args.repo}")
-    api.upload_folder(folder_path=str(FOLDER), repo_id=args.repo, repo_type="model", commit_message=args.message)
+    api.upload_folder(folder_path=str(args.folder), repo_id=args.repo, repo_type="model", commit_message=args.message)
     print(f"✓ push tamam → https://huggingface.co/{args.repo}")
     return 0
 
