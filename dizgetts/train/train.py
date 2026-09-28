@@ -69,6 +69,14 @@ def build_model(cfg: dict, n_vocab: int, stats: dict) -> MatchaTTS:
     if m.get("dp_feat"):  # v4: süre tahmincisine sınır özniteliği (train/dpfeat.py)
         from dizgetts.train import dpfeat
         dpfeat.enable(model)
+    if m.get("flow_dp"):  # v7: akış eşlemeli süre tahmincisi (train/flowdp.py; scripts/train_flowdp.py eğitir)
+        from dizgetts.train.flowdp import FlowDP
+        model.encoder.flow_dp = FlowDP(**m["flow_dp"].get("args", {}))
+        model.encoder.flow_dp.temperature = float(m["flow_dp"].get("temperature", 1.0))
+    if m.get("long_vowel_scale"):  # v7: uzun ünlü (ː) atomlarının sentez süresi çarpanı (train/dpfeat.py)
+        from dizgetts.frontend.symbols import SYMBOLS
+        model.encoder.long_scale = float(m["long_vowel_scale"])
+        model.encoder.register_buffer("_long_ids", torch.tensor([i for i, s in enumerate(SYMBOLS) if s.endswith("ː")]), persistent=False)  # .to(cihaz) ile taşınır
     return model
 
 

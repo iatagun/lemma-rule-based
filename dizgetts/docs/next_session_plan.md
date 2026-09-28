@@ -1,62 +1,27 @@
-# Sonraki oturum planı — cümle bazlı G2P / sesbilim motoru (2026-09-24 sonu)
+# Sonraki oturum planı (2026-09-28 sonu)
 
-## Durum (özet)
-- v2 motoru (`Engine`: Normalize → Phoneme → [Morph] → Stress → Assemble) çalışıyor; branch `dizgetts-v2`, son commit 9f1d841.
-- v2-m1a: CER 3,6 / WER 11,9 / UTMOS 2,85. v2-m1b: CER 3,0 / WER 12,4 / UTMOS 2,83. M1b − M1a: CER −0,60 [−1,76, +0,25], WER +0,59 [−0,86, +1,90] → anlamsız.
-  Karar kuralı gereği M1b varsayılan OLMADI (M1a varsayılan; `tiers` opt-in). Referans: espeak vurgulu 3,0/11,1; dizge vurgusuz 4,6/13,1; gerçek kayıt tabanı 4,7/11,6.
-- Ölçüm gücü sorunu: 143 cümle %11 sözcüğün vurgu farkını ayıramıyor → G2P'yi TTS eğitmeden, doğrudan (iç değerlendirme) ölçmek gerekiyor.
+## Durum
+- **En iyi model: v6-dp** = D:/dizgetts/runs/v6_dplin/ep400_dp_mse.pt (v6 ep150 + doğrusal-MSE süre tahmincisi + birikimli yuvarlama).
+  Kör AB: v6-dp > v6 19-0 (11 fark yok); v6-dp > v7b 17-6.
+- **Yayın ertelendi** (kullanıcı: "daha iyi sürümleri bekleyelim"). HF paketi D:/dizgetts/hf/DizgeTTS-Antalia hâlâ v6 ep150; commit 8641ad6 + etiket
+  `dizgetts-antalia-v0` YEREL (push edilmedi). Yayın zamanı gelince: v6-dp (ya da daha iyisi) ile export_tts_hf --check, kartı güncelle, onayla push.
+- **Bu oturumun kodu COMMIT EDİLMEDİ** (dizgetts-v2 çalışma ağacı): eval/{oracle,am_events,dp_response,boundary_rules_eval}.py, frontend/boundary_rules.py,
+  train/flowdp.py, scripts/{train_flowdp,build_manifest_measured}.py, tools/{make_textgrid,read_breaks}.py, engine.py (BoundaryRuleStage), train/{train,dpfeat}.py
+  (flow_dp, long_vowel_scale kancaları), train_dp --manifest, evaluate.py (text alanı, --splits boş), make_ab_test (metin düzeltmesi), docs, experiments.yaml.
+  Kullanıcıya commit'i sor.
 
-## Karar (kullanıcı onayladı): önce cümle bazlı G2P analizi, TTS eğitimi sonra
-Cümle bazlı G2P = sözcüğü bağlamıyla fonemleyen; vurgu, sınır ve sözcükler arası etkiyi cümleden çıkaran aşama.
+## Karar kuralı (kullanıcı onaylı)
+Süre/ezgi deneylerinde karar = KÖR AB (tek soru "hangisi daha doğal"). CER/WER gerçekçi zamanlamayı cezalandırır (kahin B WER 14 vs A 8,3 ama 29-1 kazandı);
+yalnız büyük bozulma izleme. **AB'den önce farkın duyulabilir olduğunu ölç** (dp_response / süre farkı); ince farklı AB'lerle kullanıcıyı yorma.
 
-| İhtiyaç | Bugün | Hedef |
-|---|---|---|
-| Vurgu | sözcük + Morph etiketi | işlev sözcüğü vurgusuzlaşması, soru/seslenme, odak |
-| Duraklama/sınır | yalnız noktalama | Dep (DizgeBERT-Dep) ile öbek sınırı |
-| Sözcükler arası etki | yok (`" "` ayracı) | sözcük sonu/başı ses etkileşimi (kullanıcı kuralları) |
-| Eşyazımlılar | BERT yedeği (`ğ`'de güvensiz) | cümleden ayrım |
+## Sıradaki seçenekler (kullanıcı seçecek)
+1. **Arapça/Farsça alıntı sözcük eksikleri** (kullanıcı istedi, "her şey sırasıyla"): somut, kural/sözlük işi; önce kullanıcıdan örnek sözcükler al.
+2. **Daha doğru deterministik süre modeli**: hedef log-süre korelasyonunu (val/test 0,49) artırmak. Girdi: sözcük içi konum, hece yapısı (açık/kapalı),
+   vurgu, sözcük uzunluğu, sınır; daha büyük/bağlamlı ağ (şu an proj_w 2 katman). Karar öncesi iç ölçüm: korelasyon belirgin artmazsa AB yok.
+3. **ğ uzun ünlüleri**: uzun ünlü (ː) gerçek 69 ms, v6-dp 59 (%85; train'de bile %87). long_vowel_scale kancası hazır (cfg.model.long_vowel_scale; 1,3
+   train'de ölçüldü) ama v6-dp'ye UYGULANMADI/test edilmedi. Kullanıcı -dığında/doğa "hızlı" dedi. Dinleme seti D:/dizgetts/samples/v7b_digi/.
 
-## Adımlar
-1. **Şema + `PhraseStage` iskeleti** (kural içermeyen): sözcük başına `{sözcük, fonemler, vurgu_hecesi, vurgu_kaynağı, sonraki_sınır: 0|ip|IP|cümle, notlar}`; Dep'ten sınır tahmini. Ölçüt: eski token akışıyla parity testi geçmeli (1053/1053).
-2. **İç değerlendirme (eğitimsiz):** kullanıcı etiketli sözcük/cümle setine karşı doğruluk raporu: kural modülü vs espeak vs son-hece varsayılanı, katman katman. `tests/stress_gold.tsv` + 250 sözcük.
-3. **Sözcükler arası kurallar:** kullanıcı yazdıkça `resources/*.tsv`'ye.
-4. **TTS'e yansıma:** ölçülmüş kural setinden sonra tek koşu; değerlendirme setini büyüt (143 yetmedi).
-- Öğrenilmiş cümle modeli (BERT) SONRA: etiket kural üretirse döngüsel olur; bağımsız etiket kaynağı gerekir (kullanıcı gold'u veya Antalia sesinden sınır/süre).
-
-## Kullanıcıdan bekleyenler
-1. `reports/stress_annotation_sheet.tsv` (250 sözcük; yalnız yanlışları düzelt).
-2. Sınır ve sözcükler arası etki için 10–20 örnek cümle ("şurada şöyle okunur").
-3. 4 soru: `nispeten` nis-PE-ten mi; `asosyal/kapkara/başbakan` ilk hece mi; `çocuklar!` seslenmesi; `yapsaydı` yap-SAY-dı mı.
-4. `-Iyor` öncesi vurgu kuralı (benim eklemem, onaysız) onayı.
-5. Sözlük listeleri (belirteç 167 tür, soru sözcükleri, yer adları, ödünçlemeler, bileşikler); işlev sözcükleri (bir, bu, ve, ile, için…) vurgusuz mu; kuralların `dizge` paketine taşınması kararı.
-
-## Açık, onay bekleyen seçenekler (kullanıcı henüz seçmedi)
-- **VoxCPM2** (openbmb, 2,4 B param, Apache-2.0, Türkçe destekli, düz metin girişi, ~8 GB VRAM, LoRA/SFT): yalnız 143 cümlede zero-shot REFERANS ölçümü (~5 GB indirme tahmini, onay gerekir). G2P'yi denemeye uygun değil (fonem girmiyor). GTX 1650 4 GB'a büyük olasılıkla sığmaz (denenmedi). Klonlama etiği: Antalia konuşmacısını taklit etme, sentetik olduğunu belirt.
-  Türkçe çalışmalar: Trendyol/Trendyol-TTS (VoxCPM2 LoRA, özel 20+ sa veri, formal ölçüm yok), FreyaTTS arXiv 2607.09530 (183M, fonemleştirici yok, CER 3,0/WER 8,0 kendi raporu).
-- İkinci veri (FLEURS-tr CC-BY-4.0, ISSAI TSC MIT; omersaidd/* KULLANMA; Common Voice kullanıcı dışladı): tek konuşmacı 4,2 sa sınırını gevşetir, G2P sorusunu değiştirmez.
-
-## Çalışma kuralları (devam)
-Aynı anda en fazla 1 eğitim; yeni koşu = önce `experiments.yaml`'da hipotez + karar kuralı; sayılar script çıktısından; onaysız büyük indirme/uzun eğitim yok; fp32 (GTX 1650 fp16 NaN); regex'i heredoc python ile değil Edit/Write ile yaz.
-Komutlar: `python -X utf8 -m dizgetts.eval.status`, `python -X utf8 dizgetts/eval/compare.py <a> <b>`, `python -X utf8 -m dizgetts.tests.test_engine_parity`.
-
-## İlerleme (2026-09-24, oturum 2)
-- Adım 1 (iskelet) YAPILDI: `Word.stress_src / boundary (0|ip|IP|cümle) / notes`, `PhraseStage` (şimdilik yalnız noktalama; token'a dokunmaz). Parity 1053/1053.
-  Dep öbek sınırı henüz YOK (sıradaki iş; bağımsız sınır etiketi: v1 `derive_breaks.py` sessizlik ölçümü -> `_v1_archive`).
-- Adım 2 başladı: `python -X utf8 -m dizgetts.eval.stress_intrinsic` (son_hece / m1a / m1b / espeak). stress_gold.tsv (28): 14,3 / 71,4 / 89,3 / 28,6 %.
-  DÖNGÜSEL: gold kökleri stress_roots.tsv'de de var -> yalnız regresyon kontrolü. Bağımsız sayı için annotation sheet gerekli (sheet okuyucu, sheet dolunca yazılacak).
-- Kullanıcı onayı: stress_gold.tsv'deki kullanıcı örnekleri son-hece istisnasıdır. Konum (hangi seslem) 3+ seslemlilerde onaysız: pırasa, ufacık, semracığım, lokanta, kapkara, başbakan.
-- Kullanıcı kuralı (seslem ağırlığı) UYGULANDI: `weight_stress` (-en belirteç: sondan 2. H ise o, L ise sondan 3.; alıntı/yer adı: güçlü-zayıf sözcük),
-  stress_roots.tsv'de sıra yerine `ağırlık`; uzun ünlü şapkayla (esâsen). M1b'ye `pek` (pekiştirme) ve `cik` (-CIk türemiş sıfat) katmanları -> ilk seslem.
-  Gold 35 sözcük: son_hece 11,4 / m1a 68,6 / m1b 94,3 / espeak 28,6 % (hâlâ döngüsel). Parity 1053/1053.
-  Açık: uzun ünlü sözlüğü (dizge uzunluk işaretlemiyor); asosyal (A-sos-yal) alıntı kuralına aykırı -> önek istisnası mı?; semracığım, güzeldir kuralsız.
-- 2026-09-25 İLK BAĞIMSIZ VURGU ÖLÇÜMÜ (kullanıcının kör etiketi, tests/stress_gold_random.tsv, 250 rastgele sözcük): son_hece 62,8 / m1a 64,4 / m1b 76,8 /
-  g2ptts (v2b karma) 78,0 / espeak 69,2 %; g2ptts örnek cümle içinde 196/250 (bağlam şimdilik katkısız: etiketler bağlamsız kurallardan).
-  Gold'un %37'si son-dışı. 54 hata: belirteç/bağlaç/edat (~25: böyle, için, gibi, hemen, sadece, çünkü, elbette...), alıntı/özel ad (~12: cumartesi,
-  pazartesi, perşembe, fatura, merhaba, harika...), vurgusuz ek (~12: -ken, -(y)ince, -(y)ArAk, -(y)AlIm, emir, -sInlAr, -mIş/-dIr koşaç), model (yerleştirdik).
-  B grubunda ve A'nın çoğunda sözcük istisna olarak İŞARETLENİNCE ağırlık kuralı konumu doğru veriyor -> darboğaz "hangi sözcük istisna".
-  DİKKAT: bu 250'nin hataları incelendi -> artık GELİŞTİRME seti; buradan sözcük sözlüğe eklenirse skor döngüsel olur. Son rapor için yeni kör set gerekir.
-- 2026-09-25 KÖR TEST SETİ (tests/stress_gold_test.tsv; 100 sözcük, 97 etiketli, önceki setlerle çakışmasız; kurallar buna BAKILMADAN yazıldı):
-  son_hece 83,5 [76,3–90,7] / m1a 83,5 / m1b 94,8 [89,7–99,0] / g2ptts-v3 karma 92,8 [87,6–97,9] / espeak 73,2 [63,9–81,4] % (sözcük bootstrap).
-  Eşleşmiş: g2ptts − son_hece +9,3 pp [+2,1, +17,5]; g2ptts − espeak +19,6 [+9,3, +29,9]; g2ptts − m1b −2,1 [−6,2, +2,1] (anlamsız).
-  Test setinde son-dışı oranı %16,5 (geliştirme %37; örnekleme farkı, n küçük). g2ptts hataları: sana (SA-na), neydi (NEY-di), hazırsanız
-  (ha-ZIR-sa-nız: ad + -ysA + kişi), insanidir, oldukça, e/yüzde (model 'vurgusuz' dedi).
+## Kullanıcı ezgi verisi
+D:/dizgetts/user_prosody: 40 cümle (01-24 Antalia, 25-40 yeni) telefon kaydı + Praat `duraklama` etiketleri (0/1/2). Bu 40 = GELİŞTİRME seti.
+Kullanıcının 1'i sessizliksiz (uzama/perde), 2'si ~250 ms. Antalia okuyucusuyla sınırların çoğu örtüşüyor. 41-48 okunmadı (nihai kör sınır ölçümü için ayrılabilir).
+Praat yardımcısı: ac.praat (numara sor, aç, "Kaydet ve kapat").

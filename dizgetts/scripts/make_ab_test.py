@@ -49,7 +49,8 @@ def build(a):
     common = [k for k in items[a.a] if k in items[a.b] and k not in used]
     ant = [k for k in common if not k.startswith("extra")]
     ud = [k for k in common if k.startswith("extra")]
-    pick = rng.sample(ant, a.n // 2) + rng.sample(ud, a.n - a.n // 2)
+    n_ud = (a.n - a.n // 2 if ant else a.n) if ud else 0  # yalnız bir tür varsa (kahin: yalnız Antalia; metin listesi: yalnız ek) hepsi ondan
+    pick = rng.sample(ant, a.n - n_ud) + rng.sample(ud, n_ud)
     rng.shuffle(pick)
     out = f"{AB}/{a.name}"
     os.makedirs(f"{out}/audio", exist_ok=True); os.makedirs(KEYS, exist_ok=True)
@@ -67,7 +68,7 @@ def build(a):
             sf.write(f"{out}/audio/{fn}", y, sr, subtype="PCM_16")
             files.append(fn)
         key.append(dict(pair=n, id=cid, side1=order[0], side2=order[1]))
-        data.append(dict(p=n, t=T[cid], f=files))
+        data.append(dict(p=n, t=items[a.a][cid].get("text") or T[cid], f=files))  # sesin KENDİ metni (evaluate.py yazar); eski sonuçlarda sabit listeden
     json.dump(dict(a=a.a, b=a.b, seed=a.seed, pairs=key), open(f"{KEYS}/{a.name}.json", "w", encoding="utf8"), ensure_ascii=False, indent=1)
     html = (HTML.replace("__DATA__", json.dumps(data, ensure_ascii=False)).replace("__NAME__", a.name)
             .replace("__ONEQ__", "true" if a.one_question else "false").replace("__Q1TEXT__", a.question))

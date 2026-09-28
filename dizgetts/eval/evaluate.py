@@ -20,7 +20,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--ckpt", required=True)
     ap.add_argument("--label", required=True)
-    ap.add_argument("--splits", nargs="+", default=["test"], help="val karar için kullanılmamalı (seçim val'de yapıldı)")
+    ap.add_argument("--splits", nargs="*", default=["test"], help="val karar için kullanılmamalı (seçim val'de yapıldı)")
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--extra", default=None, help="ek metin cümleleri (satır başına bir; # yorum), ör. dizgetts/eval/extra_sentences_ud.txt — ses kaydı gerekmez")
@@ -46,7 +46,7 @@ if __name__ == "__main__":
         with torch.no_grad():
             mos = float(utmos(torch.from_numpy(wav)[None].float(), 22050))
         res.append(dict(i=i, id=r["id"], split=r["split"], dur=round(len(wav) / 22050, 2), n_chars=len(ref), n_words=len(ref.split()),
-                        cer_e=lev(ref, h), wer_e=lev(ref.split(), h.split()), utmos=round(mos, 3), asr=hyp, ref=ref))
+                        cer_e=lev(ref, h), wer_e=lev(ref.split(), h.split()), utmos=round(mos, 3), asr=hyp, ref=ref, text=r["text"]))
         if i % 20 == 0:
             print(f"{a.label} {i}/{len(rows)} ({time.time()-t0:.0f}s)", flush=True)
     tot = lambda k, d: sum(x[k] for x in res) / sum(x[d] for x in res)

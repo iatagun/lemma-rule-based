@@ -308,3 +308,41 @@ experiments:
       (-0,13 [-0,37, +0,11]), WER 13,0 -> 12,6 (anlamsız), UTMOS 3,05 -> 3,10 (+0,04 [+0,02, +0,07] anlamlı). Gerçek kayıt tabanı (84 test) CER 3,1.
       Paket: D:/dizgetts/hf/DizgeTTS-Antalia (scripts/export_tts_hf.py --check: token birebir, dalga farkı < 1e-4). Ders: eğitim sürerken aynı
       makinede ağır CPU işi (Whisper) sistem RAM'ini bitirdi -> eğitimin yanında değerlendirme koşma.
+  - id: v6-dp
+    status: done
+    depends_on: v6-final
+    hypothesis: "Kahin AB'de gerçek süreler 29-1 tercih edildi -> kaldıraç süre modeli. v5 tarifi (dondurulmuş v6, yalnız dp doğrusal MSE + birikimli yuvarlama) v6'ya uygulanınca dinleyici tercih eder."
+    decision_rule: >-
+      YENİ (kullanıcı onayı 2026-09-27): süre deneylerinde karar KÖR DİNLEME (tek soru "hangisi daha doğal"); CER yalnız büyük bozulma izleme
+      (kahin deneyi CER'in doğal zamanlamayı cezalandırdığını gösterdi: B daha doğal ama CER daha yüksek).
+    config: "D:/dizgetts/runs/v6_dplin/ep400_dp_mse.pt (scripts/train_dp.py --loss mse; erken durdurma ep12)"
+    eval_label: v6dp_x484
+    result: >-
+      KABUL. Kör AB (reports/ab/ab_v6_vs_v6dp.tsv, 30 çift): v6-dp 19 / v6 0 / fark yok 11 (p < 0,001; kullanıcı "biraz zordu").
+      Otomatik (484 test+UD): UTMOS 3,10 -> 3,17 (+0,07 anlamlı), CER 2,7 -> 3,0 (+0,30), WER 12,6 -> 13,7 (beklenen takas).
+      Kahin (oracle_A_vs_B): gerçek süreler 29-1. v6-dp = yeni en iyi model.
+  - id: boundary-rules
+    status: rejected
+    depends_on: v6-dp
+    hypothesis: "Kullanıcının 40 cümlelik kulak etiketlerinden çıkan sınır kuralları (frontend/boundary_rules.py K1-K5), yalnız SENTEZDE uygulanınca daha doğal."
+    decision_rule: kör AB (tek soru), kuralın değiştirdiği cümlelerden 30 çift
+    result: >-
+      RED. Kör AB 8/8/14 fark yok (reports/ab/ab_v6dp_sinir_kurallari.tsv). Neden: dp sınır özniteliğine zayıf tepki (kuralın yükselttiği sınırda medyan +23 ms).
+      Antalia test ölçülen sessizlikte kurallar F1 0,50->0,47 (K3 zarf-fiil 1/33: Antalia orada sessizlik bırakmıyor, kullanıcı algısal sınır duyuyor).
+      Kod duruyor, Engine(boundary_rules=True), varsayılan kapalı.
+  - id: v6m-dp
+    status: rejected
+    depends_on: v6-dp
+    hypothesis: "dp_feat'i ÖLÇÜLEN sınırlardan (_phon_v6m, scripts/build_manifest_measured.py) eğitmek dp'yi sınır özniteliğine duyarlı yapar."
+    result: >-
+      Tek başına fark yok: noktalamasız gerçek IP'de (test, 263 ms) v6-dp 144, v6m kahin sınırla 209, tahmin sınırla 143 -> sınır tahmini bu yerleri bulamıyor.
+      AB yapılmadı (fark duyulmaz). ckpt D:/dizgetts/runs/v6m_dplin/ep400_dp_mse.pt.
+  - id: v7-flowdp
+    status: rejected
+    depends_on: v6-dp
+    hypothesis: "Tanı: v6-dp süre std'si gerçeğin ~%60'ı her token türünde (tekdüzelik). Akış eşlemeli süre örnekleyicisi (train/flowdp.py) çeşitliliği geri getirir, daha doğal."
+    config: "D:/dizgetts/runs/v7_flowdp/v7_flowdp.pt (T=1); v7b.pt = + long_vowel_scale 1,3 + length_scale 1,04"
+    result: >-
+      RED. İç ölçüm: std oranı ünlü 0,58->0,82, nPVI 48,8->57,8 (gerçek 60,4), ama log-süre korelasyonu 0,49->0,40. WER (484) 13,7->19,9 (test'te = kahin B'nin WER'i).
+      Kör AB v6dp 17 / v7b 6 / fark yok 7 (p=0,035; reports/ab/ab_v6dp_vs_v7b.tsv). Kullanıcının körlenmemiş "bayaa iyi" izlenimi kör testte tutmadı.
+      DERS: doğallığı çeşitlilik değil DOĞRU süre veriyor (gerçek süreler 29-1 kazandı); rastgele çeşitlilik tekdüzelikten kötü.

@@ -237,6 +237,22 @@ class G2PTTSStage(Stage):
         return u
 
 
+class BoundaryRuleStage(Stage):
+    """g2ptts sınırlarını dilsel kurallarla düzeltir (frontend/boundary_rules.py; kullanıcı kulak etiketlerinden). Yalnız Word.boundary değişir."""
+    name = "boundary_rules"
+
+    def version(self) -> str:
+        from dizgetts.frontend import boundary_rules
+        return hashlib.sha1(inspect.getsource(boundary_rules).encode("utf8")).hexdigest()[:8]
+
+    def __call__(self, u: Utterance) -> Utterance:
+        from dizgetts.frontend import boundary_rules
+        before = [w.boundary for w in u.words]
+        boundary_rules.apply(u.words)
+        u.meta["sınır_kuralı_değişen"] = sum(a != w.boundary for a, w in zip(before, u.words))
+        return u
+
+
 # Süre tahmincisi özniteliği (token başına): sözcük içi | son hece + ardından gelen ayraç/noktalama, sonraki sınıra göre.
 # Duraklama kareleri son heceden sonraki ayraç/noktalama/boşluk token'larına düşer; bu yüzden onlar da sınırın sınıfını alır.
 DP_FEAT = {"pad": 0, "in": 1, "0": 2, "ip": 3, "IP": 4, "cümle": 5}
@@ -274,10 +290,10 @@ class AssembleStage(Stage):
 class Engine:
     def __init__(self, bert_fallback: bool = True, morph: bool = False, tiers=(), morph_cache: dict | None = None,
                  g2ptts: bool = False, g2ptts_ckpt: str | None = None, g2ptts_breaks: bool = True, pron_exceptions: bool = False, register: str = "özenli",
-                 length_rules: bool = False, g2ptts_tagger=None):
+                 length_rules: bool = False, g2ptts_tagger=None, boundary_rules: bool = False):
         st: list[Stage] = [NormalizeStage(), PhonemeStage(bert_fallback, pron_exceptions, register, length_rules)]
         if g2ptts:  # dizge-g2p-tts: vurgu + sınır tek aşamada; sınır token'ları açık
-            self.stages = st + [G2PTTSStage(g2ptts_ckpt, g2ptts_tagger), AssembleStage(breaks=g2ptts_breaks)]  # v3a: breaks=False (v3'te hizalama takıldı)
+            self.stages = st + [G2PTTSStage(g2ptts_ckpt, g2ptts_tagger)] + ([BoundaryRuleStage()] if boundary_rules else []) + [AssembleStage(breaks=g2ptts_breaks)]  # v3a: breaks=False (v3'te hizalama takıldı)
             self._acoustic = None
             return
         if morph:

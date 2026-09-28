@@ -1,0 +1,35 @@
+{
+ "engine_versions": {
+  "normalize": "67316bf0",
+  "phonemize": "dizge==0.1.6+istisna=0d8497fc/özenli+uzun=010eaf1c/özenli",
+  "g2ptts": "D:/dizgetts/runs/g2ptts_v3/best.pt@55d67fb1+kurallar=d5186dcc",
+  "assemble": "791294f6"
+ },
+ "tiers": [],
+ "out_suffix": "_phon_v6",
+ "splits": {
+  "train": {
+   "clips": 910,
+   "words": 30420
+  },
+  "val": {
+   "clips": 59,
+   "words": 1970
+  },
+  "test": {
+   "clips": 84,
+   "words": 2948
+  }
+ },
+ "stress_counters": {
+  "model": 33601,
+  "kırılma_ip": 0,
+  "kırılma_IP": 0,
+  "kural:kök": 286,
+  "kural:clitic": 1362,
+  "kural:kök+ek": 69,
+  "kural:cık_sıfat": 14,
+  "kural:ünlüsüz": 5,
+  "kural:pekiştirme": 1
+ }
+}

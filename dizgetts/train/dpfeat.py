@@ -22,6 +22,7 @@ class DPFeatTextEncoder(TextEncoder):
     """TextEncoder.forward ile aynı; tek fark `x_dp += dp_feat_emb(feat)` (matcha-tts 0.0.7.2 text_encoder.py:378-410)."""
 
     def forward(self, x, x_lengths, spks=None):
+        ids = x
         x = self.emb(x) * math.sqrt(self.n_channels)
         x = torch.transpose(x, 1, -1)
         x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
@@ -36,6 +37,12 @@ class DPFeatTextEncoder(TextEncoder):
             assert feat.shape == x_mask.shape[::2], (tuple(feat.shape), tuple(x_mask.shape))
             x_dp = x_dp + self.dp_feat_emb(feat).transpose(1, 2) * x_mask
         logw = self.proj_w(x_dp, x_mask)
+        fd = getattr(self, "flow_dp", None)  # v7: akış eşlemeli süre örneklemesi (train/flowdp.py); yalnız SENTEZDE, MAS/eğitim deterministik logw'yi görür
+        if fd is not None and not self.training and getattr(self, "_flow_on", True):
+            logw = fd.sample(x_dp, logw, x_mask)
+        ls = getattr(self, "long_scale", None)  # v7: uzun ünlü (ː) süre düzeltmesi, yalnız SENTEZDE (dp seyrek ː'yi kısaya çekiyor; oran train'de ölçüldü)
+        if ls and not self.training:
+            logw = logw + math.log(ls) * torch.isin(ids, self._long_ids).unsqueeze(1).to(logw.dtype) * x_mask
         if getattr(self, "_round", None) == "cum":  # v5: yalnız SENTEZDE (set_round); eğitim/MAS logw'yi değiştirmez
             logw = cum_round_logw(logw, x_mask)
         return mu, logw, x_mask

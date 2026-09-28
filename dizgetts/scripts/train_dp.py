@@ -98,12 +98,13 @@ def main():
     ap.add_argument("--bs", type=int, default=16)
     ap.add_argument("--patience", type=int, default=10)
     ap.add_argument("--loss", choices=("huber", "mse"), default="huber")
+    ap.add_argument("--manifest", default=None, help="dp_feat bu manifestten (ör. _phon_v6m: ölçülen sınırlar); token'lar ckpt manifestiyle aynı olmalı")
     a = ap.parse_args()
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     torch.manual_seed(0); rng = random.Random(0)
     m, ck, stats = _load_model(a.ckpt)
     assert ck["cfg"]["model"].get("dp_feat"), "v4 (dp_feat) modeli bekleniyor"
-    man = ck["cfg"]["manifest"]
+    man = a.manifest or ck["cfg"]["manifest"]
     t0 = time.time()
     tr, va = load_split(m, stats, man, "train", "cpu"), load_split(m, stats, man, "val", "cpu")
     print(f"MAS hedefleri: train {len(tr)} val {len(va)} klip ({time.time() - t0:.0f} sn)", flush=True)
@@ -152,7 +153,7 @@ def main():
         new["model"][f"encoder.dp_feat_emb.{k}"] = v.cpu()
     new["cfg"]["model"]["dp_round"] = "cum"
     new["cfg"]["name"] = "v5_dplin"
-    new["dp_retrain"] = dict(base=a.ckpt, loss=a.loss + "_linear_frames", best_val=best, log=log)
+    new["dp_retrain"] = dict(base=a.ckpt, loss=a.loss + "_linear_frames", best_val=best, log=log, dp_feat_manifest=man)
     torch.save(new, os.path.join(a.out, f"ep400_dp_{a.loss}.pt"))
     json.dump(log, open(os.path.join(a.out, f"log_{a.loss}.json"), "w", encoding="utf8"), ensure_ascii=False, indent=1)
     print("->", os.path.join(a.out, f"ep400_dp_{a.loss}.pt"), flush=True)
