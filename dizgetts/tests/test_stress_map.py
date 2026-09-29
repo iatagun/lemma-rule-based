@@ -34,8 +34,8 @@ for t, want in (("bayram", ["ɑ", "ɑ"]), ("ayak", ["ɑ", "ɑ"]), ("kuyu", ["U",
 
 # 2) -diği (iğ+i): iki seslem tek `iː` atomuna işaret eder (birleşen atom)
 w = word(E1, "gönderdiğim")
-assert w.phones == ["ɟ", "œ", "n", "d", "ɛ", "ɾ", "d", "iː", "m"], w.phones
-assert [w.phones[_stress_index(w, k)[0]] for k in range(4)] == ["œ", "ɛ", "iː", "iː"]
+assert w.phones == ["ɟ", "ø", "n", "d", "ɛ", "ɾ", "d", "iː", "m"], w.phones  # sıradan ö = ø (sözlük açık, kullanıcı 2026-09-30)
+assert [w.phones[_stress_index(w, k)[0]] for k in range(4)] == ["ø", "ɛ", "iː", "iː"]
 w = word(E1, "söylendiğinde")
 assert [w.phones[_stress_index(w, k)[0]] for k in range(5)] == ["ø", "e", "iː", "iː", "ɛ"], (w.phones, [w.phones[_stress_index(w, k)[0]] for k in range(5)])
 
@@ -43,7 +43,7 @@ assert [w.phones[_stress_index(w, k)[0]] for k in range(5)] == ["ø", "e", "iː"
 assert [atom_at(word(E1, "kağıt"), k)[0] for k in range(2)] == ["a", "ɨ"]
 assert [atom_at(word(E1, "geliyor"), k)[0] for k in range(3)] == ["e", "i", "ɔ"]
 w = word(E1, "göndereceğim")
-assert [atom_at(w, k)[0] for k in range(5)] == ["œ", "e", "ɛ", "ɛ", "I"], (w.phones, [atom_at(w, k) for k in range(5)])
+assert [atom_at(w, k)[0] for k in range(5)] == ["ø", "e", "ɛ", "ɛ", "I"], (w.phones, [atom_at(w, k) for k in range(5)])
 assert [atom_at(word(E1, "diğer"), k)[0] for k in range(2)] == ["I", "ɛ"] and [atom_at(word(E1, "eğri"), k)[0] for k in range(2)] == ["ɛː", "I"]
 
 # 3b) köken izi (kök neden: ekleme/silmede konumla eşleştirme kökeni kaydırıyordu): eklenen `j` kökensiz, birleşen atom iki köken taşır

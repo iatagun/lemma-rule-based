@@ -29,17 +29,18 @@ tabii,tabiî	özenli	tʰ ɑ b I I	tʰ ɑ b iː	tek uzun ünlü (dizge iki ayrı 
 teessüf	özenli	tʰ e ɛ s s	tʰ eː s s	tek uzun ünlü
 iade	özenli	I ɑ d	I aː d	tek uzun ünlü (a uzun; kullanıcı onayı 2026-09-29)
 hâlâ	özenli	x ɑ ł ɑ	x aː l aː	hâlâ (henüz): uzun, ae karışımı a, ince l; vurgu ilk hecede (stress_roots)
-hal,hâl,-halı,-hala,-hâlâ,-halk,-halay,-halat,-halis,-haliç,-halef,-halife,-halim,-halel,-halet,-haldun,-halit,-halil,-haluk,-halide,-hallaç,-hallac,-halter,-haldır,-haley,-halüsinasyon	özenli	x ɑ ł	x aː l	haal: ae karışımı a, ince l (kullanıcı 2026-09-29). halde/hali de aynı (tümü uzun sayıldı, kullanıcı onayı 2026-09-29)
-hal,hâl,-halı,-hala,-hâlâ,-halk,-halay,-halat,-halis,-haliç,-halef,-halife,-halim,-halel,-halet,-haldun,-halit,-halil,-haluk,-halide,-hallaç,-hallac,-halter,-haldır,-haley,-halüsinasyon	özenli	x ɑ l	x aː l	ünlü öncesi (hali): dizge l'yi zaten ince verir, a'yı düzelt
-herhalde,herhâlde	özenli	ç e ɾ x ɑ ł	ç e ɾ x aː l	hal gibi
+hal=,hâl=	özenli	x ɑ ł	x aː l	yalın hal UZUN (haal); bu satır hal grubundan ÖNCE gelmeli (grup sırası = dosya sırası)
+hal,hâl,-halı,-hala,-hâlâ,-halk,-halay,-halat,-halis,-haliç,-halef,-halife,-halim,-halel,-halet,-haldun,-halit,-halil,-haluk,-halide,-hallaç,-hallac,-halter,-haldır,-haley,-halüsinasyon	özenli	x ɑ ł	x a l	ünsüz önünde (halde, hâlleri, hâlbuki): ön a ama UZAMAZ (kullanıcı kör değerlendirmesi 2026-09-30; kapalı hece)
+hal,hâl,-halı,-hala,-hâlâ,-halk,-halay,-halat,-halis,-haliç,-halef,-halife,-halim,-halel,-halet,-haldun,-halit,-halil,-haluk,-halide,-hallaç,-hallac,-halter,-haldır,-haley,-halüsinasyon	özenli	x ɑ l	x aː l	ünlü önünde (hali, halinde): uzun, ön a (kullanıcı 2026-09-29)
+herhalde,herhâlde	özenli	ç e ɾ x ɑ ł	ç e ɾ x a l	kapalı hece: ön a, uzamaz (hâlbuki gibi)
 derhal,derhâl	özenli	d e ɾ x ɑ ł	d e ɾ x aː l	hal gibi
 kalp,kalb,-kalbur,-kalpak,-kalpağ,-kalpazan,-kalpana	özenli	kʰ ɑ ł	cʰ a l	ae karışımı a (ön) -> ön k, ince l
 ihmal	özenli	I ç m ɑ ł	I ç m a l	ae karışımı a, ince l
 ihmal	özenli	I ç m ɑ l	I ç m a l	ünlü öncesi biçim
 ihtimal	özenli	I ç t I m ɑ ł	I ç t I m a l	ae karışımı a, ince l
 ihtimal	özenli	I ç t I m ɑ l	I ç t I m a l	ünlü öncesi biçim
-hayal,-hayalar	özenli	x ɑː I ɑ ł	x ɑ I a l	ae karışımı a, ince l; ay yan ünlüsü uzunluk kuralının çıktısıyla aynı (ɑ I)
-hayal,-hayalar	özenli	x ɑː I ɑ l	x ɑ I a l	ünlü öncesi biçim
+hayal,-hayalar	özenli	x ɑː I ɑ ł	x ɑ j a l	ae karışımı a, ince l; ay: y kendi sesiyle (j), uzunluk kuralının çıktısıyla aynı
+hayal,-hayalar	özenli	x ɑː I ɑ l	x ɑ j a l	ünlü öncesi biçim
 sual,-sualt	özenli	s U ɑ ł	s U a l	ae karışımı a, ince l
 sual,-sualt	özenli	s U ɑ l	s U a l	ünlü öncesi biçim
 rol,-roland,-rolando,-rollins,-rollo,-rollie,-rollin,-rolo,-rolla	özenli	r ɔ ł	r œ l	oe karışımı (ağız e gibi açık, yuvarlak; neredeyse ö), ince l (kullanıcı 2026-09-29)
@@ -55,10 +56,10 @@ kabul	özenli	kʰ ɑ b U l	kʰ ɑ b Y l	ünlü öncesi biçim
 meşgul	özenli	m e ʃ g U ł	m e ʃ ɟ Y l	kabul gibi (kullanıcı onayı 2026-09-29); ön ünlü önünde g ön (ɟ)
 meşgul	özenli	m e ʃ g U l	m e ʃ ɟ Y l	ünlü öncesi biçim
 usul	özenli	U s U ł	U s U l	ünlü normal, yalnız l ince (kullanıcı)
-dükkân,dükkan	özenli	d Y c k ɑ	d Y c c a	ince k + ön a (kullanıcı 2026-09-29, TDK düzeltme işareti)
-rüzgâr,rüzgar	özenli	r Y z g ɑ	r Y z ɟ a	ince g + ön a
+dükkân,dükkan	özenli	d y c k ɑ	d y c c a	ince k + ön a (kullanıcı 2026-09-29, TDK düzeltme işareti)
+rüzgâr,rüzgar	özenli	r y z g ɑ	r y z ɟ a	ince g + ön a
 tezgâh,tezgah	özenli	tʰ e z g ɑ	tʰ e z ɟ a	ince g + ön a
-güzergâh,güzergah	özenli	ɟ Y z ɛ ɾ g ɑ	ɟ Y z ɛ ɾ ɟ a	ince g + ön a
+güzergâh,güzergah	özenli	ɟ y z ɛ ɾ g ɑ	ɟ y z ɛ ɾ ɟ a	ince g + ön a
 hikâye,hikaye	özenli	ç I k ɑː	ç I c aː	ince k + ön a (ː = ay yan ünlüsü, uzunluk kuralı düşürür)
 şikâyet,şikayet	özenli	ʃ I k ɑː	ʃ I c aː	ince k + ön a
 kâfir,kafir	özenli	kʰ ɑ	cʰ a	ince k + ön a
@@ -70,3 +71,7 @@ camekân,camekan	özenli	dʒ ɑ m ɛ k ɑ	dʒ ɑ m ɛ c a	ince k + ön a
 pekâlâ,pekala	özenli	pʰ e k ɑ ł ɑ	pʰ e c a l a	ince k, ince l + ön a
 kâtip,katip,kâtib,katib	özenli	kʰ ɑ t	cʰ aː t	ince k + ön a, uzun (fâil kalıbı; kullanıcı onayı 2026-09-29)
 kâinat,kainat	özenli	cʰ ɑ	cʰ a	ince k + ön a (dizge k'yı zaten ön veriyordu)
+maden,madenî	özenli	m ɑ d ɛ n	m aː d ɛ n	a uzun (kullanıcı kör değerlendirmesi 2026-09-30: madenî)
+cami,câmi,-camia	özenli	dʒ ɑ m I	dʒ aː m I	a uzun (kör değerlendirme 2026-09-30); camia ayrı sözcük
+gıyabi,gıyap,gıyab	özenli	g ɨ j ɑ	g ɨ j aː	a 1,5 kat uzun (kör değerlendirme notu 2026-09-30)
+defa	özenli	d e f ɑ	d e f aː	son a 1,5 kat uzun (kör değerlendirme notu 2026-09-30); defans eşleşmez (ek zinciri ünlü ister)

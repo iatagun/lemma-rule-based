@@ -130,7 +130,7 @@ bad = [t for t in texts if "".join(eng.frontend(t).tokens) != hf.tag(t, tokenize
 assert not bad, f"{len(bad)}/{len(texts)} cümlede sesbirim farkı: {bad[:3]}"
 o = hf.tag("Kâğıdı hâlâ dükkânda bıraktım, saat dokuzda alırım.", tokenizer=tok)
 ph = {w["word"]: "".join(w["phones"]) for w in o["words"]}
-assert ph["Kâğıdı"] == "cʰaɨdɨ" and ph["hâlâ"] == "xaːlaː" and ph["saat"] == "saːt" and ph["dükkânda"] == "dYccandɑ", ph
+assert ph["Kâğıdı"] == "cʰaɨdɨ" and ph["hâlâ"] == "xaːlaː" and ph["saat"] == "saːt" and ph["dükkânda"] == "dyccandɑ", ph
 assert "cʰaɨdˈɨ" in o["phonemes"] and " xˈaːlaː " in o["phonemes"] and "sˈaːt" in o["phonemes"], o["phonemes"]  # hâlâ: ilk hece vurgusu
 # söyleyiş sözlüğü de HF yolundan KULLANILIYOR (res_dir): paketteki sözlüğü boşalt -> saat dizge'nin okumasına döner
 (alt / "resources" / "pronunciation_exceptions.tsv").write_text("# boş\n", encoding="utf8")

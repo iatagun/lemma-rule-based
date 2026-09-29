@@ -70,6 +70,7 @@ Sesbirimi ağırlıklar değil **kurallar** üretir (DizgeTTS'in eğitim ön ucu
 | Son hecesi ince alıntı kökleri (`resources/loan_roots.tsv`) | ekleri ince alan 70+ kök (ek uyumu kanıtıyla derlemden çıkarıldı): son ünlü önlenir, l/k incelir | normalde → `nɔɾmaldɛ`, dikkatli → `dIccatlI`, itaat → `Itaːt` |
 | Şapka (â, î) | sözlükte olmayan sözcüklerde: k/g/l + â → ince ünsüz + ön a; â → uzun; nispet î → uzun | dergâh → `deɾɟax`, resmî → `resmiː` |
 | Uzun ünlü kuralları | dizge'nin `ː`'sini gerçek uzamaya indirger (ğ + ünsüz), yan ünlü ve ünlüler arası ğ'de düşürür | ağır → `ɑɨɣ`, dağ → `dɑː` |
+| Ünlü/ünsüz gösterimi | sıradan ö/ü `ø`/`y` (`œ`/`Y` yalnız alıntıların oe / ü benzeri sesi), y her zaman `j` | döndü → `døndy`, hayata → `xɑjɑtɑ`, rol → `rœl` |
 
 Söyleyiş kararları anadili Türkçe bir dilbilimcinin tarifleridir (özenli kayıt; gündelik varyantlar ayrı). Kapsam sözlükle sınırlıdır: sözlükte olmayan alıntılar dizge'nin okumasını alır.
 
@@ -114,7 +115,7 @@ Fark +0,096…+0,201 (klip bootstrap %95 GA). Baseline'ı anlamlı geçiyor, ama
 - Kural kapsamı bilinçli dardır: seslenme, küçültme, ikileme, bileşikler için tam sözlük yok.
 - Yer adı ayrımı büyük harfe bağlı (`Ordu` / `ordu`).
 - Sıfat kapılı kurallar sözlüğe bağlı (UD ADJ lemmalarından türetildi); sözlük dışı sıfatlar kaçar.
-- Sesbirim doğruluğu için bağımsız bir kör ölçüm HENÜZ yok; söyleyiş kuralları tek dilbilimcinin tarifidir. Şapkasız eşyazımlılar (hala/hâlâ, kar/kâr) Türkçe okumayla okunur.
+- Sesbirim: 120 sözcüklük ilk etiketli sette (tek dilbilimci) düzeltmeler öncesi %83,3 doğru; bu set kuralları düzeltmek için kullanıldı. Bağımsız kör ölçüm (set 2) bekleniyor. Şapkasız eşyazımlılar (hala/hâlâ, kar/kâr) Türkçe okumayla okunur.
 
 ## Lisans ve atıf
 

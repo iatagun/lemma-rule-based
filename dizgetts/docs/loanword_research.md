@@ -62,3 +62,16 @@ Yanlış pozitif taraması (sıklık ≥ 20 biçimler): hol çıkarıldı (holme
 Antalia etkisi (HEAD'e göre, özenli): 442 klip (%42), 677 geçiş, 138 tip. Train'de ön `a` 207 (önce 0), `aː` 272 (önce 1), `eː` 1 (teessüf).
 **Açık:** (1) sesbirim için bağımsız kör ölçüm yok; (2) embed_alias `aː`/`a`'yı her adımda bağlıyor, artık yeterli veri var -> yalnız başlangıçta bağla; (3) TTS yeniden eğitimi
 (manifest `--pron --length-rules`) ve kör AB; (4) HF push kullanıcı onayıyla.
+
+## 7. Kör sesbirim değerlendirmesi, set 1 (2026-09-30) -> GELİŞTİRME seti
+`scripts/make_phoneme_eval.py`: 120 sözcük (R 50 rastgele, G 15 ğ, A 25 kuralsız alıntı adayı, K 20 kuralların değiştirdiği, B 10 ünsüz öbeği), UD + Antalia dağarı, tohum sabit.
+Kullanıcı etiketi `tests/phoneme_gold_dev.tsv`. **Önce: %83,3 (100/120)**; kaynağa göre dizge %91,1, sözlük/alıntı %78,9, uzun ünlü kuralı %60,0.
+Hata sınıfları ve düzeltme (kök neden):
+- y yan ünlüsü `I` (8): LengthRules `Vː I -> V I` yapıyordu; kullanıcı: y kendi sesiyle -> `V j` (hayata, baleyi, uyandığım, sağduyusu). Yan etki: kurallar açıkken vurgu eşleme hatası 271 -> 255.
+- ö/ü (7): dizge sıradan ö/ü = `œ`/`Y`; kullanıcı: "direkt ö/ü" -> sözlük açıkken sıradan ö/ü `ø`/`y`; `œ` (oe) ve `Y` (ü benzeri) YALNIZ alıntılara kalır (rol, kabul). Yeni simge yok.
+- hal uzunluğu (2): yalın hal ve ünlü önünde (hali) uzun, ünsüz önünde (halde, hâlleri, hâlbuki) kısa ön a (`kök=` tam sözcük gösterimi eklendi).
+- sözcüğe özgü: madenî/maden, cami (uzun a), istikbal/istiklal/ikbal (ön a, loan_roots), not olarak gıyabi ve defa (uzun a).
+Sonra: 19/20 hata düzeldi, "doğru" işaretli 9 sözcük yalnız kullanıcı kurallarıyla değişti (ö/ü, defa/gıyabi notları), beklenmedik gerileme yok. Açık: demiyor (not: "demiˈjoɾ", kullanıcıya soruldu).
+Bu set kuralları düzeltmek için kullanıldı -> bağımsız sayı değil. **Set 2** (yeni kör, tohum 20260930, set 1 sözcükleri dışarıda): `reports/phoneme_eval_2.html`.
+Eğitim sayıları (Antalia train, yeni kurallarla): ø 1629, y 3258, œ 81 (yalnız alıntı), Y 4 (yalnız alıntı), j 6181. Yeniden eğitimde (v6 checkpoint'inden sıcak başlangıç) gömme satırları
+eski anlamlarından başlatılmalı: ø <- eski œ, y <- eski Y (sıradan ö/ü eskiden bu simgelerdeydi); œ, Y eski satırlarında kalır (alıntı sesleri ö/ü'ye yakın); a/aː `embed_alias: init`.

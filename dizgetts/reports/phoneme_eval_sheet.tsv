@@ -1,0 +1,121 @@
+id	word	stratum	source	freq	phones
+s001	gıyabi	A	dizge	3	g ɨ j ɑ b I
+s002	çözmüş	R	dizge	1	tʃ œ z m Y ʃ
+s003	demiyor	A	uzun_ünlü	2	d e m i j ɔ ɣ
+s004	karargâhına	K	sözlük/alıntı/şapka	2	kʰ ɑ ɾ ɑ ɾ ɟ a x ɨ n ɑ
+s005	bakılmaz	R	dizge	2	b ɑ k ɨ ł m ɑ z̥
+s006	hâlleri	K	sözlük/alıntı/şapka	5	x aː l l ɛ ɾ I
+s007	asansör	R	dizge	5	ɑ s ɑ n s œ ɣ
+s008	kahve	R	dizge	58	kʰ ɑ x v ɛ
+s009	köftün	R	dizge	1	cʰ œ f t Y n
+s010	aksi	R	dizge	7	ɑ k s I
+s011	okuduğu	G	dizge	4	ɔ k U d uː
+s012	güzelliğine	G	uzun_ünlü	4	ɟ Y z e l l iː n ɛ
+s013	içinde	R	dizge	350	I tʃ I n d ɛ
+s014	karanlığa	G	uzun_ünlü	4	kʰ ɑ ɾ ɑ n ł ɨ ɑ
+s015	saatlerini	K	sözlük/alıntı/şapka	4	s aː t l ɛ ɾ I n I
+s016	filika	A	dizge	3	f I l I k ɑ
+s017	bilmiyorum	R	uzun_ünlü	21	b I l m i j ɔ ɾ U m
+s018	madenî	K	sözlük/alıntı/şapka	3	m ɑ d ɛ n iː
+s019	içinden	R	dizge	41	I tʃ I n d ɛ n
+s020	için	R	dizge	939	I tʃ I n
+s021	da	R	dizge	1154	d ɑ
+s022	bu	R	dizge	2581	b U
+s023	sokaklardan	R	dizge	2	s ɔ k ɑ k ł ɑ ɾ d ɑ n
+s024	mesleğin	G	dizge	2	m e s l ɛ j I n
+s025	silahlıydı	A	dizge	2	s I ł ɑ x ł ɨ j d ɨ
+s026	diyecektim	R	uzun_ünlü	1	d i j e dʒ ɛ c t I m
+s027	dâhiliye	K	sözlük/alıntı/şapka+uzun_ünlü	5	d aː ç I l i j ɛ
+s028	istikbalinin	A	dizge	2	I s t I c b ɑ l I n I n
+s029	vardı	R	dizge	232	v ɑ ɾ d ɨ
+s030	yummak	R	dizge	1	j U m m ɑ k
+s031	kralı	B	dizge	2	kʰ ɨ ɾ ɑ ł ɨ
+s032	programsız	B	dizge	2	pʰ ɨ ɾ ɔ g ɾ ɑ m s ɨ z̥
+s033	mahalline	K	sözlük/alıntı/şapka	2	m ɑ x a l l I n ɛ
+s034	dükkan	K	sözlük/alıntı/şapka	2	d Y c c a n
+s035	fıstıkzade	A	dizge	2	f ɨ s t ɨ k z ɑ d ɛ
+s036	türlü	R	dizge	103	tʰ Y ɾ l Y
+s037	klasörünü	B	dizge	7	kʰ ɨ ł ɑ s œ ɾ Y n Y
+s038	başefendinin	A	dizge	2	b ɑ ʃ e f ɛ n d I n I n
+s039	iflasa	A	dizge	2	I f ł ɑ s ɑ
+s040	piyasasını	A	uzun_ünlü	2	pʰ i j ɑ s ɑ s ɨ n ɨ
+s041	kraliçesi	B	dizge	3	kʰ ɨ ɾ ɑ l I tʃ ɛ s I
+s042	papel	A	dizge	2	pʰ ɑ p ɛ l
+s043	tiradı	A	dizge	2	tʰ I ɾ ɑ d ɨ
+s044	hakikat	K	sözlük/alıntı/şapka	3	x ɑ c I c a t
+s045	dükkânının	K	sözlük/alıntı/şapka	2	d Y c c a n ɨ n ɨ n
+s046	trenden	B	dizge	2	tʰ I ɾ e n d ɛ n
+s047	zekâsız	K	sözlük/alıntı/şapka	2	z e c a s ɨ z̥
+s048	yüzerken	R	dizge	2	j Y z e ɾ c ɛ n
+s049	inme	R	dizge	3	I n m ɛ
+s050	görünmüyordu	A	dizge	2	ɟ œ ɾ Y n m Y j ɔ ɾ d U
+s051	firma	A	dizge	4	f I ɾ m ɑ
+s052	omuz	R	dizge	11	ɔ m U z̥
+s053	tartıştı	R	dizge	1	tʰ ɑ ɾ t ɨ ʃ t ɨ
+s054	kucağını	G	uzun_ünlü	2	kʰ U dʒ ɑ ɨ n ɨ
+s055	imzası	A	dizge	2	I m z ɑ s ɨ
+s056	şairi	K	sözlük/alıntı/şapka	4	ʃ aː I ɾ I
+s057	arasında	R	dizge	163	ɑ ɾ ɑ s ɨ n d ɑ
+s058	inançlar	A	dizge	4	I n ɑ n tʃ ł ɑ ɣ
+s059	hayata	R	uzun_ünlü	17	x ɑ I ɑ t ɑ
+s060	âlâ	K	sözlük/alıntı/şapka	10	aː l a
+s061	şakırdayan	R	uzun_ünlü	1	ʃ ɑ k ɨ ɾ d ɑ I ɑ n
+s062	muhlis	R	dizge	2	m U x l I s
+s063	bir	R	dizge	6903	b I ɣ
+s064	dokuz	R	dizge	37	d ɔ k U z̥
+s065	sporcu	B	dizge	2	s ɨ p ɔ ɾ dʒ U
+s066	hareketleri	A	dizge	5	x ɑ ɾ e c ɛ t l ɛ ɾ I
+s067	uyandığım	G	uzun_ünlü	2	U I ɑ n d ɨː m
+s068	defa	R	dizge	62	d e f ɑ
+s069	etrafını	R	dizge	11	e t ɾ ɑ f ɨ n ɨ
+s070	fennî	R	sözlük/alıntı/şapka	2	f e n n iː
+s071	sağduyusu	G	uzun_ünlü	3	s ɑː d U I U s U
+s072	alırım	R	dizge	14	ɑ ł ɨ ɾ ɨ m
+s073	kullandığımız	R	dizge	2	kʰ U ł ł ɑ n d ɨː m ɨ z̥
+s074	çıkamayacağına	G	uzun_ünlü	2	tʃ ɨ k ɑ m ɑ I ɑ dʒ ɑ ɨ n ɑ
+s075	dinliyor	A	uzun_ünlü	5	d I n l i j ɔ ɣ
+s076	planlar	R	dizge	4	pʰ ɨ ł ɑ n ł ɑ ɣ
+s077	cami	A	dizge	8	dʒ ɑ m I
+s078	doğukan	G	uzun_ünlü	3	d o U k ɑ n
+s079	dizgininde	R	dizge	1	d I z ɟ I n I n d ɛ
+s080	meyhane	A	dizge	2	m e j x ɑ n ɛ
+s081	sahipleri	A	dizge	7	s ɑ ç I p l ɛ ɾ I
+s082	rüzgârlar	K	sözlük/alıntı/şapka	2	r Y z ɟ a ɾ ł ɑ ɣ
+s083	yarım	R	dizge	52	j ɑ ɾ ɨ m
+s084	hikayedir	K	sözlük/alıntı/şapka+uzun_ünlü	7	ç I c a I ɛ d I ɣ
+s085	kıymetli	A	dizge	7	kʰ ɨ j m ɛ t l I
+s086	edebî	K	sözlük/alıntı/şapka	5	e d ɛ b iː
+s087	zeytinlik	R	dizge	9	z e j t I n l I c
+s088	karanlığında	G	dizge	3	kʰ ɑ ɾ ɑ n ł ɨː n d ɑ
+s089	kalpağının	G	uzun_ünlü	2	kʰ ɑ ł p ɑ ɨ n ɨ n
+s090	az	R	dizge	134	ɑ z̥
+s091	traktörün	B	dizge	4	tʰ ɨ ɾ ɑ k t œ ɾ Y n
+s092	hâlbuki	K	sözlük/alıntı/şapka	13	x aː l b U c I
+s093	enteresan	A	dizge	2	e n t ɛ ɾ ɛ s ɑ n
+s094	getiren	R	dizge	6	ɟ e t I ɾ ɛ n
+s095	yığını	G	dizge	4	j ɨː n ɨ
+s096	levanten	A	dizge	2	l e ʋ ɑ n t ɛ n
+s097	tekrarlıyor	A	dizge	2	tʰ e c ɾ ɑ ɾ ł ɨ j ɔ ɣ
+s098	dil	R	dizge	39	d I l
+s099	bloke	B	dizge	6	b ɨ ł ɔ c ɛ
+s100	ağızlarına	G	uzun_ünlü	6	ɑ ɨ z ł ɑ ɾ ɨ n ɑ
+s101	briç	B	dizge	2	b I ɾ I tʃ
+s102	tarafın	R	dizge	14	tʰ ɑ ɾ ɑ f ɨ n
+s103	konuşması	R	dizge	8	kʰ ɔ n U ʃ m ɑ s ɨ
+s104	fazlası	R	dizge	2	f ɑ z ł ɑ s ɨ
+s105	göndereceğim	R	uzun_ünlü	84	ɟ œ n d e ɾ ɛ dʒ ɛ I m
+s106	enişteniz	R	dizge	1	e n I ʃ t ɛ n I z̥
+s107	âlem	K	sözlük/alıntı/şapka	6	aː l ɛ m
+s108	iade	K	sözlük/alıntı/şapka	27	I aː d ɛ
+s109	isterikliğimde	G	uzun_ünlü	2	I s t e ɾ I c l iː m d ɛ
+s110	trenle	B	dizge	3	tʰ I ɾ e n l ɛ
+s111	halis	A	dizge	3	x ɑ l I s
+s112	nutku	R	dizge	2	n U t k U
+s113	yakanda	R	dizge	1	j ɑ k ɑ n d ɑ
+s114	ve	R	dizge	2008	v ɛ
+s115	sırada	R	dizge	58	s ɨ ɾ ɑ d ɑ
+s116	döndü	R	dizge	24	d œ n d Y
+s117	mekkâre	K	sözlük/alıntı/şapka	2	m e c c a ɾ ɛ
+s118	baleyi	R	uzun_ünlü	2	b ɑ l ɛ I I
+s119	saatlere	K	sözlük/alıntı/şapka	4	s aː t l e ɾ ɛ
+s120	verildiğinin	G	uzun_ünlü	2	v e ɾ I l d iː n I n

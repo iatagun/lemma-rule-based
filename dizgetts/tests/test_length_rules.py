@@ -27,22 +27,23 @@ for w, want in (("ağır", "ɑ ɨ ɣ"), ("soğuk", "s o U k"), ("yoğurt", "j o 
 # aynı ünlü arasında ğ (olduğunu: u-ğ-u) tek uzun ünlü olarak kalır
 assert A(lr, "olduğunu") == A(raw, "olduğunu") and "uː" in A(lr, "olduğunu")
 
-# 3) y yan ünlüsü: ü nlü + `ː` düşer (ɑ I); i + y -> i j (y'yi `j` olarak geri koy, dizge'nin kendi yapıyor/büyük yazımı gibi)
-for w, want in (("ayak", "ɑ I ɑ k"), ("şey", "ʃ ɛ I"), ("aynı", "ɑ I n ɨ"), ("kuyu", "kʰ U I U"), ("koyun", "kʰ o I U n"), ("sayı", "s ɑ I ɨ"), ("boyunca", "b o I U n dʒ ɑ"),
+# 3) y yan ünlüsü: `Vː I` -> `V j` (y kendi sesiyle; kullanıcı kör değerlendirmesi 2026-09-30); i + y -> i j (y'yi `j` olarak geri koy, dizge'nin kendi yapıyor/büyük yazımı gibi)
+for w, want in (("ayak", "ɑ j ɑ k"), ("şey", "ʃ ɛ j"), ("aynı", "ɑ j n ɨ"), ("kuyu", "kʰ U j U"), ("koyun", "kʰ o j U n"), ("sayı", "s ɑ j ɨ"), ("boyunca", "b o j U n dʒ ɑ"),
                 ("iyi", "i j I"), ("geliyor", "ɟ e l i j ɔ ɣ"), ("diye", "d i j ɛ"), ("saniye", "s ɑ n i j ɛ")):
     assert A(lr, w) == want, (w, A(lr, w), "beklenen", want)
 
-# 3b) kayıt: özenli y SESLENİR (iyi -> i j I), gündelik y seslenmez, "ii" (dizge'nin iː'si kalır); y yan ünlüsü (ayak) her iki kayıtta ɑ I
+# 3b) kayıt: özenli y SESLENİR (iyi -> i j I), gündelik y seslenmez, "ii" (dizge'nin iː'si kalır); y yan ünlüsü (ayak) her iki kayıtta ɑ j
 assert A(gu_only, "iyi") == A(raw, "iyi") == "iː I" and A(gu_only, "geliyor") == A(raw, "geliyor") and A(gu_only, "diye") == A(raw, "diye")
-assert A(gu_only, "ayak") == "ɑ I ɑ k" and A(gu_only, "ağır") == "ɑ ɨ ɣ"
+assert A(gu_only, "ayak") == "ɑ j ɑ k" and A(gu_only, "ağır") == "ɑ ɨ ɣ"
 assert Phonemizer(bert_fallback=False, length_rules=True).word("iyi") != gu_only.word("iyi")
 
 # 3c) diğer: TEK y'leşen ğ (kullanıcı 2026-09-26): diyer. dizge kökte `d Iː ɛ`, çekimlerde `d iː e` verir (iki alternatif satır, ünlü niteliği korunur);
 # iğne / öğün / düğün / öğle y'leşmez
 for w, want in (("diğer", "d I j ɛ ɣ"), ("diğeri", "d I j ɛ ɾ I"), ("diğerleri", "d i j e ɾ l ɛ ɾ I"), ("diğerine", "d i j e ɾ I n ɛ"), ("diğeriyle", "d i j e ɾ I j l ɛ")):
     assert A(both, w) == want, (w, A(both, w), "beklenen", want)
+NATIVE = lambda ph: ph.replace("œ", "ø").replace("Y", "y")  # sözlük açıkken sıradan ö/ü -> ø/y (kullanıcı 2026-09-30); karşılaştırma bunun dışında
 for w in ("iğne", "öğün", "düğün", "öğle", "eğlence"):
-    assert both.word(w) == lr.word(w), w
+    assert both.word(w) == NATIVE(lr.word(w)), w
 assert A(lr, "diğer") == "d I ɛ ɣ"       # yalnız kural (sözlük kapalı): y'leşme yok, geçiş
 with warnings.catch_warnings():
     warnings.simplefilter("error")     # alternatif satırlar: biri eşleşince diğeri sahte uyarı vermez
@@ -60,9 +61,9 @@ for w, want in (("değer", "d ɛː ɣ"), ("eğer", "ɛː ɣ"), ("değerli", "d �
     assert A(both, w) == want, (w, A(both, w), "beklenen", want)
 for w in ("değişik", "eğitim", "değil", "değişim", "eğlenmek"):
     assert both.word(w) == raw.word(w), (w, A(both, w))                # y'leşme / karar bekleyen: dizge'nin okuması
-for w, want in (("göndereceğim", "ɟ œ n d e ɾ ɛ dʒ ɛ I m"), ("edeceğiz", "e d ɛ dʒ ɛ I z̥"), ("ekleyeceğim", "e c l ɛ j ɛ dʒ ɛ I m"), ("olacağım", "ɔ ł ɑ dʒ ɑ ɨ m")):
+for w, want in (("göndereceğim", "ɟ ø n d e ɾ ɛ dʒ ɛ I m"), ("edeceğiz", "e d ɛ dʒ ɛ I z̥"), ("ekleyeceğim", "e c l ɛ j ɛ dʒ ɛ I m"), ("olacağım", "ɔ ł ɑ dʒ ɑ ɨ m")):
     assert A(both, w) == want, (w, A(both, w), "beklenen", want)
-for w, want in (("gönderdiğim", "ɟ œ n d ɛ ɾ d iː m"), ("dediğin", "d e d iː n"), ("güvenliğiniz", "ɟ Y ʋ ɛ n l iː n I z̥"), ("söylendiğinde", "s ø I l e n d iː n d ɛ")):
+for w, want in (("gönderdiğim", "ɟ ø n d ɛ ɾ d iː m"), ("dediğin", "d e d iː n"), ("güvenliğiniz", "ɟ y ʋ ɛ n l iː n I z̥"), ("söylendiğinde", "s ø j l e n d iː n d ɛ")):
     assert A(both, w) == want, (w, A(both, w), "beklenen", want)
 # hizalama sıkılığı: iyiliğinden = iy (dizge burada j bırakır) + ğ (iː): ğ'nin iː'si iy olayına ATANMAMALI (aksi halde iː -> i j)
 assert A(both, "iyiliğinden") == "I j I l iː n d ɛ n", A(both, "iyiliğinden")
@@ -73,11 +74,11 @@ for w in ("kitap", "yapıyor", "büyük", "eğlence", "eğer", "değil", "yeğen
 assert A(lr, "eğlence") == "e j l ɛ n dʒ ɛ"
 assert A(both, "değil") == "d e j I l" and A(gu, "değil") == "d e j I l"   # değil = deyil (kullanıcı 2026-09-27): y'leşme, dizge'nin okuması
 
-# 5) çoklu kaynak: ağabey = ğ (a-ğ-a aynı ünlü, uzun kalır) + ey (ɛː I -> ɛ I)
-assert A(lr, "ağabey") == "ɑː b ɛ I", A(lr, "ağabey")
+# 5) çoklu kaynak: ağabey = ğ (a-ğ-a aynı ünlü, uzun kalır) + ey (ɛː I -> ɛ j)
+assert A(lr, "ağabey") == "ɑː b ɛ j", A(lr, "ağabey")
 
 # 5b) hizalama: her `ː` atomu, ÜNLÜSÜ uyumlu ilk olayla eşlenir (olayların hepsi `ː` üretmez: ö+y'de dizge bazen `j` bırakır, â `ː` üretmez)
-for w, want in (("hikâye", "ç I k ɑ I ɛ"), ("şikâyete", "ʃ I k ɑ I e t ɛ"), ("söyleyeyim", "s œ j l e j ɛ I I m"), ("teyzeye", "tʰ e j z ɛ I ɛ"),
+for w, want in (("hikâye", "ç I k ɑ j ɛ"), ("şikâyete", "ʃ I k ɑ j e t ɛ"), ("söyleyeyim", "s œ j l e j ɛ j I m"), ("teyzeye", "tʰ e j z ɛ j ɛ"),
                 ("düğmeye", "d yː m e j ɛ"), ("çubuğuyla", "tʃ U b uː j ł ɑ")):
     assert A(lr, w) == want, (w, A(lr, w), "beklenen", want)
 # dizge sözlüğünden gelen (harf olayı olmayan) uzun ünlüler dokunulmaz: nisan, itibaren, teminat

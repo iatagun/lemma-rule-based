@@ -42,7 +42,7 @@ class Synth:
             stats = json.load(open(os.path.join(dcfg["out_root"], "stats.json"), encoding="utf8"))
         self.model = build_model(self.cfg, len(ck["symbols"]), stats)
         self.model.load_state_dict(ck["model"])
-        if self.cfg["model"].get("embed_alias") if embed_alias is None else embed_alias:  # eğitimde görülmeyen a/aː gömmesi = ɑ/ɛ ortalaması (eski checkpoint'te de açılabilir)
+        if (self.cfg["model"].get("embed_alias") is True) if embed_alias is None else embed_alias:  # "init": gömmeler eğitimde öğrenildi, bağlanmaz  # eğitimde görülmeyen a/aː gömmesi = ɑ/ɛ ortalaması (eski checkpoint'te de açılabilir)
             from dizgetts.train.embed_alias import tie
             tie(self.model, {s: i for i, s in enumerate(ck["symbols"])})
         self.model.to(self.dev).eval()

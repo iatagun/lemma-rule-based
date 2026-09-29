@@ -109,11 +109,16 @@ class Exceptions:
 
     def apply_atoms(self, word: str, at: Atoms) -> None:
         w = tr_lower(word)
+        # sıradan ö/ü: dizge `œ`/`Y` -> `ø`/`y` (kullanıcı 2026-09-30: "direkt ö/ü"); `œ`/`Y` yalnız alıntıların oe / ü benzeri sesine kalır (rol, kabul). Kalıplardan ÖNCE.
+        for k, a in enumerate(at.a):
+            if a in _NATIVE:
+                at.replace(k, 1, [_NATIVE[a]])
         atoms = at.a
         groups: dict = {}
         for row in self.rows:  # (kökler, kayıt) aynı olan satırlar ALTERNATİFTİR (dizge kökte `d Iː ɛ`, çekimde `d iː e` verebilir): biri yeterli
             groups.setdefault((row[0], row[1]), []).append(row)
-        stem_hit = lambda s: w.startswith(s) and (len(w) == len(s) or _SUFFIX_CHAIN.match(w[len(s):]))
+        # `kök=` = yalnız TAM sözcük (hal= : yalın hal uzun, halde/hâlleri kısa)
+        stem_hit = lambda s: w == s[:-1] if s.endswith("=") else w.startswith(s) and (len(w) == len(s) or _SUFFIX_CHAIN.match(w[len(s):]))
         matched = False
         for (stems, reg), alts in groups.items():
             if reg == "gündelik" and self.register != "gündelik":
@@ -142,6 +147,7 @@ class Exceptions:
 
 
 _PALATAL = {"k": "c", "kʰ": "cʰ", "g": "ɟ", "ł": "l"}
+_NATIVE = {"œ": "ø", "Y": "y"}
 
 
 def _vowel_align(w: str, at: Atoms) -> list[tuple[int, str, int]] | None:
@@ -291,8 +297,8 @@ class LengthRules:
                 if p == "i":
                     if self.register == "özenli" and a in ("iː", "Iː"):
                         edits.append((k, [a[:-1], "j"]))
-                elif nxt == "I":
-                    edits.append((k, [a[:-1]]))
+                elif nxt == "I":  # y yan ünlüsü: `Vː I` -> `V j` (y kendi sesiyle, kullanıcı kör değerlendirmesi 2026-09-30: hayata, baleyi, uyandığım)
+                    edits.append((k, [a[:-1], "j"], 1))
         for k, repl, *span in reversed(edits):
             work.replace(k, 1 + (span[0] if span else 0), repl)
         if edits or diphthong:
@@ -335,7 +341,7 @@ def coverage(manifest: str, min_count: int = 100) -> list[tuple[str, int, list[s
     for register in REGISTERS:
         ph = Phonemizer(bert_fallback=False, pron_exceptions=True, register=register, length_rules=True)
         for stems, *_ in Exceptions().rows:
-            for a in set(tokenize(ph.word(stems[0]))) - set(tokenize(bare.word(stems[0]))):
+            for a in set(tokenize(ph.word(stems[0].rstrip("=")))) - set(tokenize(bare.word(stems[0].rstrip("=")))):
                 if stems[0] not in used[a]:
                     used[a].append(stems[0])
     return sorted(((a, cnt.get(a, 0), s) for a, s in used.items() if cnt.get(a, 0) < min_count), key=lambda r: r[1])

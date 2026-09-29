@@ -56,7 +56,7 @@ assert any(issubclass(w.category, RuntimeWarning) and "iddia" in str(w.message) 
 # 6) engine: bayrak varsayılan KAPALI; açıkken token'lar değişir ve sürüm dizgesi sözlüğü içerir
 e0, e1 = Engine(bert_fallback=False), Engine(bert_fallback=False, pron_exceptions=True)
 assert e0.frontend("Kağıdı hakime verdi.").tokens != e1.frontend("Kağıdı hakime verdi.").tokens
-assert e0.frontend("Merhaba dünya.").tokens == e1.frontend("Merhaba dünya.").tokens
+assert e0.frontend("Merhaba arkadaşım.").tokens == e1.frontend("Merhaba arkadaşım.").tokens  # ö/ü içermez (sözlük açıkken ö/ü -> ø/y)
 assert "istisna" not in e0.versions()["phonemize"] and "istisna" in e1.versions()["phonemize"]
 assert Engine(bert_fallback=False, pron_exceptions=True, register="gündelik").versions()["phonemize"] != e1.versions()["phonemize"]
 # 7) atom kapsama denetimi: sözlüğün ürettiği atom eğitimde yoksa/azsa işaretlenir (aː Antalia'da 1 kez: model o atomu öğrenemez)
@@ -74,15 +74,15 @@ print("OK")
 
 # 7) Arapça/Farsça/Batı alıntıları (kullanıcı 2026-09-29, docs/loanword_research.md) + şapka (dizge â/î'yi atıyordu)
 L = Phonemizer(bert_fallback=False, pron_exceptions=True, length_rules=True)
-for w, want in {"saat": "s aː t", "saatler": "s aː t l ɛ ɣ", "tabii": "tʰ ɑ b iː", "zaten": "z aː t ɛ n", "hal": "x aː l", "halde": "x aː l d ɛ",
-                "hâlâ": "x aː l aː", "kalbi": "cʰ a l b I", "rolü": "r œ l Y", "kontrol": "kʰ ɔ n t ɾ œ l", "dükkânı": "d Y c c a n ɨ", "hikaye": "ç I c a I ɛ",
-                "kâr": "cʰ a ɣ", "resmî": "r e s m iː", "hayalî": "x ɑ I a l iː", "âdet": "aː d ɛ t", "dergâh": "d e ɾ ɟ a x"}.items():
+for w, want in {"saat": "s aː t", "saatler": "s aː t l ɛ ɣ", "tabii": "tʰ ɑ b iː", "zaten": "z aː t ɛ n", "hal": "x aː l", "halde": "x a l d ɛ",
+                "hâlâ": "x aː l aː", "kalbi": "cʰ a l b I", "rolü": "r œ l y", "kontrol": "kʰ ɔ n t ɾ œ l", "dükkânı": "d y c c a n ɨ", "hikaye": "ç I c a j ɛ",
+                "kâr": "cʰ a ɣ", "resmî": "r e s m iː", "hayalî": "x ɑ j a l iː", "âdet": "aː d ɛ t", "dergâh": "d e ɾ ɟ a x"}.items():
     assert A(L, w) == want, (w, A(L, w), want)
 for w in ("halı", "hala", "halk", "halil", "kar", "kalpak", "kalpağı", "adilik", "mekanik", "resmi", "kral"):  # yanlış pozitif yok
     assert L.word(w) == Phonemizer(bert_fallback=False, length_rules=True).word(w), w
 
 # 8) son hecesi ince alıntı kökleri (resources/loan_roots.tsv; ek uyumu madenciliği + kullanıcı grup kararları 2026-09-29)
-for w, want in {"normal": "n ɔ ɾ m a l", "normalde": "n ɔ ɾ m a l d ɛ", "golde": "ɟ œ l d ɛ", "protokol": "pʰ ɨ ɾ ɔ t ɔ c œ l", "mahsulü": "m ɑ x s Y l Y",
+for w, want in {"normal": "n ɔ ɾ m a l", "normalde": "n ɔ ɾ m a l d ɛ", "golde": "ɟ œ l d ɛ", "protokol": "pʰ ɨ ɾ ɔ t ɔ c œ l", "mahsulü": "m ɑ x s Y l y",
                 "dikkatli": "d I c c a t l I", "hakikat": "x ɑ c I c a t", "itaat": "I t aː t", "menfaatler": "m e n f aː t l ɛ ɣ", "kristali": "cʰ I ɾ I s t a l I"}.items():
     assert A(L, w) == want, (w, A(L, w), want)
 for w in ("golden", "tuvalet", "mahalle", "lokanta", "holding", "metallica", "sualtı", "hayaları", "dahiler", "mekaniği", "program", "plan"):  # dışlamalar / kapsam dışı

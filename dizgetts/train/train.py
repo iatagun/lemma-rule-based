@@ -142,7 +142,11 @@ def main():
     model = build_model(cfg, len(symbols), stats)
     init_report = load_pretrained(model, cfg["init"]) if cfg.get("init") and not a.resume else None
     model.to(dev).train()
-    retie = (lambda: tie(model, s2i)) if cfg["model"].get("embed_alias") else (lambda: None)  # a/aː gömmesi = ɑ/ɛ ortalaması (train/embed_alias.py)
+    # a/aː gömmesi = ɑ/ɛ ortalaması (train/embed_alias.py): true = her adımda bağla (veri yok); "init" = yalnız başlangıçta, sonra öğrenilir (alıntı kuralları: a 207, aː 272)
+    alias = cfg["model"].get("embed_alias")
+    retie = (lambda: tie(model, s2i)) if alias is True else (lambda: None)
+    if alias == "init" and not a.resume:
+        tie(model, s2i)
     opt = torch.optim.Adam(model.parameters(), lr=tr["lr"])
     epoch0 = step0 = 0
     if a.resume:
