@@ -18,6 +18,7 @@ import argparse
 import collections
 import csv
 import glob
+import hashlib
 import json
 import random
 import re
@@ -33,6 +34,7 @@ HERE = Path(__file__).resolve().parents[1]
 REPO = HERE.parent
 QUOTA = {"R": 50, "G": 15, "A": 25, "K": 20, "B": 10}
 V, BACK, FRONT = set("aeıioöuüâîû"), set("aıou"), set("eiöü")
+NATIVE = str.maketrans({"œ": "ø", "Y": "y", "ɣ": "ɾ"})  # frontend/pronounce.py _NATIVE ile aynı
 WORD = re.compile(r"[a-zçğıöşüâîû]+")
 
 
@@ -69,8 +71,11 @@ def build(seed: int = 20260929, exclude: set[str] = frozenset()) -> list[dict]:
         vs = [c for c in w if c in V]
         return len(vs) >= 2 and set(vs) & BACK and set(vs) & FRONT
 
+    len_only = Phonemizer(bert_fallback=False, length_rules=True)
+    N = lambda ph: ph.translate(NATIVE)  # sıradan ses gösterimi (ö/ü -> ø/y, son r -> ɾ) her sözcüğü değiştirir: K katmanı ve kaynak etiketi bunun DIŞINDA
+
     def stratum(w):
-        changed_by_rules = full.word(w) != Phonemizer(bert_fallback=False, length_rules=True).word(w)
+        changed_by_rules = full.word(w) != N(len_only.word(w))
         if changed_by_rules:
             return "K"
         if w[0] not in V and len(w) > 3 and w[1] not in V and w[1] not in "ğy":
@@ -106,7 +111,7 @@ def build(seed: int = 20260929, exclude: set[str] = frozenset()) -> list[dict]:
         w = r["word"]
         r["id"] = f"s{i:03d}"
         r["phones"] = " ".join(tokenize(full.word(w), strict=False))
-        layers = [name for name, a, b in (("sözlük/alıntı/şapka", bare.word(w), exc_only.word(w)),
+        layers = [name for name, a, b in (("sözlük/alıntı/şapka", N(bare.word(w)), exc_only.word(w)),
                                           ("uzun_ünlü", exc_only.word(w), full.word(w))) if a != b]
         r["source"] = "+".join(layers) or "dizge"
         r["freq"] = voc[w]
@@ -157,7 +162,7 @@ alofon ayrıntılarıdır: yalnız açıkça yanlışsa işaretleyin.</p></detai
 <details><summary>Simge tablosu</summary><table id="leg"></table></details>
 </main>
 <script>
-const ITEMS=__ITEMS__, LEG=__LEGEND__, KEY="phoneme_eval_v1__TAG__";
+const ITEMS=__ITEMS__, LEG=__LEGEND__, KEY="phoneme_eval___KEY__";
 let st={}; try{st=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){}
 let i=0; try{i=+localStorage.getItem(KEY+"_i")||0}catch(e){}
 const $=id=>document.getElementById(id);
@@ -199,7 +204,8 @@ def write(rows: list[dict], tag: str) -> None:
                    "œ": "yalnız alıntılarda 'oe' karışımı (rol, kontrol)", "Y": "yalnız alıntılarda 'ü benzeri u' (kabul, mahsul)", "ɑ": "a (kalın, normal)", "ɑː": "uzun kalın a (dağ)", "l": "ince l", "ł": "kalın l",
                    "c": "ince k", "cʰ": "ince k (aspire)", "ɟ": "ince g", "ː": "uzunluk"})
     items = [{k: r[k] for k in ("id", "word", "phones")} for r in rows]  # katman/kaynak sayfada YOK
-    OUT.write_text(HTML.replace("__TAG__", tag).replace("__ITEMS__", json.dumps(items, ensure_ascii=False)).replace("__LEGEND__", json.dumps(legend, ensure_ascii=False)), encoding="utf8")
+    key = f"{tag or 1}_" + hashlib.sha1(" ".join(r["word"] for r in rows).encode("utf8")).hexdigest()[:8]  # tarayıcı kaydı set İÇERİĞİNE bağlı
+    OUT.write_text(HTML.replace("__KEY__", key).replace("__TAG__", tag).replace("__ITEMS__", json.dumps(items, ensure_ascii=False)).replace("__LEGEND__", json.dumps(legend, ensure_ascii=False)), encoding="utf8")
     print(f"{len(rows)} sözcük -> {SHEET.name}, {OUT}")
     print(collections.Counter(r["stratum"] for r in rows), collections.Counter(r["source"] for r in rows))
 

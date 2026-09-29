@@ -12,6 +12,8 @@ raw = Phonemizer(bert_fallback=False)                                    # istis
 oz = Phonemizer(bert_fallback=False, pron_exceptions=True)               # özenli
 gu = Phonemizer(bert_fallback=False, pron_exceptions=True, register="gündelik")
 A = lambda ph, w: " ".join(tokenize(ph.word(w)))
+# sözlük açıkken sıradan ses gösterimi (kullanıcı 2026-09-30): ö/ü -> ø/y, sözcük sonu r ɣ -> ɾ; "istisna uygulanmadı" denetimleri bunun dışında karşılaştırır
+N = lambda ph: ph.translate(str.maketrans({"œ": "ø", "Y": "y", "ɣ": "ɾ"}))
 
 # 0) kapalıyken dizge çıktısı BİREBİR aynı (eski checkpoint'ler / donmuş manifestler)
 assert A(raw, "kağıdı") == "kʰ ɑː ɨ d ɨ" and A(raw, "hakim") == "x ɑː c I m"
@@ -28,11 +30,11 @@ assert A(oz, "hakim") == "x aː c I m"
 
 # 3) yanlış pozitif yok: benzer başlayan ilgisiz sözcükler dizge çıktısıyla aynı
 for w in ("hakem", "hakan", "hala", "kağan", "kitap", "kilim", "klavye", "mahzur", "kral"):
-    assert oz.word(w) == raw.word(w), w
+    assert oz.word(w) == N(raw.word(w)), w
 assert A(oz, "kağıdı") != A(raw, "kağıdı")
 
 # 4) özenli okumada iddia/klinik dizge'nin okuması; gündelik okumada kullanıcı söylenişi
-assert oz.word("iddia") == raw.word("iddia") and oz.word("klinik") == raw.word("klinik")
+assert oz.word("iddia") == N(raw.word("iddia")) and oz.word("klinik") == N(raw.word("klinik"))
 assert A(gu, "iddia") == "I d d ɑː" and A(gu, "iddiası") == "I d d ɑː s ɨ" and A(gu, "iddialar").startswith("I d d ɑː ł")
 assert A(gu, "klinik") == "kʰ ɨ l I n I c" and A(gu, "kliniği").startswith("kʰ ɨ l I n")
 assert A(gu, "kağıt") == "cʰ aː t" and A(gu, "kağıdı") == "cʰ aː d ɨ"   # kaat: özenli düzeltme + a ı'yi benzetir
@@ -74,16 +76,16 @@ print("OK")
 
 # 7) Arapça/Farsça/Batı alıntıları (kullanıcı 2026-09-29, docs/loanword_research.md) + şapka (dizge â/î'yi atıyordu)
 L = Phonemizer(bert_fallback=False, pron_exceptions=True, length_rules=True)
-for w, want in {"saat": "s aː t", "saatler": "s aː t l ɛ ɣ", "tabii": "tʰ ɑ b iː", "zaten": "z aː t ɛ n", "hal": "x aː l", "halde": "x a l d ɛ",
+for w, want in {"saat": "s aː t", "saatler": "s aː t l ɛ ɾ", "tabii": "tʰ ɑ b iː", "zaten": "z aː t ɛ n", "hal": "x aː l", "halde": "x a l d ɛ",
                 "hâlâ": "x aː l aː", "kalbi": "cʰ a l b I", "rolü": "r œ l y", "kontrol": "kʰ ɔ n t ɾ œ l", "dükkânı": "d y c c a n ɨ", "hikaye": "ç I c a j ɛ",
-                "kâr": "cʰ a ɣ", "resmî": "r e s m iː", "hayalî": "x ɑ j a l iː", "âdet": "aː d ɛ t", "dergâh": "d e ɾ ɟ a x"}.items():
+                "kâr": "cʰ a ɾ", "resmî": "r e s m iː", "hayalî": "x ɑ j a l iː", "âdet": "aː d ɛ t", "dergâh": "d e ɾ ɟ a x"}.items():
     assert A(L, w) == want, (w, A(L, w), want)
 for w in ("halı", "hala", "halk", "halil", "kar", "kalpak", "kalpağı", "adilik", "mekanik", "resmi", "kral"):  # yanlış pozitif yok
-    assert L.word(w) == Phonemizer(bert_fallback=False, length_rules=True).word(w), w
+    assert L.word(w) == N(Phonemizer(bert_fallback=False, length_rules=True).word(w)), w
 
 # 8) son hecesi ince alıntı kökleri (resources/loan_roots.tsv; ek uyumu madenciliği + kullanıcı grup kararları 2026-09-29)
 for w, want in {"normal": "n ɔ ɾ m a l", "normalde": "n ɔ ɾ m a l d ɛ", "golde": "ɟ œ l d ɛ", "protokol": "pʰ ɨ ɾ ɔ t ɔ c œ l", "mahsulü": "m ɑ x s Y l y",
-                "dikkatli": "d I c c a t l I", "hakikat": "x ɑ c I c a t", "itaat": "I t aː t", "menfaatler": "m e n f aː t l ɛ ɣ", "kristali": "cʰ I ɾ I s t a l I"}.items():
+                "dikkatli": "d I c c a t l I", "hakikat": "x ɑ c I c a t", "itaat": "I t aː t", "menfaatler": "m e n f aː t l ɛ ɾ", "kristali": "cʰ I ɾ I s t a l I"}.items():
     assert A(L, w) == want, (w, A(L, w), want)
 for w in ("golden", "tuvalet", "mahalle", "lokanta", "holding", "metallica", "sualtı", "hayaları", "dahiler", "mekaniği", "program", "plan"):  # dışlamalar / kapsam dışı
-    assert L.word(w) == Phonemizer(bert_fallback=False, length_rules=True).word(w), w
+    assert L.word(w) == N(Phonemizer(bert_fallback=False, length_rules=True).word(w)), w

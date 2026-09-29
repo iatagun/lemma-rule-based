@@ -65,12 +65,12 @@ Sesbirimi ağırlıklar değil **kurallar** üretir (DizgeTTS'in eğitim ön ucu
 
 | Katman | Ne düzeltir | Örnek |
 |---|---|---|
-| `dizge==0.1.6` | temel harf-ses dönüşümü, ünlü uyumuna bağlı k/g/l, ünsüz öbeği türemesi | spor → `sɨpɔɣ` |
+| `dizge==0.1.6` | temel harf-ses dönüşümü, ünlü uyumuna bağlı k/g/l, ünsüz öbeği türemesi | spor → `sɨpɔɾ` |
 | Söyleyiş sözlüğü (`resources/pronunciation_exceptions.tsv`) | kök + ek zinciriyle: uzun ünlüler, ʕ/ʔ izi, ince l, ön a/œ/ü benzeri ünlüler | saat → `saːt`, hal → `xaːl`, kontrol → `kʰɔntɾœl`, kâğıdı → `cʰaɨdɨ` |
 | Son hecesi ince alıntı kökleri (`resources/loan_roots.tsv`) | ekleri ince alan 70+ kök (ek uyumu kanıtıyla derlemden çıkarıldı): son ünlü önlenir, l/k incelir | normalde → `nɔɾmaldɛ`, dikkatli → `dIccatlI`, itaat → `Itaːt` |
 | Şapka (â, î) | sözlükte olmayan sözcüklerde: k/g/l + â → ince ünsüz + ön a; â → uzun; nispet î → uzun | dergâh → `deɾɟax`, resmî → `resmiː` |
-| Uzun ünlü kuralları | dizge'nin `ː`'sini gerçek uzamaya indirger (ğ + ünsüz), yan ünlü ve ünlüler arası ğ'de düşürür | ağır → `ɑɨɣ`, dağ → `dɑː` |
-| Ünlü/ünsüz gösterimi | sıradan ö/ü `ø`/`y` (`œ`/`Y` yalnız alıntıların oe / ü benzeri sesi), y her zaman `j` | döndü → `døndy`, hayata → `xɑjɑtɑ`, rol → `rœl` |
+| Uzun ünlü kuralları | dizge'nin `ː`'sini gerçek uzamaya indirger (ğ + ünsüz), yan ünlü ve ünlüler arası ğ'de düşürür | ağır → `ɑɨɾ`, dağ → `dɑː` |
+| Ünlü/ünsüz gösterimi | sıradan ö/ü `ø`/`y` (`œ`/`Y` yalnız alıntıların oe / ü benzeri sesi), y her zaman `j`, sözcük sonu r `ɾ` (dizge `ɣ`) | döndü → `døndy`, hayata → `xɑjɑtɑ`, rol → `rœl` |
 
 Söyleyiş kararları anadili Türkçe bir dilbilimcinin tarifleridir (özenli kayıt; gündelik varyantlar ayrı). Kapsam sözlükle sınırlıdır: sözlükte olmayan alıntılar dizge'nin okumasını alır.
 

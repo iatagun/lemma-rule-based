@@ -109,7 +109,8 @@ class Exceptions:
 
     def apply_atoms(self, word: str, at: Atoms) -> None:
         w = tr_lower(word)
-        # sıradan ö/ü: dizge `œ`/`Y` -> `ø`/`y` (kullanıcı 2026-09-30: "direkt ö/ü"); `œ`/`Y` yalnız alıntıların oe / ü benzeri sesine kalır (rol, kabul). Kalıplardan ÖNCE.
+        # sıradan ö/ü: dizge `œ`/`Y` -> `ø`/`y` (kullanıcı 2026-09-30: "direkt ö/ü"); `œ`/`Y` yalnız alıntıların oe / ü benzeri sesine kalır (rol, kabul).
+        # sözcük sonu r: dizge `ɣ` -> `ɾ`. Kalıplardan ÖNCE (kalıplar ø/y/ɾ ile yazılır).
         for k, a in enumerate(at.a):
             if a in _NATIVE:
                 at.replace(k, 1, [_NATIVE[a]])
@@ -147,7 +148,7 @@ class Exceptions:
 
 
 _PALATAL = {"k": "c", "kʰ": "cʰ", "g": "ɟ", "ł": "l"}
-_NATIVE = {"œ": "ø", "Y": "y"}
+_NATIVE = {"œ": "ø", "Y": "y", "ɣ": "ɾ"}  # ɣ: dizge'nin sözcük sonu r'si; kullanıcı 2026-09-30 (kör değerlendirme, demiyor): son r de ɾ
 
 
 def _vowel_align(w: str, at: Atoms) -> list[tuple[int, str, int]] | None:

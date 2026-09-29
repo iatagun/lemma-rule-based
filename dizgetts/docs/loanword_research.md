@@ -71,7 +71,9 @@ Hata sınıfları ve düzeltme (kök neden):
 - ö/ü (7): dizge sıradan ö/ü = `œ`/`Y`; kullanıcı: "direkt ö/ü" -> sözlük açıkken sıradan ö/ü `ø`/`y`; `œ` (oe) ve `Y` (ü benzeri) YALNIZ alıntılara kalır (rol, kabul). Yeni simge yok.
 - hal uzunluğu (2): yalın hal ve ünlü önünde (hali) uzun, ünsüz önünde (halde, hâlleri, hâlbuki) kısa ön a (`kök=` tam sözcük gösterimi eklendi).
 - sözcüğe özgü: madenî/maden, cami (uzun a), istikbal/istiklal/ikbal (ön a, loan_roots), not olarak gıyabi ve defa (uzun a).
-Sonra: 19/20 hata düzeldi, "doğru" işaretli 9 sözcük yalnız kullanıcı kurallarıyla değişti (ö/ü, defa/gıyabi notları), beklenmedik gerileme yok. Açık: demiyor (not: "demiˈjoɾ", kullanıcıya soruldu).
+Sonra: 19/20 hata düzeldi, "doğru" işaretli 9 sözcük yalnız kullanıcı kurallarıyla değişti (ö/ü, defa/gıyabi notları), beklenmedik gerileme yok.
+- sözcük sonu r (demiyor, kullanıcı 2026-09-30): dizge `ɣ` -> `ɾ` (sözlük açıkken, ö/ü eşlemesiyle aynı yerde). 20/20 düzeldi.
+Set 2 düzeltmeden sonra aynı tohumla yeniden üretildi; K katmanı ve kaynak etiketi sıradan ses eşlemesinin (ö/ü, son r) DIŞINDA hesaplanır (yoksa her sözcük "kural değiştirdi" sayılıyordu).
 Bu set kuralları düzeltmek için kullanıldı -> bağımsız sayı değil. **Set 2** (yeni kör, tohum 20260930, set 1 sözcükleri dışarıda): `reports/phoneme_eval_2.html`.
 Eğitim sayıları (Antalia train, yeni kurallarla): ø 1629, y 3258, œ 81 (yalnız alıntı), Y 4 (yalnız alıntı), j 6181. Yeniden eğitimde (v6 checkpoint'inden sıcak başlangıç) gömme satırları
 eski anlamlarından başlatılmalı: ø <- eski œ, y <- eski Y (sıradan ö/ü eskiden bu simgelerdeydi); œ, Y eski satırlarında kalır (alıntı sesleri ö/ü'ye yakın); a/aː `embed_alias: init`.

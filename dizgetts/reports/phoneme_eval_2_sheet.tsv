@@ -1,35 +1,35 @@
 id	word	stratum	source	freq	phones
 s001	hesapla	A	dizge	3	ç e s ɑ p ł ɑ
-s002	öbürüne	R	sözlük/alıntı/şapka	5	ø b y ɾ y n ɛ
+s002	öbürüne	R	dizge	5	ø b y ɾ y n ɛ
 s003	belki	R	dizge	95	b ɛ l c I
 s004	geldi	R	dizge	130	ɟ e l d I
 s005	başladığı	G	dizge	8	b ɑ ʃ ł ɑ d ɨː
-s006	ruhiyat	A	uzun_ünlü	2	r U ç i j ɑ t
+s006	kaybetmiş	A	uzun_ünlü	2	kʰ ɑ j b ɛ t m I ʃ
 s007	manyetize	R	dizge	1	m ɑ n j e t I z ɛ
 s008	planlanan	B	dizge	17	pʰ ɨ ł ɑ n ł ɑ n ɑ n
 s009	pencereleri	R	dizge	4	pʰ e n dʒ ɛ ɾ ɛ l ɛ ɾ I
-s010	çoğunu	G	uzun_ünlü	4	tʃ o U n U
+s010	tuttuğu	G	dizge	11	tʰ U t t uː
 s011	iş	R	dizge	163	I ʃ
-s012	yediği	G	uzun_ünlü	3	j e d iː
-s013	tutar	R	dizge	81	tʰ U t ɑ ɣ
-s014	trenlere	B	dizge	2	tʰ I ɾ e n l ɛ ɾ ɛ
-s015	anlatıldığında	G	dizge	4	ɑ n ł ɑ t ɨ ł d ɨː n d ɑ
-s016	söylediğim	G	uzun_ünlü	3	s ø j l ɛ d iː m
+s012	çatırdadığını	G	dizge	2	tʃ ɑ t ɨ ɾ d ɑ d ɨː n ɨ
+s013	tutar	R	dizge	81	tʰ U t ɑ ɾ
+s014	stüdyolara	B	dizge	2	s I t y d j ɔ ł ɑ ɾ ɑ
+s015	değiştiriyorum	G	dizge	2	d e j I ʃ t I ɾ I j ɔ ɾ U m
+s016	olamadığı	G	dizge	2	ɔ ł ɑ m ɑ d ɨː
 s017	biraz	R	dizge	259	b I ɾ ɑ z̥
 s018	kahvesi	A	dizge	4	kʰ ɑ x v ɛ s I
 s019	oyuna	R	uzun_ünlü	11	o j U n ɑ
 s020	hiç	R	dizge	219	ç I tʃ
 s021	hanım	R	dizge	51	x ɑ n ɨ m
-s022	süpürge	K	sözlük/alıntı/şapka	3	s y p y ɾ ɟ ɛ
-s023	kaybetmiş	A	uzun_ünlü	2	kʰ ɑ j b ɛ t m I ʃ
-s024	güzelliklerini	R	sözlük/alıntı/şapka	2	ɟ y z e l l I c l ɛ ɾ I n I
+s022	menfaat	K	sözlük/alıntı/şapka	3	m e n f aː t
+s023	berraklaşıyordu	A	dizge	2	b e ɾ ɾ ɑ k ł ɑ ʃ ɨ j ɔ ɾ d U
+s024	güzelliklerini	R	dizge	2	ɟ y z e l l I c l ɛ ɾ I n I
 s025	beş	R	dizge	215	b ɛ ʃ
-s026	standart	B	dizge	9	s ɨ t ɑ n d ɑ ɾ t
-s027	soğukkanlı	G	uzun_ünlü	5	s o U k k ɑ n ł ɨ
-s028	yürüyordu	K	sözlük/alıntı/şapka	9	j y ɾ y j ɔ ɾ d U
-s029	çatırdadığını	G	dizge	2	tʃ ɑ t ɨ ɾ d ɑ d ɨː n ɨ
-s030	ferdası	A	dizge	2	f e ɾ d ɑ s ɨ
-s031	küçüğüm	K	sözlük/alıntı/şapka	2	cʰ y tʃ yː m
+s026	profesörlüğüne	B	dizge	2	pʰ ɨ ɾ ɔ f e s ø ɾ l yː n ɛ
+s027	anlatıldığında	G	dizge	4	ɑ n ł ɑ t ɨ ł d ɨː n d ɑ
+s028	hâldeyim	K	sözlük/alıntı/şapka+uzun_ünlü	2	x a l d ɛ j I m
+s029	ağaç	G	dizge	25	ɑː tʃ
+s030	mahalledeki	A	dizge	6	m ɑ x ɑ ł l e d ɛ c I
+s031	goller	K	sözlük/alıntı/şapka	2	ɟ œ l l ɛ ɾ
 s032	bulunduğu	R	dizge	17	b U ł U n d uː
 s033	ihtiyat	R	uzun_ünlü	5	I ç t i j ɑ t
 s034	binerim	R	dizge	1	b I n ɛ ɾ I m
@@ -38,84 +38,84 @@ s036	tiyatroda	R	uzun_ünlü	5	tʰ i j ɑ t ɾ ɔ d ɑ
 s037	bilgi	R	dizge	85	b I l ɟ I
 s038	kodunuz	R	dizge	13	kʰ ɔ d U n U z̥
 s039	obruklu	R	dizge	2	ɔ b ɾ U k ł U
-s040	cumhuriyeti	A	uzun_ünlü	11	dʒ U m x U ɾ i j ɛ t I
+s040	izdivaç	A	dizge	3	I z d I ʋ ɑ tʃ
 s041	otomobile	R	dizge	6	ɔ t ɔ m ɔ b I l ɛ
-s042	üzerime	K	sözlük/alıntı/şapka	4	y z e ɾ I m ɛ
-s043	hâldeyim	K	sözlük/alıntı/şapka+uzun_ünlü	2	x a l d ɛ j I m
+s042	âleme	K	sözlük/alıntı/şapka	3	aː l e m ɛ
+s043	âlemine	K	sözlük/alıntı/şapka	2	aː l e m I n ɛ
 s044	sabah	R	dizge	103	s ɑ b ɑ x
-s045	fransızlar	B	dizge	3	f ɨ ɾ ɑ n s ɨ z ł ɑ ɣ
-s046	ağaç	G	dizge	25	ɑː tʃ
+s045	fransızlar	B	dizge	3	f ɨ ɾ ɑ n s ɨ z ł ɑ ɾ
+s046	çoğunu	G	uzun_ünlü	4	tʃ o U n U
 s047	diş	R	dizge	17	d I ʃ
 s048	eşik	R	dizge	1	e ʃ I c
-s049	gösterilen	K	sözlük/alıntı/şapka	5	ɟ ø s t e ɾ I l ɛ n
-s050	kurdele	A	dizge	3	kʰ U ɾ d e l ɛ
-s051	nişan	A	dizge	9	n I ʃ ɑ n
-s052	sensörü	K	sözlük/alıntı/şapka	2	s e n s ø ɾ y
-s053	çölü	K	sözlük/alıntı/şapka	2	tʃ ø l y
+s049	tezgâh	K	sözlük/alıntı/şapka	3	tʰ e z ɟ a x
+s050	ruhiyat	A	uzun_ünlü	2	r U ç i j ɑ t
+s051	ferdası	A	dizge	2	f e ɾ d ɑ s ɨ
+s052	rolüne	K	sözlük/alıntı/şapka	5	r œ l y n ɛ
+s053	nasihat	K	sözlük/alıntı/şapka	4	n ɑ s I x a t
 s054	kral	B	dizge	11	kʰ ɨ ɾ ɑ ł
 s055	tarafa	R	dizge	24	tʰ ɑ ɾ ɑ f ɑ
-s056	izdivaç	A	dizge	3	I z d I ʋ ɑ tʃ
-s057	frenleri	B	dizge	2	f I ɾ e n l ɛ ɾ I
+s056	kurdele	A	dizge	3	kʰ U ɾ d e l ɛ
+s057	standart	B	dizge	9	s ɨ t ɑ n d ɑ ɾ t
 s058	daire	R	dizge	10	d ɑ I ɾ ɛ
-s059	üç	R	sözlük/alıntı/şapka	275	y tʃ
-s060	değiştiriyorum	G	dizge	2	d e j I ʃ t I ɾ I j ɔ ɾ U m
-s061	düşmek	K	sözlük/alıntı/şapka	7	d y ʃ m ɛ c
-s062	idamlık	A	dizge	2	I d ɑ m ł ɨ k
+s059	üç	R	dizge	275	y tʃ
+s060	küçüğüm	G	dizge	2	cʰ y tʃ yː m
+s061	dikkatli	K	sözlük/alıntı/şapka	6	d I c c a t l I
+s062	cumhuriyeti	A	uzun_ünlü	11	dʒ U m x U ɾ i j ɛ t I
 s063	içine	R	dizge	72	I tʃ I n ɛ
 s064	temiz	R	dizge	39	tʰ e m I z̥
-s065	üstün	K	sözlük/alıntı/şapka	10	y s t y n
-s066	olamadığı	G	dizge	2	ɔ ł ɑ m ɑ d ɨː
-s067	kitapta	A	dizge	4	cʰ I t ɑ p t ɑ
-s068	mahalledeki	A	dizge	6	m ɑ x ɑ ł l e d ɛ c I
-s069	müdür	K	sözlük/alıntı/şapka	12	m y d y ɣ
-s070	âleme	K	sözlük/alıntı/şapka	3	aː l e m ɛ
-s071	hırpani	A	dizge	2	x ɨ ɾ p ɑ n I
-s072	feleğini	G	dizge	2	f e l ɛ j I n I
-s073	otobüsten	R	sözlük/alıntı/şapka	2	ɔ t ɔ b y s t ɛ n
-s074	güzele	K	sözlük/alıntı/şapka	7	ɟ y z e l ɛ
-s075	imkânı	K	sözlük/alıntı/şapka	9	I m c a n ɨ
+s065	eğer	K	sözlük/alıntı/şapka	35	ɛː ɾ
+s066	yediği	G	uzun_ünlü	3	j e d iː
+s067	yürüyordu	A	dizge	9	j y ɾ y j ɔ ɾ d U
+s068	hırpani	A	dizge	2	x ɨ ɾ p ɑ n I
+s069	orijinal	K	sözlük/alıntı/şapka	7	ɔ ɾ I ʒ I n a l
+s070	orijinalite	K	sözlük/alıntı/şapka	2	ɔ ɾ I ʒ I n a l I t ɛ
+s071	hidayete	A	uzun_ünlü	2	ç I d ɑ j e t ɛ
+s072	soğukkanlı	G	uzun_ünlü	5	s o U k k ɑ n ł ɨ
+s073	otobüsten	R	dizge	2	ɔ t ɔ b y s t ɛ n
+s074	imkânı	K	sözlük/alıntı/şapka	9	I m c a n ɨ
+s075	dükkânlarında	K	sözlük/alıntı/şapka	2	d y c c a n ł ɑ ɾ ɨ n d ɑ
 s076	konukseverlikle	A	dizge	2	kʰ ɔ n U k s e ʋ ɛ ɾ l I c l ɛ
-s077	vakti	A	dizge	10	v ɑ k t I
+s077	nişan	A	dizge	9	n I ʃ ɑ n
 s078	kuracağım	G	uzun_ünlü	2	kʰ U ɾ ɑ dʒ ɑ ɨ m
-s079	trafiğe	B	uzun_ünlü	2	tʰ ɨ ɾ ɑ f I ɛ
+s079	flört	B	dizge	2	f I l ø ɾ t
 s080	ağlama	R	dizge	2	ɑː ł ɑ m ɑ
-s081	tercihler	R	dizge	1	tʰ e ɾ dʒ I ç l ɛ ɣ
-s082	poker	A	dizge	4	pʰ ɔ c ɛ ɣ
-s083	göre	R	sözlük/alıntı/şapka	94	ɟ ø ɾ ɛ
-s084	ölmesin	K	sözlük/alıntı/şapka	2	ø l m ɛ s I n
-s085	kurtludurlar	R	dizge	1	kʰ U ɾ t ł U d U ɾ ł ɑ ɣ
-s086	altındaki	A	dizge	26	ɑ ł t ɨ n d ɑ c I
-s087	hidayete	A	uzun_ünlü	2	ç I d ɑ j e t ɛ
+s081	tercihler	R	dizge	1	tʰ e ɾ dʒ I ç l ɛ ɾ
+s082	poker	A	dizge	4	pʰ ɔ c ɛ ɾ
+s083	göre	R	dizge	94	ɟ ø ɾ ɛ
+s084	lokallerini	K	sözlük/alıntı/şapka	2	l ɔ c a l l ɛ ɾ I n I
+s085	kurtludurlar	R	dizge	1	kʰ U ɾ t ł U d U ɾ ł ɑ ɾ
+s086	idamlık	A	dizge	2	I d ɑ m ł ɨ k
+s087	yokken	A	dizge	4	j ɔ k c ɛ n
 s088	kat	R	dizge	44	kʰ ɑ t
 s089	bilmeyen	R	dizge	6	b I l m e j ɛ n
-s090	tümüyle	K	sözlük/alıntı/şapka	2	tʰ y m y j l ɛ
+s090	âşıkane	K	sözlük/alıntı/şapka	2	aː ʃ ɨ k ɑ n ɛ
 s091	ortaya	R	uzun_ünlü	41	ɔ ɾ t ɑ j ɑ
-s092	berraklaşıyordu	A	dizge	2	b e ɾ ɾ ɑ k ł ɑ ʃ ɨ j ɔ ɾ d U
-s093	oluyor	R	uzun_ünlü	58	ɔ ł U j ɔ ɣ
-s094	tahkikatın	A	dizge	2	tʰ ɑ x c I k ɑ t ɨ n
+s092	vakti	A	dizge	10	v ɑ k t I
+s093	oluyor	R	uzun_ünlü	58	ɔ ł U j ɔ ɾ
+s094	salahiyet	A	uzun_ünlü	2	s ɑ ł ɑ ç i j ɛ t
 s095	postunu	R	dizge	1	pʰ ɔ s t U n U
-s096	örtmek	R	sözlük/alıntı/şapka	5	ø ɾ t m ɛ c
-s097	mücadelenin	K	sözlük/alıntı/şapka	2	m y dʒ ɑ d e l ɛ n I n
+s096	örtmek	R	dizge	5	ø ɾ t m ɛ c
+s097	ikbal	K	sözlük/alıntı/şapka	3	I c b a l
 s098	francala	B	dizge	2	f ɨ ɾ ɑ n dʒ ɑ ł ɑ
 s099	macera	A	dizge	2	m ɑ dʒ ɛ ɾ ɑ
 s100	gecelerde	R	dizge	5	ɟ e dʒ ɛ l ɛ ɾ d ɛ
-s101	eğer	K	sözlük/alıntı/şapka	35	ɛː ɣ
-s102	ülkede	K	sözlük/alıntı/şapka	7	y l c e d ɛ
+s101	yâr	K	sözlük/alıntı/şapka	14	j aː ɾ
+s102	general	K	sözlük/alıntı/şapka	2	ɟ e n ɛ ɾ a l
 s103	alkış	R	dizge	2	ɑ ł k ɨ ʃ
 s104	yapraklarını	R	dizge	4	j ɑ p ɾ ɑ k ł ɑ ɾ ɨ n ɨ
 s105	şehadet	A	dizge	2	ʃ e x ɑ d ɛ t
 s106	dağıtımı	G	uzun_ünlü	4	d ɑ ɨ t ɨ m ɨ
-s107	tuttuğu	G	dizge	11	tʰ U t t uː
+s107	feleğini	G	dizge	2	f e l ɛ j I n I
 s108	adına	R	dizge	17	ɑ d ɨ n ɑ
 s109	tezini	R	dizge	3	tʰ e z I n I
-s110	salahiyet	A	uzun_ünlü	2	s ɑ ł ɑ ç i j ɛ t
-s111	kantinde	A	dizge	2	kʰ ɑ n t I n d ɛ
-s112	bluetooth	B	dizge	7	b ɨ l U ɛ t ɔ ɔ t x
+s110	altındaki	A	dizge	26	ɑ ł t ɨ n d ɑ c I
+s111	kitapta	A	dizge	4	cʰ I t ɑ p t ɑ
+s112	trenlere	B	dizge	2	tʰ I ɾ e n l ɛ ɾ ɛ
 s113	kağşamış	G	dizge	2	kʰ ɑː ʃ ɑ m ɨ ʃ
 s114	geçmiş	R	dizge	58	ɟ e tʃ m I ʃ
-s115	ikindiüzeri	K	sözlük/alıntı/şapka	2	I c I n d I y z ɛ ɾ I
-s116	bütün	R	sözlük/alıntı/şapka	365	b y t y n
+s115	ilmî	K	sözlük/alıntı/şapka	4	I l m iː
+s116	bütün	R	dizge	365	b y t y n
 s117	kendimi	R	dizge	40	cʰ ɛ n d I m I
 s118	hâl	R	sözlük/alıntı/şapka	9	x aː l
-s119	planı	B	dizge	6	pʰ ɨ ł ɑ n ɨ
-s120	yokken	A	dizge	4	j ɔ k c ɛ n
+s119	bluetooth	B	dizge	7	b ɨ l U ɛ t ɔ ɔ t x
+s120	kantinde	A	dizge	2	kʰ ɑ n t I n d ɛ

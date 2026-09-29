@@ -13,6 +13,8 @@ both = Phonemizer(bert_fallback=False, pron_exceptions=True, length_rules=True)
 gu = Phonemizer(bert_fallback=False, pron_exceptions=True, length_rules=True, register="gündelik")
 gu_only = Phonemizer(bert_fallback=False, length_rules=True, register="gündelik")
 A = lambda ph, w: " ".join(tokenize(ph.word(w)))
+# sözlük açıkken sıradan ses gösterimi (kullanıcı 2026-09-30): ö/ü -> ø/y, sözcük sonu r ɣ -> ɾ; karşılaştırmalar bunun dışında
+NATIVE = lambda ph: ph.translate(str.maketrans({"œ": "ø", "Y": "y", "ɣ": "ɾ"}))
 
 # 0) kapalıyken dizge çıktısı birebir aynı
 assert A(raw, "ağır") == "ɑː ɨ ɣ" and A(raw, "ayak") == "ɑː I ɑ k"
@@ -39,9 +41,8 @@ assert Phonemizer(bert_fallback=False, length_rules=True).word("iyi") != gu_only
 
 # 3c) diğer: TEK y'leşen ğ (kullanıcı 2026-09-26): diyer. dizge kökte `d Iː ɛ`, çekimlerde `d iː e` verir (iki alternatif satır, ünlü niteliği korunur);
 # iğne / öğün / düğün / öğle y'leşmez
-for w, want in (("diğer", "d I j ɛ ɣ"), ("diğeri", "d I j ɛ ɾ I"), ("diğerleri", "d i j e ɾ l ɛ ɾ I"), ("diğerine", "d i j e ɾ I n ɛ"), ("diğeriyle", "d i j e ɾ I j l ɛ")):
+for w, want in (("diğer", "d I j ɛ ɾ"), ("diğeri", "d I j ɛ ɾ I"), ("diğerleri", "d i j e ɾ l ɛ ɾ I"), ("diğerine", "d i j e ɾ I n ɛ"), ("diğeriyle", "d i j e ɾ I j l ɛ")):
     assert A(both, w) == want, (w, A(both, w), "beklenen", want)
-NATIVE = lambda ph: ph.replace("œ", "ø").replace("Y", "y")  # sözlük açıkken sıradan ö/ü -> ø/y (kullanıcı 2026-09-30); karşılaştırma bunun dışında
 for w in ("iğne", "öğün", "düğün", "öğle", "eğlence"):
     assert both.word(w) == NATIVE(lr.word(w)), w
 assert A(lr, "diğer") == "d I ɛ ɣ"       # yalnız kural (sözlük kapalı): y'leşme yok, geçiş
@@ -57,10 +58,10 @@ assert A(both, "eğlence") == "e j l ɛ n dʒ ɛ"
 
 # 3e) kullanıcı kararları 2026-09-27: değer/eğer UZAMA; değişik/eğitim y'leşme (dizge'nin j'si kalır); -eceğim DİFTONG (ğ'nin j'si düşer, ɛ I bitişik);
 # -diği/-liği/-tiği (i-ğ-i) UZAMA: dizge `iː I` (uzun i + fazladan i) verir, tek uzun `iː`'ye birleşir (uğu -> uː gibi)
-for w, want in (("değer", "d ɛː ɣ"), ("eğer", "ɛː ɣ"), ("değerli", "d ɛː ɾ l I"), ("değeri", "d ɛː ɾ I"), ("eğerse", "ɛː ɾ s ɛ")):
+for w, want in (("değer", "d ɛː ɾ"), ("eğer", "ɛː ɾ"), ("değerli", "d ɛː ɾ l I"), ("değeri", "d ɛː ɾ I"), ("eğerse", "ɛː ɾ s ɛ")):
     assert A(both, w) == want, (w, A(both, w), "beklenen", want)
 for w in ("değişik", "eğitim", "değil", "değişim", "eğlenmek"):
-    assert both.word(w) == raw.word(w), (w, A(both, w))                # y'leşme / karar bekleyen: dizge'nin okuması
+    assert both.word(w) == NATIVE(raw.word(w)), (w, A(both, w))                # y'leşme / karar bekleyen: dizge'nin okuması
 for w, want in (("göndereceğim", "ɟ ø n d e ɾ ɛ dʒ ɛ I m"), ("edeceğiz", "e d ɛ dʒ ɛ I z̥"), ("ekleyeceğim", "e c l ɛ j ɛ dʒ ɛ I m"), ("olacağım", "ɔ ł ɑ dʒ ɑ ɨ m")):
     assert A(both, w) == want, (w, A(both, w), "beklenen", want)
 for w, want in (("gönderdiğim", "ɟ ø n d ɛ ɾ d iː m"), ("dediğin", "d e d iː n"), ("güvenliğiniz", "ɟ y ʋ ɛ n l iː n I z̥"), ("söylendiğinde", "s ø j l e n d iː n d ɛ")):
