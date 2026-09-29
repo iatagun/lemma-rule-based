@@ -19,6 +19,10 @@ class DizgeBertG2ptttsConfig(PretrainedConfig):
         lexical_tiers: list[str] | None = None,  # kural yolunda uygulanan sözlüğe kapılı katmanlar (pekiştirme, -CIk sıfat)
         rules_version: str = "",  # dışa aktarmadaki kural+sözlük özeti (resources/ + stress_rules.py)
         train_info: dict | None = None,
+        phonemes: bool = True,           # tag() sesbirim de üretsin (dizge==0.1.6 + söyleyiş sözlüğü + uzun ünlü kuralları); v0 paketlerinde alan yok -> açık
+        pron_exceptions: bool = True,    # resources/pronunciation_exceptions.tsv (alıntı sözcükler, kağıt/hakim, şapka)
+        length_rules: bool = True,       # ğ/y uzun ünlü kuralları
+        register: str = "özenli",        # "özenli" | "gündelik" (iddaa, kılinik, kaat)
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -31,3 +35,7 @@ class DizgeBertG2ptttsConfig(PretrainedConfig):
         self.lexical_tiers = lexical_tiers or ["pek", "cik"]
         self.rules_version = rules_version
         self.train_info = train_info or {}
+        self.phonemes = phonemes
+        self.pron_exceptions = pron_exceptions
+        self.length_rules = length_rules
+        self.register = register

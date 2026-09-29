@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 
 from dizgetts.frontend import normalize as _norm
 from dizgetts.frontend.phonemize import Phonemizer
-from dizgetts.frontend.stress import StressRules, _is_vowel_atom, _n_vowels, to_phone_index
+from dizgetts.frontend.stress import StressRules, _is_vowel_atom, _n_vowels, phone_stress_index
 from dizgetts.frontend.symbols import BREAK_MAJOR, BREAK_MID, PAUSES, PHONES, STRESS, SYMBOL_TO_ID, WORD_SEP, UnknownSymbol, tokenize
 
 _TOK = re.compile(r"[^\W\d_]+|[,.?!;]")
@@ -139,15 +139,7 @@ class MorphStage(Stage):
 
 
 def _stress_index(w: Word, k: int) -> tuple[int | None, str]:
-    """Vurgulu seslemin (baştan k) `w.phones` içindeki ünlü atom indeksi. Sözlük/kural sözcüğü değiştirdiyse eşleme HAM dizge atomlarında yapılır (to_phone_index
-    yan ünlüyü `ː` işaretiyle tanır; kurallar işareti düşürür, iki ünlüyü tek atoma birleştirir) ve kökenle son diziye taşınır."""
-    if w.origin is None:
-        return to_phone_index(w.text, w.phones, k)
-    i, how = to_phone_index(w.text, w.raw_phones, k)
-    if i is None:
-        return None, how
-    j = next((j for j, o in enumerate(w.origin) if i in o), None)
-    return (j, how) if j is not None else to_phone_index(w.text, w.phones, k)
+    return phone_stress_index(w.text, w.phones, k, w.raw_phones, w.origin)
 
 
 class StressStage(Stage):

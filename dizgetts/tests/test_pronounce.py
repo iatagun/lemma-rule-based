@@ -71,3 +71,19 @@ with tempfile.TemporaryDirectory() as d:
     assert low["aː"] == 3 and "cʰ" not in low, low          # cʰ (500) yeterli, aː (3) yetersiz (sözlükteki diğer atomlar bu sahte manifestte 0)
     assert coverage(manifest=os.path.join(d, "yok.jsonl")) is None   # manifest yoksa atlanır
 print("OK")
+
+# 7) Arapça/Farsça/Batı alıntıları (kullanıcı 2026-09-29, docs/loanword_research.md) + şapka (dizge â/î'yi atıyordu)
+L = Phonemizer(bert_fallback=False, pron_exceptions=True, length_rules=True)
+for w, want in {"saat": "s aː t", "saatler": "s aː t l ɛ ɣ", "tabii": "tʰ ɑ b iː", "zaten": "z aː t ɛ n", "hal": "x aː l", "halde": "x aː l d ɛ",
+                "hâlâ": "x aː l aː", "kalbi": "cʰ a l b I", "rolü": "r œ l Y", "kontrol": "kʰ ɔ n t ɾ œ l", "dükkânı": "d Y c c a n ɨ", "hikaye": "ç I c a I ɛ",
+                "kâr": "cʰ a ɣ", "resmî": "r e s m iː", "hayalî": "x ɑ I a l iː", "âdet": "aː d ɛ t", "dergâh": "d e ɾ ɟ a x"}.items():
+    assert A(L, w) == want, (w, A(L, w), want)
+for w in ("halı", "hala", "halk", "halil", "kar", "kalpak", "kalpağı", "adilik", "mekanik", "resmi", "kral"):  # yanlış pozitif yok
+    assert L.word(w) == Phonemizer(bert_fallback=False, length_rules=True).word(w), w
+
+# 8) son hecesi ince alıntı kökleri (resources/loan_roots.tsv; ek uyumu madenciliği + kullanıcı grup kararları 2026-09-29)
+for w, want in {"normal": "n ɔ ɾ m a l", "normalde": "n ɔ ɾ m a l d ɛ", "golde": "ɟ œ l d ɛ", "protokol": "pʰ ɨ ɾ ɔ t ɔ c œ l", "mahsulü": "m ɑ x s Y l Y",
+                "dikkatli": "d I c c a t l I", "hakikat": "x ɑ c I c a t", "itaat": "I t aː t", "menfaatler": "m e n f aː t l ɛ ɣ", "kristali": "cʰ I ɾ I s t a l I"}.items():
+    assert A(L, w) == want, (w, A(L, w), want)
+for w in ("golden", "tuvalet", "mahalle", "lokanta", "holding", "metallica", "sualtı", "hayaları", "dahiler", "mekaniği", "program", "plan"):  # dışlamalar / kapsam dışı
+    assert L.word(w) == Phonemizer(bert_fallback=False, length_rules=True).word(w), w

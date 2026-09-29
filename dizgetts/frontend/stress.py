@@ -274,3 +274,16 @@ def to_phone_index(text: str, phones: list[str], k: int) -> tuple[int | None, st
                 return av2[k], "yan_ünlü_atıldı"
     r = n_l - 1 - k  # sondan sıra
     return (av[len(av) - 1 - r], "sondan") if 0 <= r < len(av) else (av[-1], "yedek_son")
+
+
+def phone_stress_index(text: str, phones: list[str], k: int, raw: list[str] | None = None, origin: list[list[int]] | None = None) -> tuple[int | None, str]:
+    """Vurgulu seslemin (baştan k) `phones` içindeki ünlü atom indeksi. Sözlük/kural sözcüğü değiştirdiyse (raw/origin: pronounce.Atoms) eşleme HAM dizge atomlarında
+    yapılır (to_phone_index yan ünlüyü `ː` işaretiyle tanır; kurallar işareti düşürür, iki ünlüyü tek atoma birleştirir) ve kökenle son diziye taşınır.
+    Engine ve HF g2ptts paketi AYNI fonksiyonu kullanır."""
+    if origin is None:
+        return to_phone_index(text, phones, k)
+    i, how = to_phone_index(text, raw, k)
+    if i is None:
+        return None, how
+    j = next((j for j, o in enumerate(origin) if i in o), None)
+    return (j, how) if j is not None else to_phone_index(text, phones, k)

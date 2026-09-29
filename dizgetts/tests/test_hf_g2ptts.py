@@ -32,9 +32,9 @@ tmp = tempfile.TemporaryDirectory()
 out = Path(tmp.name) / "pkg"
 export(CK, out)
 files = {p.name for p in out.iterdir()}
-assert {"model.safetensors", "config.json", "stress_rules.py", "normalize.py", "symbols.py", "modeling_dizgebert_g2ptts.py", "configuration_dizgebert_g2ptts.py", "README.md",
-        "resources", "tokenizer_config.json"} <= files, files
-assert {p.name for p in (out / "resources").iterdir()} == {"stress_roots.tsv", "clitics.tsv", "adj_lemmas.txt"}
+assert {"model.safetensors", "config.json", "stress.py", "normalize.py", "symbols.py", "phonemize.py", "pronounce.py", "g2p.py", "modeling_dizgebert_g2ptts.py",
+        "configuration_dizgebert_g2ptts.py", "README.md", "resources", "tokenizer_config.json"} <= files, files
+assert {p.name for p in (out / "resources").iterdir()} == {"stress_roots.tsv", "clitics.tsv", "adj_lemmas.txt", "pronunciation_exceptions.tsv", "loan_roots.tsv"}
 # paket kendi başına çalışmalı: dizgetts'e bağımlılık SIZMAMIŞ olmalı (HF kullanıcısında dizgetts kurulu değil)
 for f in out.glob("*.py"):
     src = f.read_text(encoding="utf8")
@@ -121,5 +121,21 @@ shutil.copytree(out, alt)
 hf2 = AutoModel.from_pretrained(str(alt), trust_remote_code=True).eval()
 assert "da" in hf.rules.clitics and "da" not in hf2.rules.clitics
 print("(5) sözlükler pakette ve kullanılıyor")
+
+# (6) SESBİRİM: tag()["phonemes"] == dizgetts Engine(g2ptts, aynı etiketleyici, söyleyiş sözlüğü + uzun ünlü kuralları) token'ları, cümle cümle
+from dizgetts.engine import Engine
+assert hf.config.phonemes and hf.config.pron_exceptions and hf.config.length_rules and hf.config.register == "özenli"
+eng = Engine(g2ptts=True, g2ptts_tagger=hf, pron_exceptions=True, length_rules=True, register="özenli")
+bad = [t for t in texts if "".join(eng.frontend(t).tokens) != hf.tag(t, tokenizer=tok)["phonemes"]]
+assert not bad, f"{len(bad)}/{len(texts)} cümlede sesbirim farkı: {bad[:3]}"
+o = hf.tag("Kâğıdı hâlâ dükkânda bıraktım, saat dokuzda alırım.", tokenizer=tok)
+ph = {w["word"]: "".join(w["phones"]) for w in o["words"]}
+assert ph["Kâğıdı"] == "cʰaɨdɨ" and ph["hâlâ"] == "xaːlaː" and ph["saat"] == "saːt" and ph["dükkânda"] == "dYccandɑ", ph
+assert "cʰaɨdˈɨ" in o["phonemes"] and " xˈaːlaː " in o["phonemes"] and "sˈaːt" in o["phonemes"], o["phonemes"]  # hâlâ: ilk hece vurgusu
+# söyleyiş sözlüğü de HF yolundan KULLANILIYOR (res_dir): paketteki sözlüğü boşalt -> saat dizge'nin okumasına döner
+(alt / "resources" / "pronunciation_exceptions.tsv").write_text("# boş\n", encoding="utf8")
+hf3 = AutoModel.from_pretrained(str(alt), trust_remote_code=True).eval()
+assert [w["phones"] for w in hf3.tag("saat", tokenizer=tok)["words"]] == [["s", "ɑ", "ɑ", "t"]]
+print(f"(6) sesbirim = Engine: {len(texts)} cümle birebir; alıntı/şapka HF yolundan")
 tmp.cleanup()
 print("OK")

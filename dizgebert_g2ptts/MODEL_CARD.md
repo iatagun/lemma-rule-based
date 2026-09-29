@@ -6,6 +6,7 @@ pipeline_tag: token-classification
 tags:
 - token-classification
 - text-to-speech
+- grapheme-to-phoneme
 - word-stress
 - prosodic-boundary
 - turkish
@@ -16,10 +17,11 @@ datasets:
 - universal_dependencies
 ---
 
-# DizgeBERT-G2PTTS (deneysel, v0)
+# DizgeBERT-G2PTTS (deneysel, v1)
 
-Türkçe TTS ön ucu için, ham metinden **sözcük başına** iki şey tahmin eden küçük bir etiketleyici:
+Türkçe TTS için **tam ön uç**: ham metinden sözcük başına üç şey üretir ve bunları TTS'e hazır tek bir sesbirim dizisinde birleştirir:
 
+- **Sesbirim** (v1'de yeni): kural tabanlı [`dizge`](https://pypi.org/project/dizge/) + söyleyiş sözlüğü (Arapça/Farsça/Batı alıntıları, şapka) + uzun ünlü (ğ/y) kuralları.
 - **Vurgu:** vurgulu seslem (sondan sıra) ya da vurgusuz.
 - **Sınır:** sözcükten sonra duraklama var mı, hangi düzeyde (`0` / `ip` / `IP`, cümle sonu `cümle`).
 
@@ -41,15 +43,35 @@ from transformers import AutoModel
 
 m = AutoModel.from_pretrained("iatagun/DizgeBERT-G2PTTS", trust_remote_code=True).eval()
 out = m.tag("Yarın İstanbul'a gideceğim, ama havanın nasıl olacağını bilmiyorum.")
+print(out["phonemes"])   # TTS'e hazır: sözcük arası boşluk, ˈ vurgu, noktalamasız sınıra | (ip) / ‖ (IP)
 for w in out["words"]:
-    print(w["word"], w["stress_from_end"], w["stress_src"], w["boundary"], w["p_break"])
+    print(w["word"], "".join(w["phones"]), w["stress_from_end"], w["stress_src"], w["boundary"], w["p_break"])
+```
+
+Sesbirim için `pip install dizge==0.1.6` gerekir. Söyleyiş seçenekleri config'te: `register="özenli"` (varsayılan) ya da `"gündelik"` (iddaa, kılinik, kaat), `pron_exceptions`, `length_rules`; yalnız vurgu + sınır için `phonemes=False`:
+```python
+m = AutoModel.from_pretrained("iatagun/DizgeBERT-G2PTTS", trust_remote_code=True, register="gündelik")
 ```
 
 - `stress_from_end`: vurgulu seslemin sondan sırası (`0` = son seslem), `None` = vurgusuz.
 - `stress_src`: `kural:<etiket>` (kök, clitic, ünlüsüz, pekiştirme...) ya da `model`.
 - `boundary`: `0` sınır yok, `ip` orta, `IP` büyük, `cümle` cümlenin son sözcüğü. Noktalama ile birleştirilir (`,` → en az `ip`, `;` → en az `IP`).
 - Girdi `normalize()` ile hazırlanır (sayı, kısaltma, tarih açılır; noktalama ayrılır). Uzun metin cümle sınırlarında 254 alt-sözcüklük parçalara bölünür.
-- Fonem üretmez. Fonemler için [`dizge`](https://pypi.org/project/dizge/) (`==0.1.6`) kullanılır.
+- `phones`: sözcüğün sesbirim atomları; `stress_phone`: vurgulu ünlünün `phones` içindeki indeksi.
+
+## Sesbirim (v1)
+
+Sesbirimi ağırlıklar değil **kurallar** üretir (DizgeTTS'in eğitim ön ucuyla birebir aynı kod; gidiş-dönüş testi 263 cümlede birebir):
+
+| Katman | Ne düzeltir | Örnek |
+|---|---|---|
+| `dizge==0.1.6` | temel harf-ses dönüşümü, ünlü uyumuna bağlı k/g/l, ünsüz öbeği türemesi | spor → `sɨpɔɣ` |
+| Söyleyiş sözlüğü (`resources/pronunciation_exceptions.tsv`) | kök + ek zinciriyle: uzun ünlüler, ʕ/ʔ izi, ince l, ön a/œ/ü benzeri ünlüler | saat → `saːt`, hal → `xaːl`, kontrol → `kʰɔntɾœl`, kâğıdı → `cʰaɨdɨ` |
+| Son hecesi ince alıntı kökleri (`resources/loan_roots.tsv`) | ekleri ince alan 70+ kök (ek uyumu kanıtıyla derlemden çıkarıldı): son ünlü önlenir, l/k incelir | normalde → `nɔɾmaldɛ`, dikkatli → `dIccatlI`, itaat → `Itaːt` |
+| Şapka (â, î) | sözlükte olmayan sözcüklerde: k/g/l + â → ince ünsüz + ön a; â → uzun; nispet î → uzun | dergâh → `deɾɟax`, resmî → `resmiː` |
+| Uzun ünlü kuralları | dizge'nin `ː`'sini gerçek uzamaya indirger (ğ + ünsüz), yan ünlü ve ünlüler arası ğ'de düşürür | ağır → `ɑɨɣ`, dağ → `dɑː` |
+
+Söyleyiş kararları anadili Türkçe bir dilbilimcinin tarifleridir (özenli kayıt; gündelik varyantlar ayrı). Kapsam sözlükle sınırlıdır: sözlükte olmayan alıntılar dizge'nin okumasını alır.
 
 ## Eğitim
 
@@ -92,6 +114,7 @@ Fark +0,096…+0,201 (klip bootstrap %95 GA). Baseline'ı anlamlı geçiyor, ama
 - Kural kapsamı bilinçli dardır: seslenme, küçültme, ikileme, bileşikler için tam sözlük yok.
 - Yer adı ayrımı büyük harfe bağlı (`Ordu` / `ordu`).
 - Sıfat kapılı kurallar sözlüğe bağlı (UD ADJ lemmalarından türetildi); sözlük dışı sıfatlar kaçar.
+- Sesbirim doğruluğu için bağımsız bir kör ölçüm HENÜZ yok; söyleyiş kuralları tek dilbilimcinin tarifidir. Şapkasız eşyazımlılar (hala/hâlâ, kar/kâr) Türkçe okumayla okunur.
 
 ## Lisans ve atıf
 

@@ -1,0 +1,80 @@
+# Son hecesi İNCE okunan alıntı kökleri (frontend/pronounce.py LoanRoots; pron_exceptions bayrağıyla açılır). Kök + ek zinciriyle eşleşir.
+# Kural (kullanıcı kararları 2026-09-29, docs/loanword_research.md §6): kökün SON ünlüsü önlenir: a -> a (ae karışımı), o -> œ (oe, neredeyse ö), u -> Y (ü benzeri);
+# ardından gelen l İNCE (ł -> l); önündeki k/g İNCE (dikkat -> d I c c a t); -aat tek uzun ön aː (itaat, vaat). pronunciation_exceptions.tsv'deki satırlar önceliklidir.
+# Kaynak: ek uyumu kanıtı (kök kalın ünlülü ama ekleri ince: normal-ler, gol-de, dikkat-ten), hermitdave/FrequencyWords tr_full (OpenSubtitles 2018), madencilik:
+#   kalın son ünlü + ≥%80 ince ek + en az 3 ince ek türü; aday listesi elle ayıklandı (yabancı/ASCII gürültü: gay, wal, hack, soz, goz, yon, mad, jay...).
+# Sütunlar: kök<TAB>dışlamalar (virgülle; bu biçimle başlayan sözcük kural DIŞI)<TAB>not
+# --- -al (Batı ve Arapça): hal gibi
+normal
+anormal
+general
+iptal		Arapça
+federal
+sinyal
+metal	metallica,metallo,metalar
+orijinal
+orjinal		yazım varyantı
+amiral
+final
+ihlal		Arapça
+ihlâl		Arapça
+kristal
+işgal		Arapça
+mahal	mahalle,mahalo	Arapça; mahalle ayrı sözcük
+moral	morales
+ideal
+kardinal
+radikal
+müzikal
+festival
+santral
+liberal
+materyal
+mineral
+mareşal
+termal
+terminal
+ishal		Arapça
+suistimal		Arapça
+spiral
+katedral
+vokal
+kriminal
+lokal	lokanta
+tuval	tuvalet,tuvalat	tuvalet ayrı sözcük
+emsal		Arapça
+spesiyal
+resital
+antiviral
+# --- -ol: rol gibi (hol ÇIKARILDI: holmes/holland/holiday... İngilizce adlarla fazla çakışıyor)
+gol	golden,goldie,golem,gollum,golda,golyat,goldi,golan,goli,golmaal
+sembol
+protokol
+idol
+metropol
+başrol
+müzikhol
+trol	troleybüs
+# --- -ul: kabul gibi
+maktul		Arapça
+mahsul		Arapça
+menkul		Arapça
+gayrimenkul		Arapça
+mamul		Arapça
+ampul
+# --- -at: son a ön, önündeki k ince
+dikkat		Arapça
+seyahat		Arapça
+sadakat		Arapça
+şefkat		Arapça
+sürat		Arapça
+hakikat		Arapça
+nasihat		Arapça
+kabahat		Arapça
+sıhhat		Arapça
+# --- -aat: saat gibi tek uzun ön aː
+itaat		Arapça
+vaat		Arapça
+menfaat		Arapça
+# --- ünsüz öbeği
+harf		Arapça; kalp gibi (harfler)

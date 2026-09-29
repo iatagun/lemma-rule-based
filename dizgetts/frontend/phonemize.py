@@ -39,7 +39,7 @@ def fold_foreign(w: str) -> tuple[str, list[str]]:
 
 
 class Phonemizer:
-    def __init__(self, bert_fallback: bool = True, pron_exceptions: bool = False, register: str = "özenli", length_rules: bool = False):
+    def __init__(self, bert_fallback: bool = True, pron_exceptions: bool = False, register: str = "özenli", length_rules: bool = False, res_dir=None):
         import dizge
         from .pronounce import Atoms, Exceptions, LengthRules
 
@@ -47,7 +47,7 @@ class Phonemizer:
 
         self._dizge = dizge
         self._bert_ok = bert_fallback
-        self._exc = Exceptions(register) if pron_exceptions else None  # söyleyiş istisna sözlüğü (varsayılan KAPALI: eski checkpoint/manifestler)
+        self._exc = Exceptions(register, res_dir) if pron_exceptions else None  # söyleyiş istisna sözlüğü (varsayılan KAPALI: eski checkpoint/manifestler)
         self._len = LengthRules(register) if length_rules else None            # uzun ünlü (ː) kuralları: ğ/y (varsayılan KAPALI)
         self._bert = None
         self.stats = collections.Counter()
