@@ -39,7 +39,9 @@ def main() -> int:
     api = HfApi()
     api.create_repo(args.repo, repo_type="model", private=not args.public, exist_ok=True)
     print(f"repo hazır ({'herkese açık' if args.public else 'ÖZEL'}): https://huggingface.co/{args.repo}")
-    api.upload_folder(folder_path=str(args.folder), repo_id=args.repo, repo_type="model", commit_message=args.message)
+    # delete_patterns: yerelde olmayan eski kod/sözlük dosyaları repodan silinir (v1: stress_rules.py -> stress.py)
+    api.upload_folder(folder_path=str(args.folder), repo_id=args.repo, repo_type="model", commit_message=args.message,
+                      delete_patterns=["*.py", "resources/*"])
     print(f"✓ push tamam → https://huggingface.co/{args.repo}")
     return 0
 

@@ -116,6 +116,7 @@ Fark +0,096…+0,201 (klip bootstrap %95 GA). Baseline'ı anlamlı geçiyor, ama
 - Yer adı ayrımı büyük harfe bağlı (`Ordu` / `ordu`).
 - Sıfat kapılı kurallar sözlüğe bağlı (UD ADJ lemmalarından türetildi); sözlük dışı sıfatlar kaçar.
 - Sesbirim: bağımsız kör sette (120 rastgele + riskli sözcük, tek dilbilimci etiketi) **%96,7** doğru (GA ≈ %92-99); ilk sette düzeltmeler öncesi %83,3. Tek etiketleyici; çıktı gösterilerek yargılandı (çapalama olası). Şapkasız eşyazımlılar (hala/hâlâ, kar/kâr) Türkçe okumayla okunur.
+- Bu okunuş iyileşmesinin TTS sesine geçişi HENÜZ gösterilemedi: aynı TTS tarifinin (Matcha-TTS, tek konuşmacı Antalia) v1 sesbirimleriyle yeniden eğitimi kör AB'de önceki sürüme karşı 12 / 8 / 10 (fark yok) çıktı (p = 0,50). Olası neden: kayıttaki konuşmacı bu ayrımların bir kısmını (ör. ğ uzunluğu) kendisi yapmıyor.
 
 ## Lisans ve atıf
 
