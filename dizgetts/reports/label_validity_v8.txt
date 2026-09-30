@@ -1,0 +1,25 @@
+151852 segment
+== 1) Ünlü F2 ortalaması (Hz; ön ünlü = yüksek F2)
+  ɑ:   1474 (n=15350) | a:   1539 (n=186) | ɛ:   1772 (n=9127)
+  ɑː:   1328 (n=128) | aː:   1410 (n=273) | ɛː:   1794 (n=39)
+  ɔ:   1377 (n=3884) | œ:   1448 (n=76) | ø:   1673 (n=1381)
+  U:   1573 (n=4727) | Y:   1196 (n=2) | y:   1825 (n=2753)
+== 1b) Etiket farkı (F2, Hz; klip bootstrap %95 GA)
+  a - ɑ:    +64 [-4, +134]  anlamsız
+  aː - ɑː:    +82 [-13, +161]  anlamsız
+  œ - ø:   -225 [-282, -167]  ANLAMLI
+  œ - ɔ:    +71 [+13, +139]  ANLAMLI
+  a - ɛ:   -233 [-301, -163]  ANLAMLI
+== 2) l türleri F2 (Hz): ince l önceki ünlüye göre
+  l/arka     F2   1488  n=62
+  l/ön       F2   1815  n=2163
+  l/ön-a     F2   1542  n=80
+  l/ünsüz    F2   1830  n=1954
+  l/œ        F2   1557  n=62
+  ł/arka     F2   1241  n=2399
+  ł/ön       F2   1763  n=57
+  ł/ünsüz    F2   1695  n=1515
+== 3) Vurgu: aynı sözcükte vurgulu ünlü - diğer ünlüler (eşleşmiş, sözcük ortalaması)
+  dur  vurgulu - diğer:  +4.15 ms [+3.76, +4.60]  n=16094 sözcük  ANLAMLI
+  f0   vurgulu - diğer:  +1.94 yt [+1.77, +2.12]  n=11800 sözcük  ANLAMLI
+  db   vurgulu - diğer:  +4.05 dB [+3.94, +4.17]  n=16000 sözcük  ANLAMLI
