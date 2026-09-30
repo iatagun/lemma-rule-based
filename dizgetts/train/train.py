@@ -86,8 +86,17 @@ def load_pretrained(model: MatchaTTS, init: dict) -> dict:
     own = model.state_dict()
     keep = {k: v for k, v in sd.items() if not any(k.startswith(p) for p in init["skip_prefixes"]) and k in own and own[k].shape == v.shape}
     model.load_state_dict(keep, strict=False)
+    copied = {}
+    if init.get("embed_copy"):  # {hedef: kaynak}: sembolün ANLAMI değişince gömmeyi eski anlamın satırından başlat (v8: sıradan ö/ü œ/Y -> ø/y)
+        sym = ck["symbols"]
+        w = model.encoder.emb.weight
+        assert w.shape[0] == len(sym), (w.shape, len(sym))  # aynı sembol tablosu
+        with torch.no_grad():
+            for dst, src in init["embed_copy"].items():
+                w[sym.index(dst)] = sd["encoder.emb.weight"][sym.index(src)]
+                copied[dst] = src
     return dict(loaded=len(keep), skipped_prefix=sorted(k for k in sd if any(k.startswith(p) for p in init["skip_prefixes"])),
-                not_loaded=sorted(k for k in own if k not in keep))
+                not_loaded=sorted(k for k in own if k not in keep), embed_copy=copied)
 
 
 @torch.no_grad()

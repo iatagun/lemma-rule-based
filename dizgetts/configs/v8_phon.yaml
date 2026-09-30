@@ -1,0 +1,16 @@
+# v8: v6 tarifi + g2ptts v1 sesbirimleri (alıntı kuralları, şapka, y = j, sıradan ö/ü = ø/y, son r = ɾ, türeme ünlüsü; docs/loanword_research.md §5-8).
+# Kör sesbirim ölçümü: set 2 %96,7 (set 1 düzeltme öncesi %83,3). Hipotez: bu düzeltmeler sese geçer; kör AB'de v8-dp > v6-dp.
+# Manifest: build_manifest --g2ptts --no-breaks --pron --register özenli --length-rules --out-suffix _phon_v8
+# Sıcak başlangıç: v6 ep150 (aynı sembol tablosu). Sembol ANLAMI değişen gömmeler eski anlamdan başlar: ø <- œ, y <- Y (sıradan ö/ü eskiden œ/Y idi);
+# œ/Y kendi satırında kalır (artık yalnız alıntı oe / ü benzeri, ö/ü'ye yakın). a/aː: embed_alias init (ortalamadan başla, sonra öğren: train'de a 220, aː 259).
+base: v6_final.yaml
+name: v8_phon
+manifest: _phon_v8
+model:
+  embed_alias: init
+init:
+  ckpt: D:/dizgetts/runs/v6_final_e150_20260927-153411/ep150.pt
+  skip_prefixes: []
+  embed_copy: {ø: œ, y: Y}
+train:
+  epochs: 150
