@@ -38,3 +38,14 @@
 - Karar kuralı (sonuçtan ÖNCE): test'te token log-süre korelasyonu >= +0,05 (0,49 ->) VE std oranı >= 0,75 VE toplam süre oranı 0,97-1,03
   -> ancak o zaman kör AB (v6-dp vs v9-dp, 30 çift, tek soru "hangisi daha doğal"). İç ölçüt geçmezse AB yok.
 **v9b (sonra, ayrı):** v8 tarifi + akustiğe göre gömme başlangıcı (œ <- ɔ, a <- ɑ, aː <- ɑː, Y <- U); yalnız v9'dan sonra ve ayrı AB ile.
+
+## 5. Sonuç (2026-09-30): v9 RED (experiments.yaml v9-dp2)
+Test: korelasyon 0,622 -> 0,575, std 0,692 -> 0,644 (ikisi de anlamlı kötü), toplam aynı; val'de %1 iyi (59 klip, gürültülü seçim), train'de güçlü aşırı öğrenme.
+**Yapısal ders:** MSE-en iyi deterministik tahmincide std oranı ~ korelasyon; tekdüzelik, öngörülebilirlik sınırının doğal sonucu. Açık metin öznitelikleri
+bilgi eklemedi. Süre kahininin (29-1) kazandığı kısım metinden öngörülemeyen varyans olabilir -> deterministik yol bu veriyle tavanda.
+**Bulunan tuzaklar:** (1) ÖN UÇ SÜRÜMÜ - CHECKPOINT: Synth her zaman GÜNCEL ön uç kodunu kullanır; v6 (v6 dönemi token'larıyla eğitildi) bugün sentezlenirse
+eğitimde görmediği token'lar alır (ø/y, j, ɾ). Yayına hazır DizgeTTS-Antalia paketi v6 -> güncel dizgetts ile YANLIŞ girdi alır. Önlem gerekir
+(engine_versions denetimi ya da ön uç sürümünü checkpoint'e sabitlemek). (2) Ölçüm betiklerinde çift yuvarlama (düzeltildi).
+**Seçenekler:** (a) daha çok / farklı veri (amaca özel kayıt; çok konuşmacılı ön eğitim) - öngörülemeyen varyansı azaltmaz ama konuşmacı sesletimini düzeltir;
+(b) olasılıksal süre modeli ama korelasyonu KORUYAN (v7 akış örnekleyicisi korelasyonu düşürdü; örn. düşük sıcaklıkta örnekleme, ya da tahmin + ölçekli artık);
+(c) süre yerine başka kaldıraç (vokoder ince ayarı - kahin deneylerinde önerilmişti).

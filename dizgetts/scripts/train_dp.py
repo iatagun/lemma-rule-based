@@ -7,6 +7,7 @@ Kayıp: doğrusal kare üzerinde Huber (aritmetik ortalama; log-MSE geometrik or
 Başlangıç: v4-400'ün dp ağırlıkları (sıcak başlangıç). Seçim: val Huber kaybı; erken durdurma.
 """
 import argparse
+import math
 import copy
 import json
 import os
@@ -72,13 +73,17 @@ def run_epoch(enc, dp, emb, data, bs, dev, rng, opt=None, beta=2.0, loss_kind="h
         x, xl, feat, tgt, ty = x.to(dev), xl.to(dev), feat.to(dev), tgt.to(dev), ty.to(dev)
         h, mask = encoder_hidden(enc, x, xl)
         with torch.set_grad_enabled(train):
-            logw = dp(h + emb(feat).transpose(1, 2) * mask, mask)
+            inp = h + emb(feat).transpose(1, 2) * mask
+            logw = dp(inp, mask, x) if getattr(dp, "wants_ids", False) else dp(inp, mask)
             pred = torch.exp(logw[:, 0]) * mask[:, 0]
             m = mask[:, 0].bool()
             # huber (beta=2 kare): büyük hatada L1 -> ORTANCA öğretir (sağa çarpık sürede kısa); mse -> aritmetik ORTALAMA
             loss = F.mse_loss(pred[m], tgt[m]) if loss_kind == "mse" else F.smooth_l1_loss(pred[m], tgt[m], beta=beta)
             if train:
-                opt.zero_grad(); loss.backward(); opt.step()
+                opt.zero_grad(); loss.backward()
+                if getattr(dp, "wants_ids", False):  # yalnız v9 (v1 tarifi birebir kalsın): doğrusal kayıp + exp çıkış patlamasın
+                    torch.nn.utils.clip_grad_norm_(list(dp.parameters()) + list(emb.parameters()), 1.0)
+                opt.step()
         tot += float(loss) * int(m.sum()); n += int(m.sum())
         sums["pred"] += float(pred[m].sum()); sums["tgt"] += float(tgt[m].sum())
         if not train:
@@ -98,6 +103,7 @@ def main():
     ap.add_argument("--bs", type=int, default=16)
     ap.add_argument("--patience", type=int, default=10)
     ap.add_argument("--loss", choices=("huber", "mse"), default="huber")
+    ap.add_argument("--arch", choices=("v1", "v2"), default="v1", help="v2 = DurPredV2 (v9: açık öznitelik + geniş bağlam, SIFIRDAN eğitilir)")
     ap.add_argument("--manifest", default=None, help="dp_feat bu manifestten (ör. _phon_v6m: ölçülen sınırlar); token'lar ckpt manifestiyle aynı olmalı")
     a = ap.parse_args()
     dev = "cuda" if torch.cuda.is_available() else "cpu"
@@ -124,6 +130,16 @@ def main():
         h, mk = encoder_hidden(enc, x, xl); lw = dp(h + emb(f).transpose(1, 2) * mk, mk)
     assert torch.allclose(lw, lw_ref, atol=1e-5), float((lw - lw_ref).abs().max())
     print("denetim: yeniden kurulan dp yolu = model logw (max fark %.1e)" % float((lw - lw_ref).abs().max()), flush=True)
+    dp2_cfg = None
+    if a.arch == "v2":  # yeni mimari: sıfırdan (denetim eski dp yolunu doğruladı; emb sıcak başlar)
+        from dizgetts.train.dpfeat import DurPredV2
+        dp2_cfg = dict(channels=256, repeats=2, feat_dim=32, p_dropout=0.1)
+        dp = DurPredV2(enc.proj_w.in_channels, **dp2_cfg).to(dev)
+        # ÇIKIŞ BAŞLANGICI: ağırlık 0, kayma = log(ortalama hedef kare). Rastgele başlangıç doğrusal-MSE'de ilk adımda dev tahmin -> dev gradyan -> logw çok negatif
+        # -> tahmin 0, gradyan (~tahmin) 0: ağ ölür (2026-09-30 ilk koşu). Ortalamadan başlayınca gradyan sağlıklı.
+        mean_frames = float(torch.cat([c["tgt"] for c in tr]).mean())
+        torch.nn.init.zeros_(dp.proj.weight); torch.nn.init.constant_(dp.proj.bias, math.log(max(mean_frames, 1.0)))
+        print(f"DurPredV2: {sum(p.numel() for p in dp.parameters()) / 1e6:.2f} M parametre (eski dp {sum(p.numel() for p in enc.proj_w.parameters()) / 1e6:.2f} M)", flush=True)
     for p in list(dp.parameters()) + list(emb.parameters()):
         p.requires_grad = True
     opt = torch.optim.Adam(list(dp.parameters()) + list(emb.parameters()), lr=a.lr)
@@ -147,16 +163,20 @@ def main():
                 print(f"erken durdurma (ep{ep}); en iyi val {best:.3f}", flush=True); break
     # yeni checkpoint: v4-400 aynen + yeni dp ağırlıkları + sentezde birikimli yuvarlama
     new = copy.deepcopy(ck)
+    if dp2_cfg is not None:
+        new["model"] = {k: v for k, v in new["model"].items() if not k.startswith("encoder.proj_w.")}  # eski dp ağırlıkları atılır
+        new["cfg"]["model"]["dp2"] = dp2_cfg
     for k, v in best_dp.items():
         new["model"][f"encoder.proj_w.{k}"] = v.cpu()
     for k, v in best_emb.items():
         new["model"][f"encoder.dp_feat_emb.{k}"] = v.cpu()
     new["cfg"]["model"]["dp_round"] = "cum"
-    new["cfg"]["name"] = "v5_dplin"
     new["dp_retrain"] = dict(base=a.ckpt, loss=a.loss + "_linear_frames", best_val=best, log=log, dp_feat_manifest=man)
-    torch.save(new, os.path.join(a.out, f"ep400_dp_{a.loss}.pt"))
-    json.dump(log, open(os.path.join(a.out, f"log_{a.loss}.json"), "w", encoding="utf8"), ensure_ascii=False, indent=1)
-    print("->", os.path.join(a.out, f"ep400_dp_{a.loss}.pt"), flush=True)
+    tag = f"dp{'2' if dp2_cfg else ''}_{a.loss}"
+    new["cfg"]["name"] = os.path.basename(a.out.rstrip("/\\"))
+    torch.save(new, os.path.join(a.out, f"{tag}.pt"))
+    json.dump(log, open(os.path.join(a.out, f"log_{tag}.json"), "w", encoding="utf8"), ensure_ascii=False, indent=1)
+    print("->", os.path.join(a.out, f"{tag}.pt"), flush=True)
 
 
 if __name__ == "__main__":

@@ -16,7 +16,7 @@ from dizgetts import paths
 from dizgetts.eval.dp_response import HOP_MS, frames
 from dizgetts.eval.prosody_acoustics import _load_model, mas_frames
 from dizgetts.frontend.symbols import PHONES, SYMBOL_TO_ID
-from dizgetts.train.dpfeat import set_dp_feat, set_round
+from dizgetts.train.dpfeat import set_dp_feat
 
 
 def group(t: str) -> str | None:
@@ -50,7 +50,7 @@ def main():
     ap.add_argument("--manifest", default="_phon_v8")
     a = ap.parse_args()
     m, ck, stats = _load_model(a.ckpt)
-    set_round(m, ck["cfg"]["model"].get("dp_round"))
+    # set_round ÇAĞRILMAZ: frames() birikimli yuvarlamayı kendisi yapar (ilk sürüm çift yuvarlıyordu, tahminler ~0,5 kare/token kısa çıktı)
     for split in ("val", "test"):
         res = measure(m, stats, a.manifest, split)
         print(f"== {split}")

@@ -69,6 +69,9 @@ def build_model(cfg: dict, n_vocab: int, stats: dict) -> MatchaTTS:
     if m.get("dp_feat"):  # v4: süre tahmincisine sınır özniteliği (train/dpfeat.py)
         from dizgetts.train import dpfeat
         dpfeat.enable(model)
+    if m.get("dp2"):  # v9: açık öznitelikli geniş bağlamlı süre tahmincisi (train/dpfeat.py DurPredV2; scripts/train_dp.py --arch v2 eğitir)
+        from dizgetts.train.dpfeat import enable_dp2
+        enable_dp2(model, **m["dp2"])
     if m.get("flow_dp"):  # v7: akış eşlemeli süre tahmincisi (train/flowdp.py; scripts/train_flowdp.py eğitir)
         from dizgetts.train.flowdp import FlowDP
         model.encoder.flow_dp = FlowDP(**m["flow_dp"].get("args", {}))

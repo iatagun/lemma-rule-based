@@ -372,3 +372,19 @@ experiments:
       RED (fark duyulmadı). Kör üçlü: fark yok 8 / 1,0: 2 / 1,5: 2 (reports/ab/abc_lv_kalibrasyon.tsv); kullanıcı "birbirine çok benziyordu".
       Otomatik (12 cümle, küçük n): WER 19,3 / 13,3 / 9,6; UTMOS 3,26 / 3,18 / 3,14. Fark 2-3 kare (20-45 ms) -> dinleyici için ayırt edilemez.
       DERS: kare düzeyinde küçük süre farkları için AB yapma; önce beklenen farkın algı eşiğini aşıp aşmadığını düşün.
+  - id: v9-dp2
+    status: rejected
+    depends_on: v8-phon
+    hypothesis: >-
+      Süre kahini 29-1 (en büyük kaldıraç). Açık öznitelikli (hece konumu, sözcük hece sayısı, açık/kapalı hece, vurgu, noktalamaya uzaklık), geniş bağlamlı
+      (genişletilmiş conv, alıcı alan ~60 token; eski 5) deterministik süre tahmincisi (train/dpfeat.DurPredV2) dondurulmuş v8 akustiği üzerinde tekdüzeliği azaltır.
+    decision_rule: "Test (84 klip, eval/dur_quality.py): log-süre korelasyonu >= taban + 0,05 VE std oranı >= 0,75 VE toplam 0,97-1,03 -> ancak o zaman kör AB."
+    config: "scripts/train_dp.py --arch v2 --loss mse --lr 3e-4 --patience 15, taban v8 ep150 (v6 değil: güncel ön uç token'ları); D:/dizgetts/runs/v9_dp2/dp2_mse.pt"
+    result: >-
+      RED (AB yok). Test: korelasyon 0,622 -> 0,575 (-0,047 [-0,055, -0,039]), std oranı 0,692 -> 0,644 (-0,048), toplam 0,958 -> 0,960. Val kaybı 18,77 -> 18,54
+      (59 klip; seçim gürültülü), train 7,9: aşırı öğrenme (1,7 M parametre, 910 klip). İlk koşu ÇÖKTÜ (doğrusal MSE + exp çıkış + rastgele başlangıç ->
+      tahmin 0, gradyan 0); çıkış ağırlığı 0 / kayma log(ortalama kare) + gradyan kırpma ile düzeldi.
+      YAPISAL DERS: MSE-en iyi deterministik tahmincide std oranı ~ korelasyon (v8-dp 0,69 ~ 0,62); "std >= 0,75" aslında "korelasyon ~0,75" demek.
+      Açık metin öznitelikleri korelasyonu artırmadı (kodlayıcı zaten örtük biliyor); kalan varyans büyük olasılıkla metinden öngörülemeyen konuşmacı değişkenliği.
+      Ayrıca bulunan: ölçüm betiklerinde (long_vowel, dur_quality ilk sürüm) ÇİFT yuvarlama (set_round + frames()): token başına ~-0,5 kare; düzeltildi,
+      long_vowel sonuçları değişmedi (ğ-uzun/kısa tahmin 1,18-1,23, gerçek 1,24-1,32; kısa ünlü tahmin/gerçek 1,00-1,03).

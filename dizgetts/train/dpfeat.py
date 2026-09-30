@@ -36,7 +36,7 @@ class DPFeatTextEncoder(TextEncoder):
         if feat is not None:
             assert feat.shape == x_mask.shape[::2], (tuple(feat.shape), tuple(x_mask.shape))
             x_dp = x_dp + self.dp_feat_emb(feat).transpose(1, 2) * x_mask
-        logw = self.proj_w(x_dp, x_mask)
+        logw = self.proj_w(x_dp, x_mask, ids) if getattr(self.proj_w, "wants_ids", False) else self.proj_w(x_dp, x_mask)  # v9: DurPredV2 açık öznitelikleri id'lerden hesaplar
         fd = getattr(self, "flow_dp", None)  # v7: akış eşlemeli süre örneklemesi (train/flowdp.py); yalnız SENTEZDE, MAS/eğitim deterministik logw'yi görür
         if fd is not None and not self.training and getattr(self, "_flow_on", True):
             logw = fd.sample(x_dp, logw, x_mask)
@@ -122,3 +122,107 @@ def cum_round_logw(logw, x_mask):
 def set_round(model, mode) -> None:
     if isinstance(model.encoder, DPFeatTextEncoder):
         model.encoder._round = mode
+
+
+# ---------------------------------------------------------------- v9: açık öznitelikli, geniş bağlamlı süre tahmincisi (docs/v9_plan.md)
+# Öznitelikler token DİZİSİNDEN hesaplanır (model içinde, id'lerden): eğitim / sentez / ölçüm betikleri aynı yolu kullanır, manifest değişmez.
+# Her özniteliğin sınıf sayısı (kategorik gömme). Boşluk token'ı kendinden önceki token'ın özniteliklerini alır (intersperse_feat gibi), türü "blank".
+DUR_FEATS = {"type": 6, "stress": 3, "syl_from_start": 5, "syl_from_end": 5, "word_syls": 6, "closed": 3, "words_to_punct": 6, "words_from_punct": 5}
+
+
+def dur_feats(tokens: list[str]) -> list[list[int]]:
+    """Token listesi -> add_blank dizisi uzunluğunda öznitelik satırları [[type, stress, ...], ...]. Sözcük = WORD_SEP/noktalama arasındaki token'lar."""
+    from dizgetts.frontend.symbols import BREAKS, PAUSES, PHONES, STRESS, WORD_SEP
+
+    vowel = lambda t: PHONES.get(t, ("",))[0] == "ünlü"
+    types = token_types(tokens)[1::2]  # token başına tür (boşluklar hariç)
+    # sözcükleri bul: (başlangıç, bitiş) token indeksleri
+    words, cur = [], []
+    for i, t in enumerate(tokens):
+        if t == WORD_SEP or t in PAUSES or t in BREAKS:
+            if cur:
+                words.append(cur); cur = []
+        else:
+            cur.append(i)
+    if cur:
+        words.append(cur)
+    punct_after = [i for i, t in enumerate(tokens) if t in PAUSES]
+    row = [[types[i], 0, 0, 0, 0, 0, 0, 0] for i in range(len(tokens))]
+    for wi, w in enumerate(words):
+        vidx = [i for i in w if vowel(tokens[i])]
+        n = len(vidx)
+        # noktalamaya sözcük uzaklığı (ileri / geri)
+        end, start = w[-1], w[0]
+        nxt = next((p for p in punct_after if p > end), None)
+        prv = max((p for p in punct_after if p < start), default=None)
+        to_p = sum(1 for w2 in words[wi + 1:] if nxt is None or w2[0] < nxt)
+        from_p = sum(1 for w2 in words[:wi] if prv is None or w2[0] > prv)
+        for i in w:
+            before = sum(1 for v in vidx if v < i)
+            if vowel(tokens[i]):
+                syl = before
+            else:  # ünsüz: hemen ardından (vurgu işareti atlanarak) ünlü geliyorsa sonraki hecenin başı (ya-rın), değilse önceki hecenin sonu (kuz-da)
+                nxt_tok = next((tokens[j] for j in w if j > i and tokens[j] != STRESS), None)
+                syl = before if nxt_tok is not None and vowel(nxt_tok) else before - 1
+            syl = max(syl, 0)
+            r = row[i]
+            r[2] = min(syl, 4); r[3] = min(max(n - 1 - syl, 0), 4); r[4] = min(n, 5)
+            r[6] = min(to_p, 5); r[7] = min(from_p, 4)
+            if vowel(tokens[i]):
+                r[1] = 2 if i and tokens[i - 1] == STRESS else 1
+                nv = next((v for v in vidx if v > i), None)  # sonraki ünlüye kadar ünsüz sayısı (sözcük içi)
+                cons = [j for j in w if i < j < (nv if nv is not None else w[-1] + 1) and not vowel(tokens[j]) and tokens[j] != STRESS]
+                r[5] = 2 if (len(cons) >= 2 or (nv is None and cons)) else 1  # 2 kapalı, 1 açık
+    out = [[0] * len(DUR_FEATS)]
+    for r in row:
+        out += [r, [0] + r[1:]]  # token, ardından onun özniteliklerini taşıyan boşluk (tür 0)
+    return out
+
+
+class DurPredV2(torch.nn.Module):
+    """Geniş bağlamlı deterministik süre tahmincisi: x (detach'lı kodlayıcı + dp_feat) + açık öznitelik gömmeleri -> genişletilmiş evrişim yığını -> logw.
+    Alıcı alan: kernel 3, genişleme (1,2,4,8) x `repeats` -> ~60 token (eski DurationPredictor: 5)."""
+    wants_ids = True
+
+    def __init__(self, in_channels: int, channels: int = 256, repeats: int = 2, dilations=(1, 2, 4, 8), feat_dim: int = 32, p_dropout: float = 0.1):
+        super().__init__()
+        self.in_channels = in_channels
+        self.feat_emb = torch.nn.ModuleList([torch.nn.Embedding(n, feat_dim) for n in DUR_FEATS.values()])
+        self.inp = torch.nn.Conv1d(in_channels + feat_dim * len(DUR_FEATS), channels, 1)
+        self.convs = torch.nn.ModuleList([torch.nn.Conv1d(channels, channels, 3, padding=d, dilation=d) for _ in range(repeats) for d in dilations])
+        self.norms = torch.nn.ModuleList([torch.nn.LayerNorm(channels) for _ in self.convs])
+        self.drop = torch.nn.Dropout(p_dropout)
+        self.proj = torch.nn.Conv1d(channels, 1, 1)
+        self._cache = {}
+
+    def feats(self, ids):
+        """(B, T) id -> (B, T, n_feat) öznitelik; token dizisi id'lerden geri kurulur (boşluklar atlanır)."""
+        from dizgetts.frontend.symbols import SYMBOLS
+        out = []
+        for row in ids.tolist():
+            key = tuple(row)
+            if key not in self._cache:
+                toks = [SYMBOLS[i] for i in row[1::2]]
+                f = dur_feats([t for t in toks if t != SYMBOLS[0]])  # sondaki dolgu (id 0) atılır
+                f += [[0] * len(DUR_FEATS)] * (len(row) - len(f))
+                if len(self._cache) > 4096:
+                    self._cache.clear()
+                self._cache[key] = f
+            out.append(self._cache[key])
+        return torch.tensor(out, device=ids.device)
+
+    def forward(self, x, x_mask, ids):
+        f = self.feats(ids)  # (B, T, F)
+        e = torch.cat([emb(f[..., k]) for k, emb in enumerate(self.feat_emb)], dim=-1).transpose(1, 2)
+        h = self.inp(torch.cat([x, e], dim=1) * x_mask)
+        for conv, norm in zip(self.convs, self.norms):
+            y = torch.relu(conv(h * x_mask))
+            y = norm(y.transpose(1, 2)).transpose(1, 2)
+            h = h + self.drop(y)
+        return self.proj(h * x_mask) * x_mask
+
+
+def enable_dp2(model, **kw) -> None:
+    """Kodlayıcının süre tahmincisini DurPredV2 ile değiştirir (cfg.model.dp2 = kw)."""
+    enc = model.encoder
+    enc.proj_w = DurPredV2(enc.proj_w.in_channels, **kw)
