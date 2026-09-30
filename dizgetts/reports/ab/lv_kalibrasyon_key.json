@@ -1,0 +1,105 @@
+{
+ "labels": [
+  "v8dp_lv10",
+  "v8dp_lv125",
+  "v8dp_lv15"
+ ],
+ "items": [
+  {
+   "n": 1,
+   "order": [
+    "v8dp_lv10",
+    "v8dp_lv15",
+    "v8dp_lv125"
+   ]
+  },
+  {
+   "n": 2,
+   "order": [
+    "v8dp_lv15",
+    "v8dp_lv125",
+    "v8dp_lv10"
+   ]
+  },
+  {
+   "n": 3,
+   "order": [
+    "v8dp_lv10",
+    "v8dp_lv125",
+    "v8dp_lv15"
+   ]
+  },
+  {
+   "n": 4,
+   "order": [
+    "v8dp_lv10",
+    "v8dp_lv15",
+    "v8dp_lv125"
+   ]
+  },
+  {
+   "n": 5,
+   "order": [
+    "v8dp_lv10",
+    "v8dp_lv15",
+    "v8dp_lv125"
+   ]
+  },
+  {
+   "n": 6,
+   "order": [
+    "v8dp_lv125",
+    "v8dp_lv10",
+    "v8dp_lv15"
+   ]
+  },
+  {
+   "n": 7,
+   "order": [
+    "v8dp_lv125",
+    "v8dp_lv10",
+    "v8dp_lv15"
+   ]
+  },
+  {
+   "n": 8,
+   "order": [
+    "v8dp_lv15",
+    "v8dp_lv10",
+    "v8dp_lv125"
+   ]
+  },
+  {
+   "n": 9,
+   "order": [
+    "v8dp_lv15",
+    "v8dp_lv125",
+    "v8dp_lv10"
+   ]
+  },
+  {
+   "n": 10,
+   "order": [
+    "v8dp_lv125",
+    "v8dp_lv10",
+    "v8dp_lv15"
+   ]
+  },
+  {
+   "n": 11,
+   "order": [
+    "v8dp_lv15",
+    "v8dp_lv10",
+    "v8dp_lv125"
+   ]
+  },
+  {
+   "n": 12,
+   "order": [
+    "v8dp_lv125",
+    "v8dp_lv10",
+    "v8dp_lv15"
+   ]
+  }
+ ]
+}

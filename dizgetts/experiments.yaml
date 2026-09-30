@@ -363,3 +363,12 @@ experiments:
       Eğitim: val kaybı 1,60-1,62 bandında (v6 ile aynı desen). Kullanıcı dinleme notları: (a) ÖN UÇ hataları -> düzeltildi: bina, ücra, dünya, kase, mana uzun a;
       (b) ön uç DOĞRU ama model üretmiyor: belli (e kapalı), han (a kısa), sığınmıştı/ağlatırım (ğ uzunluğu), yelken (son hece vurgusu), kemiğe (i->e geçişi).
       (b)'deki ğ uzunluğu bilinen sorun (model uzun ünlüyü gerçeğin ~%85'i kadar uzatıyor). Sonraki: sentezde long_vowel_scale (eğitimsiz) ve ön uç düzeltmeleriyle yeni AB.
+  - id: v8-long-vowel-scale
+    status: rejected
+    depends_on: v8-phon
+    hypothesis: "ğ kaynaklı uzun ünlüler v8'de kısanın 1,2 katı (hedef 1,5; kayıttaki konuşmacı 1,24-1,32). Sentezde birim çarpanı (aː hariç) doğru uzunluğu verir, dinleyici tercih eder."
+    config: "Synth(long_vowel_scale=1.0|1.25|1.5), train/dpfeat.set_long_scale; 12 ğ-yoğun cümle (eval/long_vowel_sentences.txt), kör üçlü (scripts/make_abc_test.py)"
+    result: >-
+      RED (fark duyulmadı). Kör üçlü: fark yok 8 / 1,0: 2 / 1,5: 2 (reports/ab/abc_lv_kalibrasyon.tsv); kullanıcı "birbirine çok benziyordu".
+      Otomatik (12 cümle, küçük n): WER 19,3 / 13,3 / 9,6; UTMOS 3,26 / 3,18 / 3,14. Fark 2-3 kare (20-45 ms) -> dinleyici için ayırt edilemez.
+      DERS: kare düzeyinde küçük süre farkları için AB yapma; önce beklenen farkın algı eşiğini aşıp aşmadığını düşün.
