@@ -115,7 +115,7 @@ Fark +0,096…+0,201 (klip bootstrap %95 GA). Baseline'ı anlamlı geçiyor, ama
 - Kural kapsamı bilinçli dardır: seslenme, küçültme, ikileme, bileşikler için tam sözlük yok.
 - Yer adı ayrımı büyük harfe bağlı (`Ordu` / `ordu`).
 - Sıfat kapılı kurallar sözlüğe bağlı (UD ADJ lemmalarından türetildi); sözlük dışı sıfatlar kaçar.
-- Sesbirim: 120 sözcüklük ilk etiketli sette (tek dilbilimci) düzeltmeler öncesi %83,3 doğru; bu set kuralları düzeltmek için kullanıldı. Bağımsız kör ölçüm (set 2) bekleniyor. Şapkasız eşyazımlılar (hala/hâlâ, kar/kâr) Türkçe okumayla okunur.
+- Sesbirim: bağımsız kör sette (120 rastgele + riskli sözcük, tek dilbilimci etiketi) **%96,7** doğru (GA ≈ %92-99); ilk sette düzeltmeler öncesi %83,3. Tek etiketleyici; çıktı gösterilerek yargılandı (çapalama olası). Şapkasız eşyazımlılar (hala/hâlâ, kar/kâr) Türkçe okumayla okunur.
 
 ## Lisans ve atıf
 

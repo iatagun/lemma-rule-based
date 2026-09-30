@@ -29,11 +29,10 @@ tabii,tabiî	özenli	tʰ ɑ b I I	tʰ ɑ b iː	tek uzun ünlü (dizge iki ayrı 
 teessüf	özenli	tʰ e ɛ s s	tʰ eː s s	tek uzun ünlü
 iade	özenli	I ɑ d	I aː d	tek uzun ünlü (a uzun; kullanıcı onayı 2026-09-29)
 hâlâ	özenli	x ɑ ł ɑ	x aː l aː	hâlâ (henüz): uzun, ae karışımı a, ince l; vurgu ilk hecede (stress_roots)
-hal=,hâl=	özenli	x ɑ ł	x aː l	yalın hal UZUN (haal); bu satır hal grubundan ÖNCE gelmeli (grup sırası = dosya sırası)
-hal,hâl,-halı,-hala,-hâlâ,-halk,-halay,-halat,-halis,-haliç,-halef,-halife,-halim,-halel,-halet,-haldun,-halit,-halil,-haluk,-halide,-hallaç,-hallac,-halter,-haldır,-haley,-halüsinasyon	özenli	x ɑ ł	x a l	ünsüz önünde (halde, hâlleri, hâlbuki): ön a ama UZAMAZ (kullanıcı kör değerlendirmesi 2026-09-30; kapalı hece)
-hal,hâl,-halı,-hala,-hâlâ,-halk,-halay,-halat,-halis,-haliç,-halef,-halife,-halim,-halel,-halet,-haldun,-halit,-halil,-haluk,-halide,-hallaç,-hallac,-halter,-haldır,-haley,-halüsinasyon	özenli	x ɑ l	x aː l	ünlü önünde (hali, halinde): uzun, ön a (kullanıcı 2026-09-29)
+hal,hâl,-halı,-hala,-hâlâ,-halk,-halay,-halat,-halis,-haliç,-halef,-halife,-halim,-halel,-halet,-haldun,-halit,-halil,-haluk,-halide,-hallaç,-hallac,-halter,-haldır,-haley,-halüsinasyon	özenli	x ɑ ł	x a l	yalın (hal, hâl) ve ünsüz önünde (halde, hâlleri, hâlbuki): KISA ön a (ae) + ince l (kullanıcı kararı 2026-09-30, kör set 2)
+hal,hâl,-halı,-hala,-hâlâ,-halk,-halay,-halat,-halis,-haliç,-halef,-halife,-halim,-halel,-halet,-haldun,-halit,-halil,-haluk,-halide,-hallaç,-hallac,-halter,-haldır,-haley,-halüsinasyon	özenli	x ɑ l	x aː l	ünlü önünde (hali, halinde): UZUN ön a (açık hece; kullanıcı 2026-09-30)
 herhalde,herhâlde	özenli	ç e ɾ x ɑ ł	ç e ɾ x a l	kapalı hece: ön a, uzamaz (hâlbuki gibi)
-derhal,derhâl	özenli	d e ɾ x ɑ ł	d e ɾ x aː l	hal gibi
+derhal,derhâl	özenli	d e ɾ x ɑ ł	d e ɾ x a l	hal gibi: kısa ön a
 kalp,kalb,-kalbur,-kalpak,-kalpağ,-kalpazan,-kalpana	özenli	kʰ ɑ ł	cʰ a l	ae karışımı a (ön) -> ön k, ince l
 ihmal	özenli	I ç m ɑ ł	I ç m a l	ae karışımı a, ince l
 ihmal	özenli	I ç m ɑ l	I ç m a l	ünlü öncesi biçim
@@ -75,3 +74,4 @@ maden,madenî	özenli	m ɑ d ɛ n	m aː d ɛ n	a uzun (kullanıcı kör değerle
 cami,câmi,-camia	özenli	dʒ ɑ m I	dʒ aː m I	a uzun (kör değerlendirme 2026-09-30); camia ayrı sözcük
 gıyabi,gıyap,gıyab	özenli	g ɨ j ɑ	g ɨ j aː	a 1,5 kat uzun (kör değerlendirme notu 2026-09-30)
 defa	özenli	d e f ɑ	d e f aː	son a 1,5 kat uzun (kör değerlendirme notu 2026-09-30); defans eşleşmez (ek zinciri ünlü ister)
+yâr	özenli	j ɑ	j a	ön a ama UZUN DEĞİL (kör değerlendirme set 2, 2026-09-30); yalnız şapkalı yazım (yar = uçurum)

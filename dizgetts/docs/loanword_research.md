@@ -77,3 +77,13 @@ Set 2 düzeltmeden sonra aynı tohumla yeniden üretildi; K katmanı ve kaynak e
 Bu set kuralları düzeltmek için kullanıldı -> bağımsız sayı değil. **Set 2** (yeni kör, tohum 20260930, set 1 sözcükleri dışarıda): `reports/phoneme_eval_2.html`.
 Eğitim sayıları (Antalia train, yeni kurallarla): ø 1629, y 3258, œ 81 (yalnız alıntı), Y 4 (yalnız alıntı), j 6181. Yeniden eğitimde (v6 checkpoint'inden sıcak başlangıç) gömme satırları
 eski anlamlarından başlatılmalı: ø <- eski œ, y <- eski Y (sıradan ö/ü eskiden bu simgelerdeydi); œ, Y eski satırlarında kalır (alıntı sesleri ö/ü'ye yakın); a/aː `embed_alias: init`.
+
+## 8. Kör sesbirim set 2 (2026-09-30): BAĞIMSIZ ölçüm
+`reports/phoneme_eval_2.html` (tohum 20260930, set 1 sözcükleri dışarıda, set 1 düzeltmelerinden SONRAKİ sistem), etiket `tests/phoneme_gold_set2.tsv`.
+**%96,7 doğru (116/120; Wilson %95 GA ≈ 91,7-98,7)** — set 1'de düzeltme öncesi %83,3. Katman: R 49/50, G 15/15, A 25/25, K 19/20, B 8/10; kaynak: dizge 81/83,
+sözlük/alıntı/şapka 18/20, uzun ünlü kuralı 16/16. Kalan 4 hata ve düzeltme (set 2 artık bunlar için kullanıldı -> sonraki bağımsız sayı için set 3 gerekir):
+- türeme ünlüsü (stüdyolara, bluetooth): sözcük başı öbeğe türeyen ünlü, izleyen ünlü DARSA onun kopyası (sütüdyo, bulu..., gurup, pülüton); genişse dizge'nin ı/i'si (sıpor, kıral, tiren).
+  `pronounce._epenthesis` (dizge yalnız önlük uyumu yapıyordu). Ünlüsüz yazım (kısaltma) dokunulmaz.
+- yâr: ön a, UZUN DEĞİL (sözlük satırı; şapka kuralı â -> aː yerine).
+- hal/hâl (kullanıcı kararı, ilk turdaki "haal"ı düzeltir): yalın ve ünsüz önü KISA ön a (hal, halde, hâlleri, hâlbuki, derhal), ünlü önü UZUN (hali, halinde).
+Gerileme denetimi: set 2'de "doğru" işaretli hiçbir sözcük değişmedi; set 1'de değişenlerin hepsi kullanıcı kuralı (son r, ö/ü, defa/gıyabi notları).

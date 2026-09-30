@@ -114,6 +114,7 @@ class Exceptions:
         for k, a in enumerate(at.a):
             if a in _NATIVE:
                 at.replace(k, 1, [_NATIVE[a]])
+        _epenthesis(w, at)
         atoms = at.a
         groups: dict = {}
         for row in self.rows:  # (kökler, kayıt) aynı olan satırlar ALTERNATİFTİR (dizge kökte `d Iː ɛ`, çekimde `d iː e` verebilir): biri yeterli
@@ -149,6 +150,22 @@ class Exceptions:
 
 _PALATAL = {"k": "c", "kʰ": "cʰ", "g": "ɟ", "ł": "l"}
 _NATIVE = {"œ": "ø", "Y": "y", "ɣ": "ɾ"}  # ɣ: dizge'nin sözcük sonu r'si; kullanıcı 2026-09-30 (kör değerlendirme, demiyor): son r de ɾ
+
+
+_HIGH = {"ı": "ɨ", "i": "I", "u": "U", "ü": "y"}
+
+
+def _epenthesis(w: str, at: Atoms) -> None:
+    """Sözcük başı ünsüz öbeğine türeyen ünlü, izleyen ünlü DARSA onun kopyasıdır (stüdyo -> sütüdyo, bluetooth -> bulu..., grup -> gurup); genişse dizge'nin ı/i'si kalır
+    (spor -> sıpor, kral -> kıral, tren -> tiren). Kullanıcı kör değerlendirmesi set 2, 2026-09-30. dizge yalnız önlük-artlık uyumu yapıyordu (stüdyo -> s I t y...)."""
+    if len(w) < 3 or w[0] in VOWELS or w[1] in VOWELS or w[1] in "ğy":
+        return
+    vi = [k for k, a in enumerate(at.a) if _is_vowel_atom_name(a)]
+    if not vi or vi[0] > 2 or len(vi) != sum(c in VOWELS for c in w) + 1:
+        return
+    nxt = next((c for c in w if c in VOWELS), None)  # ünlüsüz yazım (kısaltma: dizge ünlü türetir) -> dokunma
+    if nxt in _HIGH and at.a[vi[0]] != _HIGH[nxt]:
+        at.replace(vi[0], 1, [_HIGH[nxt]])
 
 
 def _vowel_align(w: str, at: Atoms) -> list[tuple[int, str, int]] | None:

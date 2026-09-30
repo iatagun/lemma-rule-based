@@ -76,11 +76,11 @@ print("OK")
 
 # 7) Arapça/Farsça/Batı alıntıları (kullanıcı 2026-09-29, docs/loanword_research.md) + şapka (dizge â/î'yi atıyordu)
 L = Phonemizer(bert_fallback=False, pron_exceptions=True, length_rules=True)
-for w, want in {"saat": "s aː t", "saatler": "s aː t l ɛ ɾ", "tabii": "tʰ ɑ b iː", "zaten": "z aː t ɛ n", "hal": "x aː l", "halde": "x a l d ɛ",
+for w, want in {"saat": "s aː t", "saatler": "s aː t l ɛ ɾ", "tabii": "tʰ ɑ b iː", "zaten": "z aː t ɛ n", "hal": "x a l", "halde": "x a l d ɛ", "hali": "x aː l I", "stüdyolara": "s y t y d j ɔ ł ɑ ɾ ɑ", "grup": "g U ɾ U p", "yâr": "j a ɾ",
                 "hâlâ": "x aː l aː", "kalbi": "cʰ a l b I", "rolü": "r œ l y", "kontrol": "kʰ ɔ n t ɾ œ l", "dükkânı": "d y c c a n ɨ", "hikaye": "ç I c a j ɛ",
                 "kâr": "cʰ a ɾ", "resmî": "r e s m iː", "hayalî": "x ɑ j a l iː", "âdet": "aː d ɛ t", "dergâh": "d e ɾ ɟ a x"}.items():
     assert A(L, w) == want, (w, A(L, w), want)
-for w in ("halı", "hala", "halk", "halil", "kar", "kalpak", "kalpağı", "adilik", "mekanik", "resmi", "kral"):  # yanlış pozitif yok
+for w in ("halı", "hala", "halk", "halil", "kar", "kalpak", "kalpağı", "adilik", "mekanik", "resmi", "kral", "spor", "tren", "program"):  # yanlış pozitif yok
     assert L.word(w) == N(Phonemizer(bert_fallback=False, length_rules=True).word(w)), w
 
 # 8) son hecesi ince alıntı kökleri (resources/loan_roots.tsv; ek uyumu madenciliği + kullanıcı grup kararları 2026-09-29)
