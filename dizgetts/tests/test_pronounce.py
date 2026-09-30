@@ -89,3 +89,10 @@ for w, want in {"normal": "n ɔ ɾ m a l", "normalde": "n ɔ ɾ m a l d ɛ", "go
     assert A(L, w) == want, (w, A(L, w), want)
 for w in ("golden", "tuvalet", "mahalle", "lokanta", "holding", "metallica", "sualtı", "hayaları", "dahiler", "mekaniği", "program", "plan"):  # dışlamalar / kapsam dışı
     assert L.word(w) == N(Phonemizer(bert_fallback=False, length_rules=True).word(w)), w
+
+# 9) AB dinleme notları (kullanıcı 2026-09-30): uzun a; -ya biçiminde dizge `ɑː I` verir -> uzun a + j
+for w, want in {"bina": "b I n aː", "binaya": "b I n aː j ɑ", "ücra": "y dʒ ɾ aː", "dünyaya": "d y n j aː j ɑ", "dünyanın": "d y n j aː n ɨ n",
+                "kase": "cʰ aː s ɛ", "mana": "m aː n ɑ", "manaya": "m aː n ɑ j ɑ"}.items():
+    assert A(L, w) == want, (w, A(L, w), want)
+for w in ("biner", "manav", "manastır", "kaset"):
+    assert L.word(w) == N(Phonemizer(bert_fallback=False, length_rules=True).word(w)), w

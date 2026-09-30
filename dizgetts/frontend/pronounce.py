@@ -125,8 +125,8 @@ class Exceptions:
         for (stems, reg), alts in groups.items():
             if reg == "gündelik" and self.register != "gündelik":
                 continue
-            # `-kök` = dışlama (hal satırı halı/hala/halk'ı yakalamasın): dışlanan kök + ek zinciri eşleşirse satır grubu atlanır
-            if not any(stem_hit(s) for s in stems if s[0] != "-") or any(stem_hit(s[1:]) for s in stems if s[0] == "-"):
+            # `-önek` = dışlama (hal satırı halı/hala/halk'ı yakalamasın): sözcük bu önekle başlıyorsa satır grubu atlanır
+            if not any(stem_hit(s) for s in stems if s[0] != "-") or any(w.startswith(s[1:]) for s in stems if s[0] == "-"):  # dışlama = düz önek (binamaz, binabilir)
                 continue
             matched = True
             hit = False
