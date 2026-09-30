@@ -47,6 +47,9 @@ def build(a):
     for kf in a.exclude_key or []:  # önceki testlerin cümleleri tekrar kullanılmaz (turlar bağımsız, birleştirilebilir)
         used |= {p["id"] for p in json.load(open(f"{KEYS}/{kf}.json", encoding="utf8"))["pairs"]}
     common = [k for k in items[a.a] if k in items[a.b] and k not in used]
+    if a.only_ids:  # yalnız bu cümleler (ör. iki ön uç arasında sesbirimi GERÇEKTEN farklı olanlar; yalnız simge adı değişenler AB'yi seyreltir)
+        keep = set(open(a.only_ids, encoding="utf8").read().split())
+        common = [k for k in common if k in keep]
     ant = [k for k in common if not k.startswith("extra")]
     ud = [k for k in common if k.startswith("extra")]
     n_ud = (a.n - a.n // 2 if ant else a.n) if ud else 0  # yalnız bir tür varsa (kahin: yalnız Antalia; metin listesi: yalnız ek) hepsi ondan
@@ -199,6 +202,7 @@ def main():
     ap.add_argument("--name", required=True)
     ap.add_argument("--analyze", default=None, help="dışa aktarılan tsv")
     ap.add_argument("--exclude-key", nargs="*", default=None, help="bu testlerin (anahtar adı) cümlelerini kullanma")
+    ap.add_argument("--only-ids", default=None, help="yalnız bu kimliklerden seç (satır başına bir; eval kimliği ya da extraNNN)")
     ap.add_argument("--question", default="Hangisi genel olarak daha iyi (doğallık, akıcılık, telaffuz)?", help="--one-question ile gösterilen soru")
     ap.add_argument("--one-question", action="store_true", help="yalnız genel tercih sorusu (v3a_v4 testinde iki soru 29/30 aynı cevaplandı)")
     a = ap.parse_args()
