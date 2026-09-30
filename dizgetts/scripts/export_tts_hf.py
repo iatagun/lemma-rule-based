@@ -37,7 +37,11 @@ def main():
     dcfg = yaml.safe_load(open(os.path.join(ROOT, cfg["data_config"]), encoding="utf8"))
     stats = json.load(open(os.path.join(dcfg["out_root"], "stats.json"), encoding="utf8"))
     out_ck = os.path.join(a.out, "model.pt")
-    torch.save(dict(model=ck["model"], cfg=cfg, symbols=ck["symbols"], epoch=ck["epoch"], stats=stats, source=os.path.basename(os.path.dirname(a.ckpt))), out_ck)
+    from dizgetts.eval.synth import frontend_probe
+    probe = ck.get("frontend_probe") or frontend_probe(ck["cfg"])  # paket kullanıcısında manifest yok: ön uç denetimi için örnek pakette taşınır
+    assert probe, "frontend_probe yok (manifest bulunamadı): paket ön uç sürüm denetimi olmadan yayınlanmamalı"
+    torch.save(dict(model=ck["model"], cfg=cfg, symbols=ck["symbols"], epoch=ck["epoch"], stats=stats, source=os.path.basename(os.path.dirname(a.ckpt)),
+                    frontend_probe=probe), out_ck)
     shutil.copy(paths.VOCODER, os.path.join(a.out, "hifigan_univ_v1"))
     shutil.copy(CARD, os.path.join(a.out, "README.md"))
     print("paket:", a.out, f"model.pt {os.path.getsize(out_ck)/1e6:.1f} MB")

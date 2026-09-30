@@ -31,9 +31,45 @@ def load_vocoder(dev, path: str = VOCODER):
     return g, Denoiser(g, mode="zeros")
 
 
+PROBE_N = 30          # checkpoint'in yanında taşınan örnek cümle sayısı (val manifestinin ilk N'i)
+PROBE_MAX_DIFF = 0.2  # bu orandan fazla cümlede token farkı = SİSTEMATİK ön uç değişikliği -> hata (ör. v6 + bugünkü ön uç: ø/y, j, ɾ)
+
+
+def frontend_probe(cfg: dict, n: int = PROBE_N) -> list[tuple[str, list[str]]]:
+    """Checkpoint'in eğitim manifestinden (val) (metin, token) örnekleri; manifest yoksa []."""
+    path = os.path.join(paths.ANTALIA, f"val{cfg.get('manifest', '_phon')}.jsonl")
+    if not os.path.exists(path):
+        return []
+    rows = [json.loads(l) for l in open(path, encoding="utf8")][:n]
+    return [(r["text"], r["tokens"]) for r in rows]
+
+
+def check_frontend(engine: Engine, probe: list, allow: bool = False) -> dict:
+    """Ön uç SÜRÜM TUZAĞI (docs/v9_plan.md §5): sentez her zaman güncel ön ucu kullanır; checkpoint başka token'larla eğitildiyse model görmediği girdi alır.
+    Davranış denetimi: örnek cümleler güncel ön uçtan geçirilir, eğitim token'larıyla karşılaştırılır. Farklı cümle oranı > PROBE_MAX_DIFF -> RuntimeError
+    (allow=True ise uyarı); daha azı (ör. tek sözcüklük sözlük düzeltmesi) -> uyarı + farklı sözcükler."""
+    import warnings
+    if not probe:
+        return dict(checked=0)
+    diffs = []
+    for text, toks in probe:
+        new = engine.frontend(text).tokens
+        if new != toks:
+            a, b = "".join(toks).split(" "), "".join(new).split(" ")
+            diffs.append([(x, y) for x, y in zip(a, b) if x != y][:3] or [(len(a), len(b))])
+    frac = len(diffs) / len(probe)
+    msg = (f"ön uç, checkpoint'in eğitildiği token'lardan farklı: {len(diffs)}/{len(probe)} örnek cümle ({frac:.0%}); ilk farklar: {diffs[:3]}")
+    if frac > PROBE_MAX_DIFF and not allow:
+        raise RuntimeError(msg + " -> SİSTEMATİK değişiklik: bu checkpoint'i bu ön uçla kullanma (eğitildiği ön uç sürümünü kullan ya da yeniden eğit); "
+                           "bilinçli olarak geçmek için allow_frontend_mismatch=True")
+    if diffs:
+        warnings.warn(msg, RuntimeWarning, stacklevel=3)
+    return dict(checked=len(probe), differing=len(diffs))
+
+
 class Synth:
     def __init__(self, ckpt: str, device: str = "cpu", engine: Engine | None = None, embed_alias: bool | None = None, vocoder: str = VOCODER,
-                 long_vowel_scale: float | None = None):
+                 long_vowel_scale: float | None = None, allow_frontend_mismatch: bool = False):
         self.dev = torch.device(device)
         ck = torch.load(ckpt, map_location="cpu", weights_only=False)
         self.cfg = ck["cfg"]
@@ -54,6 +90,8 @@ class Synth:
         self.vocoder, self.denoiser = load_vocoder(self.dev, vocoder)
         self.fe = self.cfg["frontend"]
         self.engine = (engine or Engine(**self.cfg.get("engine", {}))) if self.fe in ("engine", "dizge") else None  # cfg["engine"]: morph/tiers (M1b)
+        if self.engine is not None:  # ön uç sürüm tuzağı: yanında taşınan örnek (yayın paketi / yeni ckpt) yoksa eğitim manifestinden
+            self.frontend_check = check_frontend(self.engine, ck.get("frontend_probe") or frontend_probe(self.cfg), allow_frontend_mismatch)
 
     def ids(self, text: str):
         if self.fe == "espeak":
