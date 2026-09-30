@@ -1,0 +1,13 @@
+# ğ uzunluk kalibrasyonu (2026-09-30): ğ + ünsüz / sözcük sonu ve -dığı birleşmesi yoğun, eğitimde OLMAYAN cümleler (eval/long_vowel.py, make_abc_test)
+Dağdan inerken yağmura yakalandık, herkes bir ağacın altına sığınmıştı.
+Bu doğru değil, sağlık raporunu yeniden istemeliyiz.
+Öğle yemeğinden sonra bağlantıyı bir kez daha denedim.
+Çocuk yağmurda ağlamaya başladı, annesi sağ elini sıkıca tuttu.
+Değerli dostum, eğri oturup doğru konuşalım.
+Yaptığımız işin sonucunu yarın öğreneceğiz.
+Dağlar karla kaplanınca bütün yollar kapandı.
+Bu şarkıyı her dinlediğimde ağlarım, dedi yavaşça.
+Oğlu, babasının bağında üzüm topluyordu.
+Sabah erken kalktığında yağmur çoktan dinmişti.
+Toplantı öğleden sonra tam saat üçte başlayacak.
+Doğum gününde ona küçük bir sağlık çantası aldık.

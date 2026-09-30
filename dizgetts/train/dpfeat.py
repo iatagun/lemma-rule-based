@@ -40,9 +40,11 @@ class DPFeatTextEncoder(TextEncoder):
         fd = getattr(self, "flow_dp", None)  # v7: akış eşlemeli süre örneklemesi (train/flowdp.py); yalnız SENTEZDE, MAS/eğitim deterministik logw'yi görür
         if fd is not None and not self.training and getattr(self, "_flow_on", True):
             logw = fd.sample(x_dp, logw, x_mask)
-        ls = getattr(self, "long_scale", None)  # v7: uzun ünlü (ː) süre düzeltmesi, yalnız SENTEZDE (dp seyrek ː'yi kısaya çekiyor; oran train'de ölçüldü)
+        ls = getattr(self, "long_scale", None)  # uzun ünlü (ː) süre düzeltmesi, yalnız SENTEZDE (set_long_scale; eval/long_vowel.py ölçer)
         if ls and not self.training:
-            logw = logw + math.log(ls) * torch.isin(ids, self._long_ids).unsqueeze(1).to(logw.dtype) * x_mask
+            hit = torch.isin(ids, self._long_ids)
+            hit = hit | torch.nn.functional.pad(hit[:, :-1], (1, 0))  # ünlü BİRİMİ: token + ardından gelen boşluk (ses ikisine yayılır)
+            logw = logw + math.log(ls) * hit.unsqueeze(1).to(logw.dtype) * x_mask
         if getattr(self, "_round", None) == "cum":  # v5: yalnız SENTEZDE (set_round); eğitim/MAS logw'yi değiştirmez
             logw = cum_round_logw(logw, x_mask)
         return mu, logw, x_mask
@@ -55,6 +57,19 @@ def enable(model) -> None:
     enc.dp_feat_emb = torch.nn.Embedding(N_DP_FEAT, enc.proj_w.in_channels, padding_idx=DP_FEAT["pad"])
     torch.nn.init.zeros_(enc.dp_feat_emb.weight)
     enc._dp_feat = None
+
+
+LONG_SKIP = ("aː",)  # alıntı/Arapça uzun a zaten ~2 kat uzun üretiliyor (eval/long_vowel.py, v8): ölçeklenmez
+
+
+def set_long_scale(model, scale, skip=LONG_SKIP) -> None:
+    """Sentezde `ː` ile biten atomların (skip hariç) ünlü biriminin süresini `scale` ile çarp; scale None/1 = kapalı.
+    2026-09-30: birim token + boşluk ve aː muaf (v7b'deki ilk sürüm yalnız token'ı ve tüm ː'leri ölçekliyordu; v7b reddedildi)."""
+    from dizgetts.frontend.symbols import SYMBOLS
+    enc = model.encoder
+    enc.long_scale = float(scale) if scale and float(scale) != 1.0 else None
+    ids = [i for i, s in enumerate(SYMBOLS) if s.endswith("ː") and s not in skip]
+    enc.register_buffer("_long_ids", torch.tensor(ids, device=enc.emb.weight.device), persistent=False)
 
 
 def set_dp_feat(model, feat) -> None:

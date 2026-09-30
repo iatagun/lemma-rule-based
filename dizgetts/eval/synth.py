@@ -32,7 +32,8 @@ def load_vocoder(dev, path: str = VOCODER):
 
 
 class Synth:
-    def __init__(self, ckpt: str, device: str = "cpu", engine: Engine | None = None, embed_alias: bool | None = None, vocoder: str = VOCODER):
+    def __init__(self, ckpt: str, device: str = "cpu", engine: Engine | None = None, embed_alias: bool | None = None, vocoder: str = VOCODER,
+                 long_vowel_scale: float | None = None):
         self.dev = torch.device(device)
         ck = torch.load(ckpt, map_location="cpu", weights_only=False)
         self.cfg = ck["cfg"]
@@ -45,6 +46,9 @@ class Synth:
         if (self.cfg["model"].get("embed_alias") is True) if embed_alias is None else embed_alias:  # "init": gömmeler eğitimde öğrenildi, bağlanmaz  # eğitimde görülmeyen a/aː gömmesi = ɑ/ɛ ortalaması (eski checkpoint'te de açılabilir)
             from dizgetts.train.embed_alias import tie
             tie(self.model, {s: i for i, s in enumerate(ck["symbols"])})
+        if long_vowel_scale is not None:  # cfg'dekini ezer (checkpoint kopyalamadan dinleme denemesi)
+            from dizgetts.train.dpfeat import set_long_scale
+            set_long_scale(self.model, long_vowel_scale)
         self.model.to(self.dev).eval()
         self.epoch = ck["epoch"]
         self.vocoder, self.denoiser = load_vocoder(self.dev, vocoder)

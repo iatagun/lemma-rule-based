@@ -23,6 +23,7 @@ if __name__ == "__main__":
     ap.add_argument("--splits", nargs="*", default=["test"], help="val karar için kullanılmamalı (seçim val'de yapıldı)")
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--long-vowel-scale", type=float, default=None, help="sentezde ğ kaynaklı uzun ünlü (ː, aː hariç) birim süresi çarpanı (train/dpfeat.set_long_scale)")
     ap.add_argument("--extra", default=None, help="ek metin cümleleri (satır başına bir; # yorum), ör. dizgetts/eval/extra_sentences_ud.txt — ses kaydı gerekmez")
     a = ap.parse_args()
     out = os.path.join(paths.EVAL_OUT, a.label)
@@ -32,7 +33,7 @@ if __name__ == "__main__":
         ex = [l.strip() for l in open(a.extra, encoding="utf8") if l.strip() and not l.startswith("#")]
         rows += [dict(id=f"extra{i:03d}", text=t, split="extra") for i, t in enumerate(ex)]
     torch.manual_seed(a.seed)
-    sy = Synth(a.ckpt, a.device)
+    sy = Synth(a.ckpt, a.device, long_vowel_scale=a.long_vowel_scale)
     sc = Scorer(device=a.device)
     utmos = torch.hub.load("tarepan/SpeechMOS:ed25eacbfa42b99156c36ebec67a733b5dbb9b79", "utmos22_strong", trust_repo=True).eval()
     res = []

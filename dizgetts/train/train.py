@@ -73,10 +73,9 @@ def build_model(cfg: dict, n_vocab: int, stats: dict) -> MatchaTTS:
         from dizgetts.train.flowdp import FlowDP
         model.encoder.flow_dp = FlowDP(**m["flow_dp"].get("args", {}))
         model.encoder.flow_dp.temperature = float(m["flow_dp"].get("temperature", 1.0))
-    if m.get("long_vowel_scale"):  # v7: uzun ünlü (ː) atomlarının sentez süresi çarpanı (train/dpfeat.py)
-        from dizgetts.frontend.symbols import SYMBOLS
-        model.encoder.long_scale = float(m["long_vowel_scale"])
-        model.encoder.register_buffer("_long_ids", torch.tensor([i for i, s in enumerate(SYMBOLS) if s.endswith("ː")]), persistent=False)  # .to(cihaz) ile taşınır
+    if m.get("long_vowel_scale"):  # uzun ünlü (ː) biriminin sentez süresi çarpanı (train/dpfeat.py set_long_scale)
+        from dizgetts.train.dpfeat import set_long_scale
+        set_long_scale(model, m["long_vowel_scale"])
     return model
 
 
