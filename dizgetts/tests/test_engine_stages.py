@@ -58,6 +58,23 @@ with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     u4 = Engine(bert_fallback=False).frontend("Merhaba ж dünya")
 assert u4.meta.get("fonemsiz_sözcük") == ["ж"], u4.meta  # normalize harf sayar, dizge tanımaz -> sözcük konuşmadan düşer, kayıt tutulur
+# regresyon (2026-10-04 review): fonemsiz sözcük başıboş ayraç bırakmaz (baştaki / çift ayraç eğitimde yok); noktalaması önceki sözcüğe geçer, dp_feat uzunluğu tutar
+ref4 = Engine(bert_fallback=False)
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    assert u4.tokens == ref4.frontend("Merhaba dünya").tokens, u4.tokens
+    assert ref4.frontend("ж dünya.").tokens == ref4.frontend("dünya.").tokens
+    u4b = ref4.frontend("Merhaba ж, dünya.")
+assert u4b.tokens == ref4.frontend("Merhaba, dünya.").tokens and len(u4b.tokens) == len(u4b.dp_feat), u4b.tokens
+# regresyon (2026-10-04 review): sembol tablosunda olmayan simge uyarıyla düşer; söyleyiş sözlüğü açıkken de (Atoms sessizce atıyordu, meta bile boştu)
+for pe in (False, True):
+    e4 = Engine(bert_fallback=False, pron_exceptions=pe)
+    e4.stages[1].ph._dizge = type("D", (), {"g2p": staticmethod(lambda f: "gœ§ɣ")})
+    with warnings.catch_warnings(record=True) as W:
+        warnings.simplefilter("always")
+        u4c = e4.frontend("gör.")
+    assert u4c.meta.get("unknown_chars") == ["§"] and "§" not in u4c.tokens, (pe, u4c.meta, u4c.tokens)
+    assert any("sembol tablosunda yok" in str(w.message) for w in W), (pe, [str(w.message) for w in W])
 # 5) hazır etiketleyici enjeksiyonu (HF modeli: Space'te yerel checkpoint yok): Engine(g2ptts_tagger=...) -> vurgu + sınır; sürüm ckpt yolu olmadan da çalışır
 class _Cfg:
     _name_or_path, rules_version, train_info = "iatagun/DizgeBERT-G2PTTS", "abc12345", {"ckpt_sha1": "deadbeef0000"}

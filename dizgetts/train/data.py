@@ -38,6 +38,12 @@ def row_tokens(row: dict, frontend: str, strip_stress: bool = False) -> list[str
     return row["tokens"]
 
 
+def probe_rows(rows: list[dict], cfg: dict, n: int = 30) -> list[tuple]:
+    """Manifest satırları -> ön uç sürüm denetimi örnekleri (metin, token, dp_feat; eval/synth.check_frontend); dp_feat yalnız model onu okuyorsa (v4+: sınır modele YALNIZ dp_feat ile gider)."""
+    dp = bool(cfg["model"].get("dp_feat"))
+    return [(r["text"], r["tokens"], r["dp_feat"] if dp else None) for r in rows[:n]]
+
+
 def mel_file(root: str, clip_id: str) -> str:
     return os.path.join(root, "mels", clip_id + ".pt")
 

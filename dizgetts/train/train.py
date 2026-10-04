@@ -33,7 +33,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))  # r
 from matcha.models.matcha_tts import MatchaTTS  # noqa: E402
 from dizgetts.train.dpfeat import set_dp_feat  # noqa: E402
 from dizgetts.train.embed_alias import tie  # noqa: E402
-from dizgetts.train.data import BucketBatches, TTSDataset, collate, ensure_mels, frontend_table, row_tokens  # noqa: E402
+from dizgetts.train.data import BucketBatches, TTSDataset, collate, ensure_mels, frontend_table, probe_rows, row_tokens  # noqa: E402
 
 
 def deep_merge(a: dict, b: dict) -> dict:
@@ -186,7 +186,7 @@ def main():
     max_steps = 30 if a.pilot else (a.max_steps or tr["max_steps"])
     step, best = step0, float("inf")
     # frontend_probe: eğitim token'larının örneği (val ilk 30) checkpoint'le taşınır -> Synth güncel ön ucu buna karşı denetler (eval/synth.check_frontend)
-    probe = [(r["text"], r["tokens"]) for r in ds["val"].rows[:30]] if cfg["frontend"] in ("engine", "dizge") else []
+    probe = probe_rows(ds["val"].rows, cfg) if cfg["frontend"] in ("engine", "dizge") else []
     save = lambda name, ep: torch.save(dict(model=model.state_dict(), opt=opt.state_dict(), epoch=ep, cfg=cfg, step=step, symbols=symbols, frontend_probe=probe),
                                        os.path.join(run, name))
     for epoch in range(epoch0 + 1, tr["epochs"] + 1):

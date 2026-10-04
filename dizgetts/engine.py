@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from dizgetts.frontend import normalize as _norm
 from dizgetts.frontend.phonemize import Phonemizer
 from dizgetts.frontend.stress import StressRules, _is_vowel_atom, _n_vowels, phone_stress_index
-from dizgetts.frontend.symbols import BREAK_MAJOR, BREAK_MID, PAUSES, PHONES, STRESS, SYMBOL_TO_ID, WORD_SEP, UnknownSymbol, tokenize
+from dizgetts.frontend.symbols import BREAK_MAJOR, BREAK_MID, PAUSES, STRESS, SYMBOL_TO_ID, WORD_SEP, tokenize
 
 _TOK = re.compile(r"[^\W\d_]+|[,.?!;]")
 
@@ -91,12 +91,9 @@ class PhonemeStage(Stage):
                 if u.words:  # normalize() baştaki noktalamayı zaten atar
                     u.words[-1].punct.append(t)
                 continue
-            ph = self.ph.word(t)
-            try:
-                atoms = tokenize(ph)
-            except UnknownSymbol:
-                u.meta.setdefault("unknown_chars", []).extend(c for c in ph if c not in "".join(PHONES))
-                atoms = tokenize(ph, strict=False)
+            atoms = tokenize(self.ph.word(t), strict=False)
+            if t in self.ph.unknown_syms:  # Phonemizer.word uyardı
+                u.meta.setdefault("unknown_chars", []).extend(self.ph.unknown_syms[t])
             if not atoms:  # Phonemizer.word uyardı; sözcük konuşmadan düşer
                 u.meta.setdefault("fonemsiz_sözcük", []).append(t)
             tr = self.ph.trace(t)
@@ -260,10 +257,15 @@ class AssembleStage(Stage):
         toks: list[str] = []
         feat: list[int] = []
         prev_b = DP_FEAT["in"]
-        for i, w in enumerate(u.words):
-            if i:
-                toks.append(WORD_SEP); feat.append(prev_b)  # sözcük arası = önceki sözcüğün sınırı (duraklama burada)
+        for w in u.words:
             b = DP_FEAT.get(w.boundary, DP_FEAT["0"])
+            if not w.phones:  # fonemsiz sözcük (Phonemizer uyardı): ayraç bırakmaz; noktalaması önceki sözcüğün ardına (baştaysa düşer, normalize gibi)
+                if toks and w.punct and toks[-1] not in PAUSES:
+                    toks.extend(w.punct); feat.extend([b] * len(w.punct))
+                    prev_b = b
+                continue
+            if toks:
+                toks.append(WORD_SEP); feat.append(prev_b)  # sözcük arası = önceki sözcüğün sınırı (duraklama burada)
             vi = [j for j, p in enumerate(w.phones) if _is_vowel_atom(p)]
             last_syl = vi[-1] if vi else len(w.phones) - 1  # son hece = son ünlü ve sonrası
             for j, p in enumerate(w.phones):

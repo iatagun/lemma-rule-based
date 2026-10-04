@@ -19,6 +19,8 @@ from dizgetts import paths
 from dizgetts.engine import Engine
 from dizgetts.frontend import espeak, symbols_espeak
 from dizgetts.frontend.normalize import normalize
+from dizgetts.frontend.symbols import SYMBOLS
+from dizgetts.train.data import probe_rows
 from dizgetts.train.train import ROOT, build_model
 
 VOCODER = paths.VOCODER
@@ -35,30 +37,41 @@ PROBE_N = 30          # checkpoint'in yanında taşınan örnek cümle sayısı 
 PROBE_MAX_DIFF = 0.2  # bu orandan fazla cümlede token farkı = SİSTEMATİK ön uç değişikliği -> hata (ör. v6 + bugünkü ön uç: ø/y, j, ɾ)
 
 
-def frontend_probe(cfg: dict, n: int = PROBE_N) -> list[tuple[str, list[str]]]:
-    """Checkpoint'in eğitim manifestinden (val) (metin, token) örnekleri; manifest yoksa []."""
+def frontend_probe(cfg: dict, n: int = PROBE_N) -> list[tuple]:
+    """Checkpoint'in eğitim manifestinden (val) örnekler (probe_rows); manifest yoksa []."""
     path = os.path.join(paths.ANTALIA, f"val{cfg.get('manifest', '_phon')}.jsonl")
     if not os.path.exists(path):
         return []
-    rows = [json.loads(l) for l in open(path, encoding="utf8")][:n]
-    return [(r["text"], r["tokens"]) for r in rows]
+    return probe_rows([json.loads(l) for l in open(path, encoding="utf8")], cfg, n)
+
+
+def check_symbols(ck_symbols: list[str]) -> None:
+    """Token -> id güncel tabloyla yapılır (Engine.ids); tablo `sorted(PHONES)` olduğundan yeni atom sonraki id'leri kaydırır ve eski checkpoint
+    sessizce yanlış gömmeyi okurdu. Sona ekleme (BREAKS; 73 sembollük koşular) serbest: checkpoint tablosu güncel tablonun ÖNEKİ olmalı."""
+    if list(ck_symbols) != SYMBOLS[:len(ck_symbols)]:
+        d = next(((i, a, b) for i, (a, b) in enumerate(zip(ck_symbols, SYMBOLS)) if a != b), (len(SYMBOLS), "-", "-"))
+        raise RuntimeError(f"sembol tablosu checkpoint'inkiyle uyuşmuyor (ilk fark id {d[0]}: checkpoint {d[1]!r}, güncel {d[2]!r}): id'ler kaymış, "
+                           "bu checkpoint bu sembol tablosuyla kullanılamaz")
 
 
 def check_frontend(engine: Engine, probe: list, allow: bool = False) -> dict:
     """Ön uç SÜRÜM TUZAĞI (docs/v9_plan.md §5): sentez her zaman güncel ön ucu kullanır; checkpoint başka token'larla eğitildiyse model görmediği girdi alır.
-    Davranış denetimi: örnek cümleler güncel ön uçtan geçirilir, eğitim token'larıyla karşılaştırılır. Farklı cümle oranı > PROBE_MAX_DIFF -> RuntimeError
-    (allow=True ise uyarı); daha azı (ör. tek sözcüklük sözlük düzeltmesi) -> uyarı + farklı sözcükler."""
+    Davranış denetimi: örnek cümleler güncel ön uçtan geçirilir, eğitim token'larıyla (ve örnek taşıyorsa dp_feat'iyle) karşılaştırılır. Farklı cümle oranı
+    > PROBE_MAX_DIFF -> RuntimeError (allow=True ise uyarı); daha azı (ör. tek sözcüklük sözlük düzeltmesi) -> uyarı + farklı sözcükler. Örnek yoksa uyarı."""
     import warnings
     if not probe:
+        warnings.warn("ön uç sürüm denetimi YAPILAMADI: checkpoint örnek taşımıyor, eğitim manifesti de yok; ön uç eğitimdekinden farklı olabilir", RuntimeWarning, stacklevel=3)
         return dict(checked=0)
     diffs = []
-    for text, toks in probe:
-        new = engine.frontend(text).tokens
-        if new != toks:
-            a, b = "".join(toks).split(" "), "".join(new).split(" ")
+    for text, toks, *dp in probe:  # eski checkpoint'lerin örneği (metin, token): dp_feat denetlenmez
+        u = engine.frontend(text)
+        if u.tokens != toks:
+            a, b = "".join(toks).split(" "), "".join(u.tokens).split(" ")
             diffs.append([(x, y) for x, y in zip(a, b) if x != y][:3] or [(len(a), len(b))])
+        elif dp and dp[0] is not None and u.dp_feat != dp[0]:
+            diffs.append([("dp_feat", sum(x != y for x, y in zip(dp[0], u.dp_feat)))])
     frac = len(diffs) / len(probe)
-    msg = (f"ön uç, checkpoint'in eğitildiği token'lardan farklı: {len(diffs)}/{len(probe)} örnek cümle ({frac:.0%}); ilk farklar: {diffs[:3]}")
+    msg = (f"ön uç, checkpoint'in eğitildiği girdiden farklı: {len(diffs)}/{len(probe)} örnek cümle ({frac:.0%}); ilk farklar: {diffs[:3]}")
     if frac > PROBE_MAX_DIFF and not allow:
         raise RuntimeError(msg + " -> SİSTEMATİK değişiklik: bu checkpoint'i bu ön uçla kullanma (eğitildiği ön uç sürümünü kullan ya da yeniden eğit); "
                            "bilinçli olarak geçmek için allow_frontend_mismatch=True")
@@ -91,6 +104,7 @@ class Synth:
         self.fe = self.cfg["frontend"]
         self.engine = (engine or Engine(**self.cfg.get("engine", {}))) if self.fe in ("engine", "dizge") else None  # cfg["engine"]: morph/tiers (M1b)
         if self.engine is not None:  # ön uç sürüm tuzağı: yanında taşınan örnek (yayın paketi / yeni ckpt) yoksa eğitim manifestinden
+            check_symbols(ck["symbols"])
             self.frontend_check = check_frontend(self.engine, ck.get("frontend_probe") or frontend_probe(self.cfg), allow_frontend_mismatch)
 
     def ids(self, text: str):
@@ -99,6 +113,8 @@ class Synth:
             toks = symbols_espeak.tokenize(espeak.phonemize(norm), strip_stress=self.cfg["espeak_strip_stress"])
             return norm, toks, intersperse([symbols_espeak.SYMBOL_TO_ID[t] for t in toks], 0)
         u = self.engine.frontend(text)
+        if not u.tokens:
+            raise ValueError(f"konuşulacak fonem yok: {text!r} (norm: {u.norm!r})")
         self._dp = u.dp_feat
         return u.norm, u.tokens, intersperse(self.engine.ids(u), 0)
 

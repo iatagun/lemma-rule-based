@@ -78,9 +78,9 @@ class UnknownSymbol(ValueError):
     pass
 
 
-def tokenize(phonemes: str, strict: bool = True) -> list[str]:
+def tokenize(phonemes: str, strict: bool = True, unknown: list | None = None) -> list[str]:
     """Fonem dizgesini atom listesine böler (en uzun eşleşme). Bilinmeyen karakter -> UnknownSymbol
-    (strict) ya da atlanır (strict=False; çağıran bilinmeyenleri raporlamalı)."""
+    (strict) ya da atlanır (strict=False; çağıran bilinmeyenleri raporlamalı: `unknown` listesi verilirse atlananlar oraya eklenir)."""
     out: list[str] = []
     i = 0
     while i < len(phonemes):
@@ -95,6 +95,8 @@ def tokenize(phonemes: str, strict: bool = True) -> list[str]:
                 out.append(ch)
             elif strict:
                 raise UnknownSymbol(f"{ch!r} (U+{ord(ch):04X}) in {phonemes!r}")
+            elif unknown is not None:
+                unknown.append(ch)
             i += 1
     return out
 

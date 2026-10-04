@@ -12,7 +12,7 @@ import unicodedata
 import warnings
 
 from .normalize import normalize, tr_lower
-from .symbols import PAUSES, WORD_SEP, UnknownSymbol, tokenize
+from .symbols import PAUSES, WORD_SEP, tokenize
 
 # dizge.g2p Türkçe alfabe dışındaki harfleri SESSİZCE atıyor (xbox -> bɔ, café -> dʒɑf); kaba yakınsama tablosu. Kalan aksanlı harfler NFD taban harfine
 # düşer (é -> e, ó -> o); hâlâ eşlenemeyen (Kiril, CJK...) harf atılır ve RuntimeWarning verilir.
@@ -57,6 +57,7 @@ class Phonemizer:
         self.failed: dict[str, str] = {}      # dizge hata verdi -> (BERT çıktısı ya da "")
         self.variants: dict[str, tuple] = {}  # dizge çok-varyantlı döndürdü
         self.unknown: collections.Counter = collections.Counter()
+        self.unknown_syms: dict[str, list[str]] = {}  # sözcük -> okumasından atılan (sembol tablosunda olmayan) simgeler
 
     def _from_bert(self, w: str) -> str:
         if self._bert is None:
@@ -85,6 +86,12 @@ class Phonemizer:
                 self.stats["dizge_fail"] += 1
                 r = self._from_bert(f) if self._bert_ok else ""
                 self.failed[key] = r
+        if r:  # sembol tablosunda olmayan simge konuşmadan düşer: sessiz bırakma (Atoms strict=False ile atar; sözlük açıkken iz kalmıyordu)
+            bad: list[str] = []
+            tokenize(r, strict=False, unknown=bad)
+            if bad:
+                self.unknown_syms[w] = bad
+                warnings.warn(f"fonemleştirme: {w!r} okumasındaki ({r!r}) {bad} sembol tablosunda yok; atıldı", RuntimeWarning, stacklevel=2)
         if r and (self._exc is not None or self._len is not None):
             at = self._Atoms(r)
             if self._exc is not None:
@@ -116,12 +123,7 @@ class Phonemizer:
                 continue
             if toks:
                 toks.append(WORD_SEP)  # noktalamadan önce ayraç yok, sonra var: "a" "," " " "b"
-            ph = self.word(t)
-            try:
-                toks += tokenize(ph)
-            except UnknownSymbol:
-                for ch in ph:
-                    self.unknown[ch] += 1
-                toks += tokenize(ph, strict=False)
+            toks += tokenize(self.word(t), strict=False)
+            self.unknown.update(self.unknown_syms.get(t, ()))
             self.stats["words"] += 1
         return norm, toks
