@@ -1,0 +1,101 @@
+id	word	stratum	source	freq	phones
+s001	bîçare	S	kural	2	b iː tʃ ɑ ɾ ɛ
+s002	bâtın	S	kural	1	b aː t ɨ n
+s003	sefahette	Y	dizge	1	s e f ɑ ç ɛ t t ɛ
+s004	ey	Y	kural	17	ɛ j
+s005	mülevves	Y	dizge	2	m y l e v v ɛ s
+s006	aklı	Y	dizge	6	ɑ k ł ɨ
+s007	mâliki	S	kural	5	m aː l I c I
+s008	belirterek	Y	dizge	1	b e l I ɾ t ɛ ɾ ɛ c
+s009	hakîmliğini	S	kural	1	x ɑː c iː m l iː I n I
+s010	râbian	S	kural	1	r aː b I ɑ n
+s011	aslâ	S	kural	2	ɑ s l a
+s012	vesvese	R	dizge	2	v e s v ɛ s ɛ
+s013	halkaları	Y	dizge	1	x ɑ ł k ɑ ł ɑ ɾ ɨ
+s014	vefakâr	S	kural	1	v e f ɑ c a ɾ
+s015	dünyevî	S	kural	4	d y n j ɛ ʋ iː
+s016	abdülkadir	Y	dizge	1	ɑ b d y l k ɑ d I ɾ
+s017	hükûmet	S	dizge	4	ç y c y m ɛ t
+s018	hizmetkâr	S	kural	6	ç I z m ɛ t c a ɾ
+s019	dâhilî	S	kural	2	d aː ç I l iː
+s020	katl	Y	dizge	2	kʰ ɑ t ł
+s021	cezasını	Y	dizge	4	dʒ e z ɑ s ɨ n ɨ
+s022	budur	R	dizge	8	b U d U ɾ
+s023	hikâyeciğe	S	kural	3	ç I c a j e dʒ I ɛ
+s024	bu	R	dizge	120	b U
+s025	düşürmemek	Y	dizge	1	d y ʃ y ɾ m e m ɛ c
+s026	yaldızlayan	Y	kural	1	j ɑ ł d ɨ z ł ɑ j ɑ n
+s027	hasta	R	dizge	1	x ɑ s t ɑ
+s028	âlî	S	kural	3	aː l iː
+s029	dininizi	Y	dizge	1	d I n I n I z I
+s030	hapis	Y	dizge	5	x ɑ p I s
+s031	öteki	R	dizge	7	ø t ɛ c I
+s032	diye	R	kural	11	d i j ɛ
+s033	hattâ	S	kural	8	x ɑ t t aː
+s034	işaret	Y	dizge	1	I ʃ ɑ ɾ ɛ t
+s035	iktizasındandır	R	dizge	1	I c t I z ɑ s ɨ n d ɑ n d ɨ ɾ
+s036	ise	R	dizge	35	I s ɛ
+s037	vücuduna	Y	dizge	1	v y dʒ U d U n ɑ
+s038	röntgen	Y	dizge	1	r ø n t ɟ ɛ n
+s039	lâzım	S	kural	15	l a z ɨ m
+s040	zindan	Y	dizge	1	z I n d ɑ n
+s041	paris	Y	dizge	1	pʰ ɑ ɾ I s
+s042	bulunur	Y	dizge	5	b U ł U n U ɾ
+s043	iki	R	dizge	39	I c I
+s044	gittikçe	R	dizge	2	ɟ I t t I c tʃ ɛ
+s045	esmasının	Y	dizge	1	e s m ɑ s ɨ n ɨ n
+s046	sadakati	Y	kural	1	s ɑ d ɑ c a t I
+s047	mükemmel	Y	dizge	6	m y c e m m ɛ l
+s048	hâlıkımızdır	S	kural	2	x a l ɨ k ɨ m ɨ z d ɨ ɾ
+s049	safsatadır	Y	dizge	2	s ɑ f s ɑ t ɑ d ɨ ɾ
+s050	çare	Y	dizge	1	tʃ ɑ ɾ ɛ
+s051	selâmlar	S	kural	2	s e l a m ł ɑ ɾ
+s052	âlemler	S	kural	3	aː l e m l ɛ ɾ
+s053	had	R	dizge	1	x ɑ d
+s054	başıma	Y	dizge	1	b ɑ ʃ ɨ m ɑ
+s055	bir	R	dizge	379	b I ɾ
+s056	gibi	R	dizge	56	ɟ I b I
+s057	ruhum	Y	dizge	2	r U x U m
+s058	aleyhinde	Y	dizge	3	ɑ l e j ç I n d ɛ
+s059	helâl	S	kural	2	ç e l a ł
+s060	kazandırmak	R	dizge	1	kʰ ɑ z ɑ n d ɨ ɾ m ɑ k
+s061	kabirdir	Y	dizge	2	kʰ ɑ b I ɾ d I ɾ
+s062	maahâzâ	S	kural	1	m ɑ ɑ x aː z aː
+s063	efkârımın	S	kural	1	e f c a ɾ ɨ m ɨ n
+s064	ebedî	S	kural	4	e b ɛ d iː
+s065	gaddarane	Y	dizge	3	g ɑ d d ɑ ɾ ɑ n ɛ
+s066	gelmemiş	Y	dizge	1	ɟ e l m ɛ m I ʃ
+s067	ısparta	R	dizge	3	ɨ s p ɑ ɾ t ɑ
+s068	imanî	S	kural	1	I m ɑ n iː
+s069	odur	Y	dizge	7	ɔ d U ɾ
+s070	merhametin	Y	dizge	1	m e ɾ x ɑ m ɛ t I n
+s071	derecede	Y	dizge	5	d e ɾ ɛ dʒ ɛ d ɛ
+s072	kıymetinde	Y	dizge	1	kʰ ɨ j m e t I n d ɛ
+s073	şeylerle	Y	dizge	4	ʃ e j l ɛ ɾ l ɛ
+s074	ve	R	dizge	459	v ɛ
+s075	buldukları	Y	dizge	2	b U ł d U k ł ɑ ɾ ɨ
+s076	arzda	Y	dizge	1	ɑ ɾ z d ɑ
+s077	onların	Y	dizge	7	ɔ n ł ɑ ɾ ɨ n
+s078	et	R	dizge	13	ɛ t
+s079	kâfidir	S	kural	4	cʰ a f I d I ɾ
+s080	istanbulda	Y	dizge	1	I s t ɑ n b U ł d ɑ
+s081	pamuktan	R	dizge	2	pʰ ɑ m U k t ɑ n
+s082	mani	R	dizge	2	m ɑ n I
+s083	cüzî	S	kural	7	dʒ y z iː
+s084	mevzuunu	R	dizge	1	m e v z U U n U
+s085	memleketin	Y	dizge	6	m e m l ɛ c ɛ t I n
+s086	sevgi	Y	dizge	2	s e v ɟ I
+s087	günahları	Y	dizge	1	ɟ y n ɑ x ł ɑ ɾ ɨ
+s088	vukua	Y	dizge	3	v U k U ɑ
+s089	hikâyesine	S	kural	1	ç I c a j e s I n ɛ
+s090	sahralar	Y	dizge	1	s ɑ x ɾ ɑ ł ɑ ɾ
+s091	vehmî	S	kural	2	v e ç m iː
+s092	inkâr	S	kural	8	I ŋ c a ɾ
+s093	istikamet	Y	dizge	2	I s t I k ɑ m ɛ t
+s094	mahkûmiyetlerini	S	kural	1	m ɑ x c y m i j e t l ɛ ɾ I n I
+s095	fıkrasıdır	Y	dizge	3	f ɨ k ɾ ɑ s ɨ d ɨ ɾ
+s096	münafıkların	Y	dizge	5	m y n ɑ f ɨ k ł ɑ ɾ ɨ n
+s097	misalin	Y	dizge	1	m I s ɑ l I n
+s098	şuâatı	S	kural	1	ʃ U aː ɑ t ɨ
+s099	bediüzzaman	Y	dizge	21	b e d I y z z ɑ m ɑ n
+s100	vahdet	Y	dizge	1	v ɑ x d ɛ t

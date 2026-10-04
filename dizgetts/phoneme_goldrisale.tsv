@@ -1,0 +1,101 @@
+id	sözcük	sesbirim	yargı	not
+s001	bîçare	b iː tʃ ɑ ɾ ɛ	yanlış	a uzun olmalı
+s002	bâtın	b aː t ɨ n	doğru	
+s003	sefahette	s e f ɑ ç ɛ t t ɛ	yanlış	a uzun olmalı
+s004	ey	ɛ j	doğru	
+s005	mülevves	m y l e v v ɛ s	doğru	
+s006	aklı	ɑ k ł ɨ	doğru	
+s007	mâliki	m aː l I c I	doğru	
+s008	belirterek	b e l I ɾ t ɛ ɾ ɛ c	doğru	
+s009	hakîmliğini	x ɑː c iː m l iː I n I	yanlış	ilk i sesi kısa olmalı
+s010	râbian	r aː b I ɑ n	doğru	
+s011	aslâ	ɑ s l a	doğru	
+s012	vesvese	v e s v ɛ s ɛ	doğru	
+s013	halkaları	x ɑ ł k ɑ ł ɑ ɾ ɨ	doğru	
+s014	vefakâr	v e f ɑ c a ɾ	doğru	ilk a sesi 1.4 kat uzun okunur ancak doğru kabul ediyorum
+s015	dünyevî	d y n j ɛ ʋ iː	doğru	
+s016	abdülkadir	ɑ b d y l k ɑ d I ɾ	doğru	
+s017	hükûmet	ç y c y m ɛ t	yanlış	ikinci ü uzun okunur
+s018	hizmetkâr	ç I z m ɛ t c a ɾ	doğru	
+s019	dâhilî	d aː ç I l iː	doğru	
+s020	katl	kʰ ɑ t ł	emin_değil	
+s021	cezasını	dʒ e z ɑ s ɨ n ɨ	doğru	a sesi 1.4 kat uzun  okunur ama doğru kabul edicem
+s022	budur	b U d U ɾ	doğru	
+s023	hikâyeciğe	ç I c a j e dʒ I ɛ	doğru	a sesi 1.4 kat uzun  okunur ama doğru kabul edicem
+s024	bu	b U	doğru	
+s025	düşürmemek	d y ʃ y ɾ m e m ɛ c	doğru	
+s026	yaldızlayan	j ɑ ł d ɨ z ł ɑ j ɑ n	doğru	
+s027	hasta	x ɑ s t ɑ	doğru	
+s028	âlî	aː l iː	yanlış	i kısa olmalı
+s029	dininizi	d I n I n I z I	doğru	ilk i sesi 1.4 kat uzun okunur
+s030	hapis	x ɑ p I s	doğru	
+s031	öteki	ø t ɛ c I	doğru	
+s032	diye	d i j ɛ	doğru	
+s033	hattâ	x ɑ t t aː	doğru	
+s034	işaret	I ʃ ɑ ɾ ɛ t	doğru	
+s035	iktizasındandır	I c t I z ɑ s ɨ n d ɑ n d ɨ ɾ	yanlış	ilk a sesi uzun okunur
+s036	ise	I s ɛ	doğru	
+s037	vücuduna	v y dʒ U d U n ɑ	doğru	ilk u sesi 1.4 kat uzun okunur ama doğru kabul edicem
+s038	röntgen	r ø n t ɟ ɛ n	doğru	
+s039	lâzım	l a z ɨ m	yanlış	a sesi uzun okunur
+s040	zindan	z I n d ɑ n	doğru	
+s041	paris	pʰ ɑ ɾ I s	yanlış	a sesi uzun olmalı
+s042	bulunur	b U ł U n U ɾ	doğru	
+s043	iki	I c I	doğru	
+s044	gittikçe	ɟ I t t I c tʃ ɛ	doğru	
+s045	esmasının	e s m ɑ s ɨ n ɨ n	yanlış	a sesi uzun okunur
+s046	sadakati	s ɑ d ɑ c a t I	yanlış	a sesi uzun olmalı
+s047	mükemmel	m y c e m m ɛ l	doğru	
+s048	hâlıkımızdır	x a l ɨ k ɨ m ɨ z d ɨ ɾ	yanlış	a sesi uzun olmalı
+s049	safsatadır	s ɑ f s ɑ t ɑ d ɨ ɾ	doğru	
+s050	çare	tʃ ɑ ɾ ɛ	yanlış	a sesi uzun olmalı
+s051	selâmlar	s e l a m ł ɑ ɾ	doğru	
+s052	âlemler	aː l e m l ɛ ɾ	doğru	
+s053	had	x ɑ d	doğru	
+s054	başıma	b ɑ ʃ ɨ m ɑ	doğru	
+s055	bir	b I ɾ	doğru	
+s056	gibi	ɟ I b I	doğru	
+s057	ruhum	r U x U m	doğru	
+s058	aleyhinde	ɑ l e j ç I n d ɛ	doğru	
+s059	helâl	ç e l a ł	doğru	
+s060	kazandırmak	kʰ ɑ z ɑ n d ɨ ɾ m ɑ k	doğru	
+s061	kabirdir	kʰ ɑ b I ɾ d I ɾ	doğru	
+s062	maahâzâ	m ɑ ɑ x aː z aː	yanlış	ilk iki a sesi bir uzun a sesi olmalı. diğerleri uzun olmalalı
+s063	efkârımın	e f c a ɾ ɨ m ɨ n	yanlış	a sesi uzun olmalı
+s064	ebedî	e b ɛ d iː	doğru	
+s065	gaddarane	g ɑ d d ɑ ɾ ɑ n ɛ	yanlış	son a sesi uzun olmalı
+s066	gelmemiş	ɟ e l m ɛ m I ʃ	doğru	
+s067	ısparta	ɨ s p ɑ ɾ t ɑ	doğru	
+s068	imanî	I m ɑ n iː	yanlış	a sesi 1.4 kat uzun olmalı. i sesi uzun olmamalı
+s069	odur	ɔ d U ɾ	doğru	
+s070	merhametin	m e ɾ x ɑ m ɛ t I n	doğru	
+s071	derecede	d e ɾ ɛ dʒ ɛ d ɛ	doğru	
+s072	kıymetinde	kʰ ɨ j m e t I n d ɛ	doğru	
+s073	şeylerle	ʃ e j l ɛ ɾ l ɛ	doğru	
+s074	ve	v ɛ	doğru	
+s075	buldukları	b U ł d U k ł ɑ ɾ ɨ	doğru	
+s076	arzda	ɑ ɾ z d ɑ	doğru	
+s077	onların	ɔ n ł ɑ ɾ ɨ n	doğru	
+s078	et	ɛ t	doğru	
+s079	kâfidir	cʰ a f I d I ɾ	yanlış	a sesi uzun olmalı
+s080	istanbulda	I s t ɑ n b U ł d ɑ	doğru	
+s081	pamuktan	pʰ ɑ m U k t ɑ n	doğru	
+s082	mani	m ɑ n I	yanlış	a sesi uzun olmalı
+s083	cüzî	dʒ y z iː	yanlış	ü sesi uzun olmalı. i sesi uzun olmamalı
+s084	mevzuunu	m e v z U U n U	yanlış	ilk iki u sesi bir uzun u şeklinde gösterilmeli
+s085	memleketin	m e m l ɛ c ɛ t I n	doğru	
+s086	sevgi	s e v ɟ I	doğru	
+s087	günahları	ɟ y n ɑ x ł ɑ ɾ ɨ	doğru	
+s088	vukua	v U k U ɑ	doğru	
+s089	hikâyesine	ç I c a j e s I n ɛ	doğru	
+s090	sahralar	s ɑ x ɾ ɑ ł ɑ ɾ	doğru	
+s091	vehmî	v e ç m iː	yanlış	i sesi uzun olmamalı
+s092	inkâr	I ŋ c a ɾ	doğru	
+s093	istikamet	I s t I k ɑ m ɛ t	yanlış	a sesi 1.4 kat uzun olmalı  ancak ae karışımı olan ses olmalı
+s094	mahkûmiyetlerini	m ɑ x c y m i j e t l ɛ ɾ I n I	doğru	u sesi 1.4 kat uzun olmalı ancak doğru kabul ediyorum
+s095	fıkrasıdır	f ɨ k ɾ ɑ s ɨ d ɨ ɾ	doğru	
+s096	münafıkların	m y n ɑ f ɨ k ł ɑ ɾ ɨ n	doğru	
+s097	misalin	m I s ɑ l I n	doğru	a sesi 1.4 kat uzun olmalı ancak doğru kabul ediyorum
+s098	şuâatı	ʃ U aː ɑ t ɨ	yanlış	a sesleri bir uzun a kabul edilmeli
+s099	bediüzzaman	b e d I y z z ɑ m ɑ n	doğru	
+s100	vahdet	v ɑ x d ɛ t	doğru	

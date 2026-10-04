@@ -1,0 +1,15 @@
+# Ön eğitim verisi (scripts/prep_alania.py): cloud0day3/alania-synthetic-speech-tr cc-by, süzülmüş kadın sesler. Ses ayarı data.yaml ile AYNI (tek fark out_root).
+out_root: D:/dizgetts/data/processed/alania
+
+audio:
+  sample_rate: 22050        # HiFi-GAN universal ile uyumlu (n_fft 1024, hop 256, 80 mel, fmax 8000)
+  n_fft: 1024
+  hop_length: 256
+  win_length: 1024
+  n_feats: 80
+  f_min: 0
+  f_max: 8000
+  target_lufs: -23.0        # klip başına integrated loudness (pyloudnorm, BS.1770)
+  peak_limit: 0.95          # LUFS sonrası tepe bunu aşarsa ölçek düşürülür (kırpma yok)
+  trim_db: -40.0            # 10 ms çerçeve RMS'i bu eşiğin altındaysa sessizlik (gürültü tabanı ~ -54 dBFS, konuşma ~ -24)
+  keep_pad_s: 0.05          # kırpmadan sonra baş/sona bırakılan pay

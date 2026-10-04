@@ -425,3 +425,21 @@ experiments:
       (asıl kaldıracımız) için öğretici değil. UYARI: örnek yalnız Test bölümünün başı; UTMOS mutlak değeri Türkçede güvenilmez (göreli fark büyük); kaynak belgelenmemiş.
       Açık seçenek: UTMOS >= 3,0 süzgeciyle ~%15 (~30 sa) alt küme; konuşmacı etiketi ve noktalama sorunu yine kalır.
 
+  - id: v10-pre
+    status: planned
+    depends_on: v9a-base
+    hypothesis: >-
+      Akustik model ve süre tahmincisi veriyle sınırlı (4,2 sa; v9-dp2 aşırı öğrenme). 20 saatlik Türkçe ön eğitim (Alania sentetik, CC BY 4.0; G2PTTS ön ucu
+      modern metinde %96,7) Antalia ince ayarından sonra süre tahminini iyileştirir. Risale (gerçek okuma, 190 sa tek okuyucu) elendi: ön uç o metinde %76,8
+      (dizgetts/phoneme_goldrisale.tsv; 23 hatanın tamamı ünlü uzunluğu).
+    decision_rule: >-
+      Sonuçtan ÖNCE: Antalia test süre korelasyonu (eval/dur_quality.py) >= 0,67 (v9a-dp 0,616 + 0,05) VE v9dp_x484'e göre CER GA üst sınırı < +0,5
+      -> ancak o zaman kör AB (v9a-dp vs v10-dp, 30 çift). Korelasyon kuralı tutmazsa AB YOK.
+    config: >-
+      scripts/prep_alania.py (kadın sesler, düz okuma, 2-15 sn, qc_utmos >= 3,2, qc_cer <= 0,02, hız Antalia %5-%95 bandı; konuşmacı koşullaması YOK, sesler havuzlu)
+      -> configs/v10_pre.yaml (v9a ep150'den 60 ep, manifest _phon_v10) -> configs/v10_ft.yaml (Antalia, v9a ile aynı veri/epoch) -> train_dp --loss mse;
+      zincir D:/dizgetts/runs/v10_chain.sh
+    eval_label: v10dp_x484
+    note: >-
+      BİLİNEN ZAYIFLIK: süreler gerçek insandan değil bir TTS modelinden (VoxCPM2); havuzlanmış çok ses koşullamasız -> akustik ön eğitim bulanık olabilir.
+      İki değişken birden (ön eğitim verisi + 60 ek epoch); kazanç çıkarsa ayrıştırma gerekir.

@@ -23,10 +23,11 @@ def main():
     ap.add_argument("--pron", action="store_true", help="söyleyiş istisna sözlüğü (resources/pronunciation_exceptions.tsv); eğitim config'inde engine: {pron_exceptions: true} ile eşlenmeli")
     ap.add_argument("--register", choices=("özenli", "gündelik"), default="özenli", help="--pron ile: söyleyiş kaydı (eğitimde özenli)")
     ap.add_argument("--length-rules", action="store_true", help="uzun ünlü (ː) kuralları: ünlü arası ğ ve y yan ünlüsünde ː düşer (frontend/pronounce.py LengthRules); config engine: {length_rules: true}")
+    ap.add_argument("--data-config", default="data.yaml", help="configs/ altındaki veri config'i (out_root); ön eğitim verisi: data_risale.yaml")
     a = ap.parse_args()
     pron = dict(pron_exceptions=a.pron, register=a.register, length_rules=a.length_rules)
     tiers = tuple(t for t in a.tiers.split(",") if t)
-    root = yaml.safe_load(open(os.path.join(HERE, "configs", "data.yaml"), encoding="utf8"))["out_root"]
+    root = yaml.safe_load(open(os.path.join(HERE, "configs", a.data_config), encoding="utf8"))["out_root"]
     cache = None
     if tiers:  # morfolojik özellikler önbellekten (scripts/morph_corpus.py); yoksa canlı çözümlenir
         mp = os.path.join(root, "morph_feats.jsonl")

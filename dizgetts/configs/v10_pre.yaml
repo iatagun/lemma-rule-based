@@ -1,0 +1,14 @@
+# v10 ön eğitim: Alania sentetik (kadın sesler, havuzlanmış; konuşmacı koşullaması YOK -> mimari ve tensör biçimleri v9a ile aynı, ağırlıkların tamamı aktarılır).
+# Veri: scripts/prep_alania.py (20 sa; süzgeç orada). Manifest: build_manifest --data-config data_alania.yaml --g2ptts --no-breaks --pron --register özenli --length-rules --out-suffix _phon_v10
+# Sıcak başlangıç: v9a akustik modeli (Türkçe hizalama hazır). Sonra configs/v10_ft.yaml ile Antalia'ya geri ince ayar.
+base: v6_final.yaml
+name: v10_pre
+data_config: dizgetts/configs/data_alania.yaml
+manifest: _phon_v10
+model:
+  embed_alias: false
+init:
+  ckpt: D:/dizgetts/runs/v9_base_20261004-174750/ep150.pt
+  skip_prefixes: []
+train:
+  epochs: 60

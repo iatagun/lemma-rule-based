@@ -1,0 +1,7 @@
+# v10 ince ayar: v10_pre (Alania ön eğitimi) -> Antalia, v9a ile AYNI veri/manifest/epoch (tek fark başlangıç ağırlıkları). init.ckpt zincirde doldurulur (v10_chain.sh).
+base: v9_base.yaml
+name: v10_ft
+init:
+  ckpt: D:/dizgetts/runs/v10_pre/ep60.pt
+  skip_prefixes: []
+  embed_copy: null
