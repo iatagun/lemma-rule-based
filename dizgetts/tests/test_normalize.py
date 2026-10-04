@@ -69,4 +69,6 @@ POOLS = [(0x20, 0x24F), (0x300, 0x36F), (0x400, 0x4FF), (0x660, 0x6FF), (0x900, 
          (0xFB00, 0xFB06), (0xFF10, 0xFF5A), (0x4E00, 0x4E80)]
 for _ in range(4000):
     _check("".join(chr(rng.randint(*rng.choice(POOLS))) for _ in range(rng.randint(1, 30))))
+# regresyon (2026-10-04, Alania metni): büyük İ'li sözlük sözcüğü ("İ".lower() = i + birleşen nokta) KeyError veriyordu
+assert _check("Wİ-Fİ ve WI-FI açık, PİN gir") == "vayfay ve vayfay açık , pin gir .", _check("Wİ-Fİ ve WI-FI açık, PİN gir")
 print(f"OK: {len(CARD)} sayı + {len(CASES)} normalize vakası + biçimsel değişmez (4000 rastgele girdi)")

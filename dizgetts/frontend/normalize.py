@@ -222,11 +222,16 @@ def _spell(s: str) -> str:
     return " ".join(LETTERS.get(tr_lower(ch), ch) for ch in s)
 
 
+def _lex_key(s: str) -> str:
+    """LEXICON anahtarı. Python'da "İ".lower() = "i" + U+0307 (birleşen nokta): re.I ile eşleşen "Wİ-Fİ" sözlükte bulunamayıp KeyError veriyordu."""
+    return s.lower().replace("̇", "")
+
+
 def _sub_letters(t):
     # sözlük (wi-fi, www, sms...) önce; sonra 2-4 harfli BÜYÜK sözcük -> harf harf; koddaki tek büyük harf (PPV-3254-K)
     lex = "|".join(sorted(map(re.escape, LEXICON), key=len, reverse=True))
-    t = re.sub(rf"(?<![\w-])({lex})(?![\w-])", lambda m: LEXICON[m.group(1).lower()], t, flags=re.I)
-    t = re.sub(rf"\b[{UP}]{{2,4}}\b", lambda m: LEXICON.get(m.group().lower()) or _spell(m.group()), t)
+    t = re.sub(rf"(?<![\w-])({lex})(?![\w-])", lambda m: LEXICON[_lex_key(m.group(1))], t, flags=re.I)
+    t = re.sub(rf"\b[{UP}]{{2,4}}\b", lambda m: LEXICON.get(_lex_key(m.group())) or _spell(m.group()), t)
     t = re.sub(rf"(?<=[-\d])[{UP}]\b|\b[{UP}](?=-)", lambda m: _spell(m.group()), t)
     # tek başına büyük harf (A girişi, E yazın, B'yi): harf adı + ek; "O" (zamir) hariç
     return re.sub(rf"(?<!\w)(?<!\w['’])(?!O\b)[{UP}](?!\w)(?:['’]([^\W\d_]+))?",
