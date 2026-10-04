@@ -49,3 +49,18 @@ eğitimde görmediği token'lar alır (ø/y, j, ɾ). Yayına hazır DizgeTTS-Ant
 **Seçenekler:** (a) daha çok / farklı veri (amaca özel kayıt; çok konuşmacılı ön eğitim) - öngörülemeyen varyansı azaltmaz ama konuşmacı sesletimini düzeltir;
 (b) olasılıksal süre modeli ama korelasyonu KORUYAN (v7 akış örnekleyicisi korelasyonu düşürdü; örn. düşük sıcaklıkta örnekleme, ya da tahmin + ölçekli artık);
 (c) süre yerine başka kaldıraç (vokoder ince ayarı - kahin deneylerinde önerilmişti).
+
+## 6. v9 yeniden planı (2026-10-04)
+Bu veriyle kaldıraçlar tükendi (akustik val 1,60 bandı; deterministik süre tavanda, v9-dp2 RED; akış örnekleyici kör AB'de kaybetti) -> v9 iki adım:
+- **v9a temiz taban** (experiments.yaml v9a-base, configs/v9_base.yaml, zincir D:/dizgetts/runs/v9_chain.sh): v8 tarifi + §3.1 gömme başlangıcı + güncel ön uç manifesti
+  (_phon_v9). Amaç kalite değil; bilinen hatayı düzeltmek ve güncel ön uçla uyumlu, sürüm denetimi örneği (dp_feat dahil) taşıyan checkpoint. Kör AB yok.
+- **v9b Türkçe ön eğitim** (asıl kaldıraç; karar bekliyor): süre tahmincisi veriyle sınırlı (v9-dp2 train 7,9 / val 18,5), başlangıç ağırlıkları İngilizce LJSpeech.
+  ÖNCE kapı ölçümü (~1 saatlik örnek; aday ISSAI TSC, lisans/boyut DOĞRULANMADI): lisans + konuşmacı kimliği, kayıt kalitesi (Antalia gerçek kayıt UTMOS 3,41),
+  ön uç kapsaması (fonemsiz / bilinmeyen simge oranı). Geçerse: 30-50 saatlik alt kümeyle çok konuşmacılı ön eğitim -> Antalia'da v9a tarifiyle ince ayar + dp ->
+  kör AB (v8-dp'ye karşı, 30 çift). Risk: ASR derlemi TTS için gürültülü olabilir; çok konuşmacıdan tek konuşmacıya aktarım garantili değil.
+**v9a sonucu (2026-10-04): v8-dp ile eşdeğer, hipotez RED** (experiments.yaml v9a-base). Bozulma yok (CER -0,03 [-0,29, +0,22], süre korelasyonu 0,616) ama gömme
+başlangıcı sentezdeki akustiği değiştirmedi (œ F2 1521 vs v8 1509 Hz; kayıt 1476). Gömmeler başlangıcında kaldı (cos(œ, ɔ) 0,98) ve yine de ses aynı -> §3.1 tanısı
+çıktıyı açıklamıyor; seyrek sesi bağlam belirliyor. v9a güncel ön uçla uyumlu taban olarak kalır. Bu veriyle kalan tek kaldıraç v9b (daha fazla Türkçe veri).
+**v9b kapı ölçümü (2026-10-04): ISSAI TSC kapıyı GEÇEMEDİ** (experiments.yaml v9b-gate-tsc). Lisans MIT ve ön uç kapsaması temiz; ama UTMOS 2,24 (Antalia 3,54),
+konuşmacı kimliği yok, metinler noktalamasız ve cümle ortasından kesik (ortanca 4,5 sn). Olduğu gibi ön eğitim verisi değil. Dinleme: D:/dizgetts/samples/tsc_gate/.
+

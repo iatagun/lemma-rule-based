@@ -1,6 +1,7 @@
 """Etiket geçerliliği: ön ucun işaretlediği ayrımlar (ön a / arka ɑ, alıntı œ / sıradan ø, ince l / kalın ł, vurgu) Antalia KAYDINDA akustik olarak var mı?
 Model kayıtta olmayan ayrımı öğrenemez; bu ölçüm v9 kararından önce hangi etiketin veride karşılığı olduğunu söyler.
   python -X utf8 -m dizgetts.eval.label_validity --ckpt D:/dizgetts/runs/v8_dplin/ep400_dp_mse.pt --manifest _phon_v8 [--limit N]
+  ... --synth --only œ,a,aː,Y   # aynı ölçüm modelin SENTEZİNDE (v9a karar kuralı 2: ayrım sese geçiyor mu); hizalama = sentezde kullanılan süreler
 Yöntem (prosody_acoustics ile aynı): hizalama = modelin kendi MAS'ı (gerçek mel), token karesi (boşluk hariç); Praat Burg formant ünlü/ünsüz ortasında,
 F0 (AC, 75-500 Hz) ve şiddet ünlü boyunca ortanca. Vurgu: aynı sözcükte vurgulu ünlü vs diğer ünlüler (EŞLEŞMİŞ fark; konuşmacı/cümle etkisi düşer).
 Güven aralığı: klip düzeyinde bootstrap (aynı klipteki ölçümler bağımsız değil).
@@ -19,20 +20,37 @@ from matcha.utils.utils import intersperse
 from dizgetts import paths
 from dizgetts.eval.prosody_acoustics import _load_model, mas_frames
 from dizgetts.frontend.symbols import PHONES, STRESS, SYMBOL_TO_ID, WORD_SEP
-from dizgetts.train.dpfeat import set_dp_feat
+from dizgetts.train.dpfeat import intersperse_feat, set_dp_feat, set_round
 
 HOP = 256 / 22050
 VOWEL = lambda t: t in PHONES and PHONES[t][0] == "ünlü"
 
 
-def clip_measures(m, stats, r):
-    toks = r["tokens"]
-    ids = intersperse([SYMBOL_TO_ID[t] for t in toks], 0)
+def record_source(m, stats, r):
+    """Kayıt: (interspersed token başına kare [modelin MAS'ı, gerçek mel], gerçek ses)."""
+    ids = intersperse([SYMBOL_TO_ID[t] for t in r["tokens"]], 0)
     set_dp_feat(m, None)
     fr, _ = mas_frames(m, ids, mel_norm(torch.load(f"{paths.ANTALIA}/mels/{r['id']}.pt"), stats["mel_mean"], stats["mel_std"]))
+    return fr, parselmouth.Sound(f"{paths.ANTALIA}/{r['wav']}")
+
+
+@torch.inference_mode()
+def synth_source(s, r):
+    """Sentez: (interspersed token başına kare [sentezde kullanılan süreler], modelin ürettiği ses). s = eval.synth.Synth; token'lar manifestten (eğitimdeki girdi)."""
+    x = torch.tensor(intersperse([SYMBOL_TO_ID[t] for t in r["tokens"]], 0), device=s.dev)[None]
+    set_round(s.model, s.cfg["model"].get("dp_round"))
+    set_dp_feat(s.model, torch.tensor(intersperse_feat(r["dp_feat"]), device=s.dev)[None])
+    torch.manual_seed(0)  # klip başına aynı gürültü: iki checkpoint aynı koşulda
+    out = s.model.synthesise(x, torch.tensor([x.shape[1]], device=s.dev), n_timesteps=10, temperature=0.667, spks=None,
+                             length_scale=float(s.cfg["model"].get("length_scale", 1.0)))
+    wav = s.denoiser(s.vocoder(out["mel"]).clamp(-1, 1).squeeze(), strength=0.00025).cpu().squeeze().numpy()
+    return out["attn"][0, 0].sum(-1).cpu().numpy().astype("float64"), parselmouth.Sound(wav.astype("float64"), sampling_frequency=22050)
+
+
+def clip_measures(fr, snd, r):
+    toks = r["tokens"]
     ends = np.cumsum(fr) * HOP
     starts = ends - np.asarray(fr) * HOP
-    snd = parselmouth.Sound(f"{paths.ANTALIA}/{r['wav']}")
     fmt = snd.to_formant_burg(max_number_of_formants=5, maximum_formant=5500)
     pit = snd.to_pitch_ac(pitch_floor=75, pitch_ceiling=500)
     inten = snd.to_intensity(minimum_pitch=75)
@@ -136,14 +154,28 @@ def main():
     ap.add_argument("--manifest", default="_phon_v8")
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--out", default=None, help="ölçümleri jsonl'e yaz (yeniden rapor için)")
+    ap.add_argument("--synth", action="store_true", help="kayıt yerine modelin sentezinde ölç (GPU varsa cuda)")
+    ap.add_argument("--only", default="", help="yalnız bu atomlardan birini içeren klipler (virgülle; ör. œ,a,aː,Y)")
     a = ap.parse_args()
-    m, ck, stats = _load_model(a.ckpt)
+    only = set(t for t in a.only.split(",") if t)
+    if a.synth:
+        import warnings
+        from dizgetts.eval.synth import Synth
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")  # ön uç denetimi uyarısı: burada token'lar manifestten, ön uç kullanılmıyor
+            syn = Synth(a.ckpt, "cuda" if torch.cuda.is_available() else "cpu", allow_frontend_mismatch=True)
+        source = lambda r: synth_source(syn, r)
+    else:
+        m, ck, stats = _load_model(a.ckpt)
+        source = lambda r: record_source(m, stats, r)
     rows = []
     for sp in ("train", "val", "test"):
         for n, line in enumerate(open(f"{paths.ANTALIA}/{sp}{a.manifest}.jsonl", encoding="utf8")):
             if a.limit and n >= a.limit:
                 break
-            rows += clip_measures(m, stats, json.loads(line))
+            r = json.loads(line)
+            if not only or only & set(r["tokens"]):
+                rows += clip_measures(*source(r), r)
     if a.out:
         with open(a.out, "w", encoding="utf8") as f:
             for x in rows:

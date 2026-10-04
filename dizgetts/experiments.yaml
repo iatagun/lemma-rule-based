@@ -388,3 +388,40 @@ experiments:
       Açık metin öznitelikleri korelasyonu artırmadı (kodlayıcı zaten örtük biliyor); kalan varyans büyük olasılıkla metinden öngörülemeyen konuşmacı değişkenliği.
       Ayrıca bulunan: ölçüm betiklerinde (long_vowel, dur_quality ilk sürüm) ÇİFT yuvarlama (set_round + frames()): token başına ~-0,5 kare; düzeltildi,
       long_vowel sonuçları değişmedi (ğ-uzun/kısa tahmin 1,18-1,23, gerçek 1,24-1,32; kısa ünlü tahmin/gerçek 1,00-1,03).
+  - id: v9a-base
+    status: rejected
+    depends_on: v8-phon
+    hypothesis: >-
+      Temiz taban (kalite sıçraması beklenmez): v8 tarifi + gömme başlangıcı AKUSTİĞE göre (docs/v9_plan.md §3.1: œ <- ɔ, a <- ɑ, aː <- ɑː, Y <- U; v8'de œ <- ö ve
+      a/aː (ɑ+ɛ)/2 idi, kayıtla çelişiyordu) + güncel ön uç manifesti (_phon_v9; v8'e göre 14 klip: bina/kase/dünya uzun a). Çıktı: güncel ön uçla birebir uyumlu,
+      dp_feat'li sürüm denetimi örneği taşıyan checkpoint (v9b Türkçe ön eğitimin ince ayar tarifi ve yayın adayı).
+    decision_rule: >-
+      Sonuçtan ÖNCE: (1) bozulma yok: v8dp_x484'e göre CER GA üst sınırı < +0,5; test süre korelasyonu (eval/dur_quality.py) >= 0,60 (v8-dp 0,622).
+      (2) hedef: sentezde œ kayıttaki gibi ɔ'ya yakın (kayıt œ - ɔ +71 Hz, œ - ø -225 Hz), a - ɑ farkı anlamsız. Kör AB YOK (train'de œ 81, a 222, aː 257, Y 4:
+      fark duyulmaz; v8-long-vowel-scale dersi).
+    config: "configs/v9_base.yaml (v6 ep150'den sıcak başlangıç, 150 ep; embed_copy ø<-œ, y<-Y, œ<-ɔ, a<-ɑ, aː<-ɑː, Y<-U; embed_alias kapalı) + train_dp --loss mse; zincir D:/dizgetts/runs/v9_chain.sh"
+    eval_label: v9dp_x484
+    result: >-
+      RED (v8-dp ile EŞDEĞER; bozulma yok ama hipotez tutmadı). (1) GEÇTİ: 484 cümle CER -0,03 [-0,29, +0,22], WER +0,09 [-0,84, +0,98], UTMOS +0,02 [-0,00, +0,04]
+      (hepsi anlamsız); test süre korelasyonu 0,616 (v8-dp 0,622), std oranı 0,709, toplam 0,960; akustik val 1,61 bandı (v6/v8 ile aynı); dp en iyi val 18,40 (ep1).
+      (2) TUTMADI: sentezde F2 (eval/label_validity.py --synth, 434 klip) v9 ile v8 aynı: œ 1521 / 1509 Hz, a 1537 / 1537, aː 1410 / 1402; œ - ɔ +195 / +174, œ - ø -130 / -142,
+      a - ɑ +88 / +84. Aynı kliplerde KAYIT: œ 1476, a 1544, aː 1422; œ - ɔ +113, œ - ø -185, a - ɑ +71 [+7, +135] -> iki model de kayda yakın, œ kayıttan biraz daha ön.
+      Gömmeler başlangıcında KALDI: v9 cos(œ, ɔ) 0,98, cos(a, ɑ) 0,98, cos(Y, U) 0,99; v8 cos(œ, ø) 0,93. Yani gömmeler çok farklı, ses aynı.
+      DERS: seyrek sesbirimin gerçekleşen akustiğini gömme başlangıcı değil BAĞLAM belirliyor (komşu ince l / damaksıl k); docs/v9_plan.md §3.1'deki "v8 gömme
+      başlangıcı hata" tanısı çıktıyı açıklamıyor. İnce ayarda gömmeler neredeyse hiç kıpırdamıyor. Karar kuralındaki "a - ɑ anlamsız olmalı" yanlış kurulmuştu
+      (kayıtta bu alt kümede küçük ama anlamlı). Kalan değer: v9a güncel ön uçla birebir uyumlu ve dp_feat'li sürüm denetimi örneği taşıyan tek checkpoint
+      (D:/dizgetts/runs/v9_dplin/dp_mse.pt); v8-dp yerine taban olarak kullanılabilir, kalite iddiası yok.
+  - id: v9b-gate-tsc
+    status: rejected
+    depends_on: v9a-base
+    hypothesis: "ISSAI TSC (218 sa) çok konuşmacılı Türkçe ön eğitim verisi olarak kullanılabilir (kapı ölçümü; eğitim YOK)."
+    decision_rule: "Sonuçtan ÖNCE (docs/v9_plan.md §6): lisans + konuşmacı kimliği var, kayıt kalitesi Antalia'ya yakın, ön uç kapsaması temiz -> ancak o zaman indir ve ön eğit."
+    config: "issai/Turkish_Speech_Corpus (HF, tek arşiv 21,4 GB); arşivin BAŞINDAN akışla 60 dk örnek (789 wav, yalnız Test bölümü): D:/dizgetts/data/raw/tsc_sample"
+    result: >-
+      KAPI GEÇİLMEDİ (olduğu gibi kullanılmaz). Geçen: lisans MIT, açık erişim; ön uç kapsaması temiz (1607 sözcük: fonemsiz 0, bilinmeyen simge 0, dizge hatası 0);
+      16 kHz ama mel f_max 8000 olduğundan bant yeterli. Geçmeyen: (1) kalite: UTMOS 2,24 (n=150; yalnız %15'i >= 3,0) vs Antalia val gerçek kayıt 3,54; enerji dinamik
+      aralığı 23-59 dB arası dağınık (Antalia 37-47) -> karışık kayıt koşulları. (2) konuşmacı kimliği YOK (düz dosya adları, üstveri yok); klip ortanca F0 111-220 Hz ->
+      çok konuşmacı, kadın + erkek. (3) metin: noktalama 0, büyük harf 0, klip ortanca 4,5 sn / 9 sözcük, cümle ortasından kesik yayın/sohbet parçaları -> sınır ve süre
+      (asıl kaldıracımız) için öğretici değil. UYARI: örnek yalnız Test bölümünün başı; UTMOS mutlak değeri Türkçede güvenilmez (göreli fark büyük); kaynak belgelenmemiş.
+      Açık seçenek: UTMOS >= 3,0 süzgeciyle ~%15 (~30 sa) alt küme; konuşmacı etiketi ve noktalama sorunu yine kalır.
+

@@ -16,7 +16,7 @@ from dizgetts.train.train import ROOT
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CARD = os.path.join(HERE, "docs", "MODEL_CARD_tts.md")
 SAMPLES = [  # kartta dinletilen cümleler (eğitim verisinde YOK)
-    "Merhaba, ben DizgeTTS. Türkçe metinleri sesli okuyabilirim.",
+    "Merhaba, ben Dizge. Türkçe metinleri sesli okuyabilirim.",
     "Kağıt, kalem ve silgiyi masanın üstüne bıraktım; akşam yeniden bakacağım.",
     "Yarın sabah saat dokuzda İzmir'e gidiyoruz, değil mi?",
     "Bu sistem, sözcüklerin vurgusunu ve cümle içindeki duraklamaları kendisi tahmin ediyor.",

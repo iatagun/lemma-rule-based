@@ -1,0 +1,15 @@
+# v9a (temiz taban): v8 tarifi + gömme başlangıcı AKUSTİĞE göre (docs/v9_plan.md §3.1, eval/label_validity.py): konuşmacı alıntı œ'yü o'ya yakın,
+# ön a'yı arka söylüyor -> œ <- ɔ, a <- ɑ, aː <- ɑː, Y <- U (v8: œ <- ö ve a/aː (ɑ+ɛ)/2 idi; 81 / 222 / 257 / 4 örnekle düzelmedi).
+# Manifest: build_manifest --g2ptts --no-breaks --pron --register özenli --length-rules --out-suffix _phon_v9 (v8'e göre 14 klip: bina/kase/dünya uzun a).
+# Sıcak başlangıç v8 ile AYNI: v6 ep150; ø <- œ, y <- Y v8'deki gibi (sıradan ö/ü eskiden œ/Y idi). embed_alias KAPALI: yoksa a/aː yeniden ortalamaya bağlanır.
+base: v6_final.yaml
+name: v9_base
+manifest: _phon_v9
+model:
+  embed_alias: false
+init:
+  ckpt: D:/dizgetts/runs/v6_final_e150_20260927-153411/ep150.pt
+  skip_prefixes: []
+  embed_copy: {ø: œ, y: Y, œ: ɔ, a: ɑ, aː: ɑː, Y: U}
+train:
+  epochs: 150
