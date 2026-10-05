@@ -66,9 +66,11 @@ def ensure_mels(root: str, rows: list[dict], au: dict) -> int:
 
 
 class TTSDataset(Dataset):
-    def __init__(self, root: str, split: str, frontend: str, stats: dict, strip_stress: bool = False, manifest: str = "_phon", dp_feat: bool = False):
+    def __init__(self, root: str, split: str, frontend: str, stats: dict, strip_stress: bool = False, manifest: str = "_phon", dp_feat: bool = False, min_dur: float = 0.0):
         self.root = root
         self.rows = [json.loads(l) for l in open(os.path.join(root, f"{split}{manifest}.jsonl"), encoding="utf8")]
+        # min_dur: TÜM klipleri out_size karesinden kısa olan batch Matcha çözücüsünde biçim hatası verir (v10 ön eğitim, 2 sn altı 551 klip; uzunluğa göre gruplama hepsini aynı batch'e koyar)
+        self.rows = [r for r in self.rows if r.get("dur", min_dur) >= min_dur]
         _, self.s2i = frontend_table(frontend)
         self.mean, self.std = stats["mel_mean"], stats["mel_std"]
         self.ids = [intersperse([self.s2i[t] for t in row_tokens(r, frontend, strip_stress)], 0) for r in self.rows]

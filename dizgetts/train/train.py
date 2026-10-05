@@ -140,8 +140,8 @@ def main():
     assert not tr["amp"], "amp bu donanımda KAPALI olmalı (fp16 cuDNN NaN, reports/stage1_audit.md)"
 
     symbols, s2i = frontend_table(cfg["frontend"])
-    ds = {s: TTSDataset(root, s, cfg["frontend"], stats, cfg["espeak_strip_stress"], cfg.get("manifest", "_phon"), bool(cfg["model"].get("dp_feat")))
-          for s in ("train", "val")}
+    ds = {s: TTSDataset(root, s, cfg["frontend"], stats, cfg["espeak_strip_stress"], cfg.get("manifest", "_phon"), bool(cfg["model"].get("dp_feat")),
+                        float(tr.get("min_dur", 0.0))) for s in ("train", "val")}
     for s in ds:
         wrote = ensure_mels(root, ds[s].rows, au)
         if wrote:

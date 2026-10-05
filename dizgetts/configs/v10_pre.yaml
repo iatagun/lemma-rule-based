@@ -12,3 +12,4 @@ init:
   skip_prefixes: []
 train:
   epochs: 60
+  min_dur: 2.1   # out_size 172 kare = 2,0 sn; daha kısa klipler (551) dışarıda (train/data.py TTSDataset)

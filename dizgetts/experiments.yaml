@@ -426,7 +426,7 @@ experiments:
       Açık seçenek: UTMOS >= 3,0 süzgeciyle ~%15 (~30 sa) alt küme; konuşmacı etiketi ve noktalama sorunu yine kalır.
 
   - id: v10-pre
-    status: planned
+    status: rejected
     depends_on: v9a-base
     hypothesis: >-
       Akustik model ve süre tahmincisi veriyle sınırlı (4,2 sa; v9-dp2 aşırı öğrenme). 20 saatlik Türkçe ön eğitim (Alania sentetik, CC BY 4.0; G2PTTS ön ucu
@@ -443,3 +443,12 @@ experiments:
     note: >-
       BİLİNEN ZAYIFLIK: süreler gerçek insandan değil bir TTS modelinden (VoxCPM2); havuzlanmış çok ses koşullamasız -> akustik ön eğitim bulanık olabilir.
       İki değişken birden (ön eğitim verisi + 60 ek epoch); kazanç çıkarsa ayrıştırma gerekir.
+    result: >-
+      RED (karar kuralı tutmadı; AB yok). Antalia test süre korelasyonu 0,618 (v9a-dp 0,616; eşik 0,67), std oranı 0,713 (0,709), toplam 0,979 (0,960):
+      ön eğitim süre tahminini DEĞİŞTİRMEDİ. Beklenmeyen yan sonuç (484 cümle, v9dp_x484'e göre eşleşmiş): CER -0,50 [-0,74, -0,24] ve WER -1,77 [-2,79, -0,81]
+      ANLAMLI iyi (v10-dp CER 2,6 / WER 12,3; v9a-dp 3,1 / 14,1), UTMOS -0,07 [-0,09, -0,05] ANLAMLI kötü (3,09 vs 3,16). Yani anlaşılırlık arttı, otomatik
+      doğallık puanı biraz düştü; hangisinin duyulduğu ÖLÇÜLMEDİ (bu ayrı bir hipotez, ayrı karar kuralı ister; iki değişken hâlâ karışık: veri + 60 ek epoch).
+      Ön eğitim: 13.105 klip (2,1 sn altı 830 klip dışarıda), 282 sn/epoch, train 1,82 -> 1,64; val (eğitimde olmayan sesler) ep25'ten sonra 1,776 -> 1,799 YÜKSELDİ
+      (havuzlanmış seslerde genelleme durdu). İnce ayar: Antalia val 1,601 (v9a 1,610, aynı bant); dp en iyi val 17,62 (ep2; v9a 18,40, hedefler farklı).
+      Olay: ön eğitimin ilk denemesi 2. epoch'ta çöktü (tüm klipleri out_size 172 kareden kısa batch -> Matcha çözücüsünde biçim hatası); düzeltme train.min_dur
+      (train/data.py TTSDataset, yalnız v10_pre.yaml'da açık; Antalia kümesi 910 klip aynı). Checkpoint: D:/dizgetts/runs/v10_dplin/dp_mse.pt.
