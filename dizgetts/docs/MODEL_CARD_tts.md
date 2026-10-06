@@ -12,9 +12,10 @@ tags:
 - experimental
 datasets:
 - cloud0day3/antalia-voice-corpus
+- cloud0day3/alania-synthetic-speech-tr
 ---
 
-# DizgeTTS-Antalia (deneysel, v1)
+# DizgeTTS-Antalia (deneysel, v2)
 
 Türkçe metinden konuşma. **Bu model tek başına çalışmaz: metni [`iatagun/DizgeBERT-G2PTTS`](https://huggingface.co/iatagun/DizgeBERT-G2PTTS) okur,
 bu model seslendirir.** G2PTTS her sözcük için sesbirimleri, vurgulu ünlüyü ve sözcükten sonraki duraklama düzeyini üretir;
@@ -26,7 +27,8 @@ metin  ->  DizgeBERT-G2PTTS (normalleştirme, sesbirim, vurgu, duraklama)  ->  D
 
 Tek konuşmacı (Antalia derleminin okuyucusu), 22,05 kHz.
 
-> **Deneysel araştırma sürümüdür.** 4,2 saatlik tek bir okuma derleminden, 4 GB'lık bir dizüstü GPU'sunda eğitildi. Ticari kalitede bir ses değildir.
+> **Deneysel araştırma sürümüdür.** 4,2 saatlik tek bir okuma derleminden (v2'de öncesinde 20 saat sentetik Türkçe konuşmayla ön eğitim), 4 GB'lık bir
+> dizüstü GPU'sunda eğitildi. Ticari kalitede bir ses değildir.
 > Sınırları aşağıda açıkça yazılı. Ürettiği ses **sentetiktir**; gerçek kayıt gibi sunulamaz (bkz. Sorumlu kullanım).
 
 ## Dinleyin
@@ -104,13 +106,16 @@ Köşeli parantezler bootstrap %95 güven aralığıdır.
 | Sistem | CER % | WER % | UTMOS |
 |---|---|---|---|
 | Gerçek kayıt (yalnız 84 test klibi; Whisper tabanı) | 3,1 | 9,9 | — |
-| Önceki aday (v8) | 3,2 [2,9–3,5] | 14,0 [12,8–15,1] | 3,14 |
-| **Bu model (v9a)** | **3,1** [2,8–3,4] | **14,1** [12,9–15,3] | **3,16** |
+| Önceki sürüm (v1) | 3,1 [2,8–3,4] | 14,1 [12,9–15,3] | 3,16 [3,14–3,19] |
+| **Bu model (v2)** | **2,6** [2,4–2,9] | **12,3** [11,3–13,4] | **3,09** [3,07–3,12] |
 
-Bu sürüm bir öncekiyle **eşdeğerdir**: eşleşmiş farkların hiçbiri anlamlı değil (CER −0,03 [−0,29, +0,22], WER +0,09 [−0,84, +0,98],
-UTMOS +0,02 [−0,00, +0,04]). Yayın nedeni kalite artışı değil, güncel ön uçla birebir uyumdur.
+v2, v1'e göre **daha anlaşılır ama otomatik doğallık puanı biraz daha düşük**; eşleşmiş farkların üçü de anlamlı: CER −0,50 [−0,74, −0,24],
+WER −1,77 [−2,79, −0,81], UTMOS −0,07 [−0,09, −0,05]. Süre tahmininin gerçeğe uyumu değişmedi (test, log-süre korelasyonu 0,62 / 0,62).
+**v2 dinleme testinden geçmedi:** UTMOS düşüşünün duyulup duyulmadığı ölçülmedi; değişiklik yalnızca otomatik ölçütlere dayanıyor. İki şey birlikte
+değişti (ön eğitim verisi ve 60 ek epoch), kazancın hangisinden geldiği ayrıştırılmadı. v1'i yeğlerseniz:
+`Synth.from_hub("iatagun/DizgeTTS-Antalia", revision="8c717a33e769da8529b77c92c8a9427337597f10")`.
 
-**Dinleme testleri** (kör, 30 çift, tek dinleyici): süre tahmincisinin yeniden eğitilmesi (aynı tarif, bir önceki akustik modelde) 19–0 tercih edildi (11 fark yok);
+**Dinleme testleri** (önceki sürümlerde; kör, 30 çift, tek dinleyici): süre tahmincisinin yeniden eğitilmesi (aynı tarif, bir önceki akustik modelde) 19–0 tercih edildi (11 fark yok);
 bu, projedeki en büyük duyulabilir kazançtır. G2PTTS v1 sesbirimlerine geçiş (v8) ise 12 / 8 / 10 ile **kararsız** kaldı:
 okunuş iyileşmesinin sese geçtiği bu veriyle gösterilemedi.
 
@@ -122,9 +127,12 @@ gerçek sürelerle yapılan sentez WER'de daha kötü çıktığı halde kör di
 
 - **Veri:** [Antalia](https://huggingface.co/datasets/cloud0day3/antalia-voice-corpus) (Patientdesk.ai, CC-BY-4.0), tek konuşmacı, okuma;
   910 eğitim / 59 doğrulama / 84 test klibi (kaynak kayda göre bölünmüş), 4,2 saat eğitim.
+- **Ön eğitim verisi (v2):** [Alania Turkish Synthetic Speech](https://huggingface.co/datasets/cloud0day3/alania-synthetic-speech-tr) (Patientdesk.ai),
+  `cc-by` bölümü (CC BY 4.0); **tamamı yapay zekâ üretimi** ses. 20 saat / 13.105 klip: kadın sesler, düz okuma, 2–15 sn, derlemin kendi kalite
+  ölçütleriyle süzülmüş. Konuşmacı koşullaması yok (sesler havuzlandı); çıkan ses yine Antalia okuyucusunun sesi.
 - **Girdi:** her klip DizgeBERT-G2PTTS ön ucundan geçirildi (sesbirim + vurgu işareti; duraklama düzeyi süre tahmincisine).
 - **Zincir:** LJSpeech üzerinde eğitilmiş Matcha-TTS → 400 epoch Antalia → söyleyiş sözlüğü ve uzun ünlü kurallarıyla 150 epoch →
-  G2PTTS v1 sesbirimleriyle 150 epoch (bu sürüm). Ardından akustik model dondurulup yalnızca süre tahmincisi doğrusal kare hatasıyla yeniden eğitildi;
+  G2PTTS v1 sesbirimleriyle 150 epoch (v1) → 60 epoch Alania ön eğitimi → 150 epoch Antalia (bu sürüm). Ardından akustik model dondurulup yalnızca süre tahmincisi doğrusal kare hatasıyla yeniden eğitildi;
   sentezde süreler birikimli yuvarlanır.
 - **Mimari:** Matcha-TTS (18,2 M parametre; RoPE kodlayıcı, U-Net akış eşleme çözücüsü), süre tahmincisine sözcük sınırı özniteliği eklendi.
 - **Vokoder:** HiFi-GAN universal v1 ([jik876/hifi-gan](https://github.com/jik876/hifi-gan), MIT), değiştirilmeden.
@@ -134,7 +142,7 @@ gerçek sürelerle yapılan sentez WER'de daha kötü çıktığı halde kör di
 
 - **Tek konuşmacı, tek üslup** (metin okuma). Heyecan, diyalog, güçlü soru ezgisi iyi değil.
 - **Ritim fazla düzenli:** tahmin edilen sürelerin çeşitliliği gerçeğin yaklaşık %70'i (test, std oranı 0,71). Uzun/kısa ayrımı daralıyor.
-- **ğ kaynaklı uzun ünlüler kısa:** model uzun ünlüyü gerçeğin yaklaşık %85'i kadar uzatıyor.
+- **ğ kaynaklı uzun ünlüler kısa:** model uzun ünlüyü gerçeğin yaklaşık %85'i kadar uzatıyor (önceki sürümlerde ölçüldü; v2'de yeniden ölçülmedi).
 - 4,2 saat veri: nadir ses dizileri, yabancı adlar ve alıntılar yanlış okunabilir. `phonemes` çıktısına bakarak sorunun ön uçta mı
   (yanlış sesbirim/vurgu) yoksa seste mi olduğunu ayırabilirsiniz.
 - Normalleştirici her biçimi bilmez (ör. karmaşık birimler, formüller); bilinmeyen karakterler uyarı verip atlanır.
@@ -150,7 +158,8 @@ dağıtımına şu anlayışla izin verdi; bu modeli kullanırken aynı koşulla
 
 ## Lisans ve atıf
 
-Model ağırlıkları **CC-BY-4.0** (Antalia derleminin lisansı). Kullanırken Antalia derlemini (Patientdesk.ai) ve bu modeli anın.
+Model ağırlıkları **CC-BY-4.0** (Antalia derleminin lisansı). Kullanırken Antalia derlemini (Patientdesk.ai), ön eğitimde kullanılan
+Alania Turkish Synthetic Speech derlemini (Patientdesk.ai, CC BY 4.0) ve bu modeli anın.
 Matcha-TTS ve HiFi-GAN MIT lisanslıdır. Ön uç: `dizge` (MIT), DizgeBERT-G2PTTS (CC BY-SA 4.0, kendi kartına bakın).
 
 Kaynak kod: [github.com/iatagun/lemma-rule-based](https://github.com/iatagun/lemma-rule-based/tree/dizgetts-v2/dizgetts)

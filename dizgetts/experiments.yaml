@@ -452,3 +452,6 @@ experiments:
       (havuzlanmış seslerde genelleme durdu). İnce ayar: Antalia val 1,601 (v9a 1,610, aynı bant); dp en iyi val 17,62 (ep2; v9a 18,40, hedefler farklı).
       Olay: ön eğitimin ilk denemesi 2. epoch'ta çöktü (tüm klipleri out_size 172 kareden kısa batch -> Matcha çözücüsünde biçim hatası); düzeltme train.min_dur
       (train/data.py TTSDataset, yalnız v10_pre.yaml'da açık; Antalia kümesi 910 klip aynı). Checkpoint: D:/dizgetts/runs/v10_dplin/dp_mse.pt.
+      YAYIN (2026-10-06, kullanıcı kararı; hipotez RED kalır): kullanıcı dinleme istemedi, karışık otomatik değerlere (CER/WER iyi, UTMOS kötü) bakarak
+      değiştirmeyi seçti -> HF iatagun/DizgeTTS-Antalia v2 (rev 0777289d; v1 = v9a rev 8c717a33, kartta geri dönüş satırı). Kartta "dinleme testinden geçmedi"
+      yazılı. Space iatagun/dizge-demo TTS_REV güncellendi (2ac3dde); canlı sentez yerel v10 paketiyle aynı süreyi verdi (4,42 sn; v9a 3,84).

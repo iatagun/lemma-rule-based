@@ -201,3 +201,72 @@ Kullanıcı (dilbilimci) 40 cümleyi telefonla okudu ve Praat'ta sözcük sonras
 - **v7 sonuçları (eğitimsiz iç ölçüm, test):** en iyi val ep90 (sonra aşırı öğrenme). Std oranı (tahmin/gerçek): ünlü 0,58→0,82, ünsüz 0,61→0,79,
   boşluk 0,62→0,83, ayraç 0,52→0,68; toplam süre 0,97→0,95. Log-süre korelasyonu 0,49→0,40 (beklenen: kusursuz bağımsız örnekleyici ρ²≈0,24 verirdi;
   0,40 çeşitliliğin çoğunun anlamlı olduğunu gösteriyor). Ünlü nPVI (token) 48,8→57,8 (gerçek 60,4). Sonraki: 484 cümle sentez + kör AB v6-dp vs v7.
+
+## 9. Doğal konuşmada duraklama yerleri (2026-10-06; `eval/spont_pauses.py`, çıktılar D:/dizgetts/data/processed/gorusme)
+
+**Veri:** kullanıcının verdiği üç araştırma görüşmesi (57 + 39 + 54 dk; telefon kaydı, tek kanal, soran kişi soruları okuyor, katılımcı uzun yanıt veriyor).
+Yalnız ÖLÇÜM; eğitimde kullanılmaz, yerelden çıkmaz, kişiler G1/G2/G3. Kapı ölçümü (ilk 10 dk): UTMOS 1,5–1,7 (Antalia 3,42) → eğitim verisi ve ünlü
+rengi ölçümü için uygun değil; zamanlama ölçülebilir. **Soru:** sınır kurallarının (§7, K1–K5) işaret ettiği yerlerde konuşmacılar gerçekten duruyor mu?
+
+**Yöntem (Antalia ve görüşmeler AYNI hattan geçer):** Whisper large-v3-turbo (sözcük + güven) → engine `normalize` → MMS_FA zorlamalı hizalama →
+sınır bölgesi (önceki sözcüğün sonu .. sonrakinin başı) içinde 300–3000 Hz bant enerjisi, konuşmacının sözcük içi %95 düzeyinin 25 dB altında kalan
+karelerin toplamı = sessizlik. Duraklama = sessizlik ≥ 250 ms. Konuşmacı: WavLM x-vector, k=2. Görüşmelerde yalnız sıra değişimine > 2 sözcük uzak,
+konuşmacısı net, ASR güveni ≥ 0,5 ve hizalama puanı ≥ 0,04 (Antalia %5'liği) olan sınırlar. GA: küme (klip / hizalama parçası) bootstrap.
+- **Tam bant enerjisi bu kayıtlarda işe yaramaz** (alçak frekans gürültüsü: p95−30 dB eşiğinin altında kare payı %0–0,6); bant enerjisi dinamik aralığı geri getirir.
+- **Silero VAD uzak konuşmacıyı kaçırır:** G1'de katılımcı mikrofona uzak (≈ 11 dB kısık); `vad_filter=True` ile 57 dk'nın yalnız 16'sı yazıya dökülmüştü
+  (2.003 sözcük); VAD'siz 5.757 sözcük, uydurma döngüsü yok.
+- **Ölçünün geçerliliği (Antalia, bağımsız MAS ölçümü `breaks.jsonl` başvuru, val+test 4.670 sınır):** r 0,98; ≥ 250 ms sınıfında F1 0,88; duran sınırlarda
+  +50 ms yanlılık (bölge daha geniş: kapantı/soluk payı) → ≥ 250 oranı MAS'tan yüksek çıkar (denetim %3,2'ye karşı MAS %1,6). Mutlak oranlar ölçüye bağlı;
+  kıyaslar aynı ölçüyle yapıldığı için geçerli.
+- **Gürültüye dayanıklılık:** Antalia sesi görüşme koşullarına bozuldu (uzun dönem spektrumu eşleme + kaydın kendi duraklama gürültüsü; benzetilen gürültü
+  tabanı G2'de gerçeğiyle aynı −33/−34 dB, G1'de gerçeğinden kötü). 25 dB eşikte ≥ 250 oranı %17,8 → %17,7 / %17,6 (değişmedi); 30 dB eşik G2 koşulunda
+  tabana çarpıyor (%16,9 → %14,2) → eşik 25 dB seçildi (sonuçlara bakmadan).
+- **ASR metninin etkisi (Antalia val+test, altın / Whisper metni):** K3 %33,0 / %32,6; bağlaç öncesi %37 / %36; "ve" öncesi %41 / %40 → konum oranlarını değiştirmiyor.
+- **Üçüncü kayıtta konuşmacılar ayrılmadı** (silhouette 0,22; sözcüklerin %89'unda konuşmacı belirsiz; soranın sesi öbür iki kayıtta aynı kişi [cos 0,99] ama burada
+  bulunamadı) → G3 "ayrılmamış" sütunu soranın sorularını ve sıra arası boşlukları da içerir; yalnız yön denetimi.
+- **K3 örüntüsünün yanlış yakaladıkları** (türler tek tek okundu): *gereken, döken, çöken* (-An ortacı), *yeterince, olabildiğince, sakınca, karınca, gönlünce*,
+  *Romadan, kümeden, mesken*; Antalia 12/678 (%2), görüşmeler 20/124 (%16). Ölçümden çıkarıldı (`K3_NOT`, ayrıca *-mAdAn önce/sonra*). Kural açılırsa
+  `boundary_rules.CONVERB_NOT`'a eklenmeli.
+
+**Sonuç (≥ 250 ms duraklama oranı [%95 GA], n; G1/G2 = katılımcı):**
+
+| Konum | Antalia (okuma) | G1 | G2 | G3 (ayrılmamış) |
+|---|---|---|---|---|
+| Denetim (noktalamasız, hiçbir konum değil) | %3 [3–4], 23.664 | %12 [11–14], 2.694 | %15 [13–16], 2.265 | %8 [7–9], 3.612 |
+| Zarf-fiil / koşul sonrası (K3) | %35 [31–39], 640 | %32 [18–47], 38 | %65 [45–85], 20 | %39 [22–58], 33 |
+| K3, noktalamasız | %27 [23–31], 557 | %34 [19–53], 32 | %65 [41–88], 17 | %43 [26–63], 30 |
+| K3 − denetim (puan) | +32 [+28, +36] | +19 [+6, +35] | +50 [+28, +72] | +31 [+13, +50] |
+| Bağlaç ÖNCESİ (ama, çünkü, fakat ...) | %43 [38–48], 358 | %21 [12–33], 52 | %41 [25–58], 34 | %28 [18–38], 71 |
+| Bağlaç SONRASI | %5 [2–7], 357 | %29 [18–41], 55 | %30 [14–48], 33 | %26 [17–36], 68 |
+| "ve" öncesi | %44 [39–50], 335 | %24 [8–44], 25 | %39 [22–58], 28 | %29 [18–38], 56 |
+| "ve" sonrası | %4 [2–6], 335 | %27 [12–42], 26 | %22 [8–39], 32 | %29 [17–41], 56 |
+| Tamlayan (-In) + sonraki sözcük, noktalamasız | %4 [3–5], 941 | %26 [17–36], 80 | %28 [22–34], 222 | %8 [4–14], 157 |
+| Ardışık sayı sözcükleri | %4 [3–5], 1.562 | %2, 46 | %0, 11 | %0, 6 |
+| Virgül (Antalia: yazarın; görüşme: Whisper'ın) | %68, 3.551 | %38, 161 | %60, 79 | %28, 147 |
+| Cümle sonu | %97, 2.660 | %48, 261 | %62, 160 | %55, 411 |
+
+Durulduğunda sessizlik ortancası (≥ 100 ms olanlarda): K3 Antalia 290 ms, görüşmeler 400–460 ms; cümle sonu Antalia 680, görüşmeler 460–530.
+
+1. **Zarf-fiil / koşul sonrası gerçek bir duraklama yeri.** Üç konuşmacıda da denetimin belirgin üstünde (fark +19 … +50 puan, GA'lar 0'ı dışlıyor) ve okuma
+   kaydıyla aynı düzeyde ya da üstünde. Alt türler (zarf-fiil -IncA/-ken/-mAdAn/-DIğIndA: Antalia %29, G1 %33 [n=9], G2 %86 [n=7], G3 %56 [n=9]; koşul -sA:
+   %39 / %31 / %54 / %33) aynı yönde; görüşmelerde n küçük. → kullanıcının kulak etiketi (§7 madde 3) doğal konuşmayla uyumlu.
+2. **§7'deki "Antalia okuyucusu zarf-fiil sonrası çoğunlukla sessizlik bırakmıyor" cümlesi fazla güçlüydü.** Çoğunlukla bırakmıyor (doğru), ama noktalamasız
+   zarf-fiil/koşul sonrası duraklama oranı denetimin 6–8 katı: bu ölçüyle %27'ye karşı %3; MAS ölçüsüyle (≥ 250 ms) %10,5'e karşı %1,6. "K3 1/33" kuralın
+   test F1'ine NET katkısıydı (modelin zaten bulduklarından sonra), konumun duraklama oranı değil.
+3. **Bağlaçta okuma ile doğal konuşma ayrışıyor.** Okumada duraklama bağlaçtan ÖNCE (%43'e karşı sonrası %5; "ve": %44 / %4). Doğal konuşmada öncesi de
+   var (%21–41) ama SONRASI da sık (%26–30; Antalia'nın 5–6 katı): konuşmacı bağlacı söyleyip sonra tasarlıyor. K2 ("önce sınır, sonra sınır yok") okuma
+   üslubunu doğru betimliyor; TTS'in hedefi okuma üslubu olduğu için kural yönü doğru, doğal konuşma taklit edilecekse geçerli değil.
+4. **Tamlayan sonrası:** okumada denetimle aynı (%4 / %3) → K5 "ad öbeği içi sınırı sil" okuma verisiyle uyumlu. G1/G2'de denetimin ≈ 14 puan üstünde
+   (sözcük arama / iç tümce öznesi olabilir; ayırt edilemiyor), G3'te fark yok. Ardışık sayılar her yerde ≈ 0 → K5-sayı sağlam.
+5. **Doğal konuşmada "nedensiz" konumda duraklama okumadan 3–5 kat sık** (%8–15'e karşı %3) ve cümle sonu duraklaması daha kısa/seyrek (Whisper noktası
+   her zaman duraklama değil). Bu yüzden görüşme oranları mutlak değil, denetime göre okunmalı.
+
+**Duyarlılık:** eşik 20 dB, ASR güveni ≥ 0,8, hizalama parçası kenarı/arası sınırlar hariç, ±40 ms paylı bölge: K3 G1 %30–37, G2 %61–65, G3 %34–42;
+bağlaç sonrası G1 %28–36, G2 %30–39, G3 %25–28 → sonuçlar değişmiyor.
+
+**Sınırlar:** iki (+ bir ayrılmamış) konuşmacı; görüşmelerde K3 n = 20–38 (GA geniş); duraksama duraklaması ile öbek sınırı duraklaması ayırt edilemiyor
+(denetim farkı yalnız kısmen düzeltir); konum etiketleri yüzey örüntüsü (Morph değil); sessizliksiz sınır (uzama / perde) ölçülmedi; görüşmelerde
+noktalama Whisper'ın (kısmen duraklamadan türemiş) → "noktalamasız" alt kümesi görüşmelerde yanlı, asıl kıyas noktalamadan bağımsız satırlar.
+
+**Karar:** model / kural değişikliği YOK. Sınır kuralları kör AB'de duyulur fark yaratmamıştı (§7; darboğaz süre tahmincisinin sınır özniteliğine zayıf
+tepkisi) — bu ölçüm o darboğazı değiştirmez; yalnız K3 ve K2'nin YÖNÜNÜN doğru olduğunu ve K3 örüntüsünün ayıklanması gerektiğini gösterir.
